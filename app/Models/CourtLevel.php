@@ -2,21 +2,22 @@
 
 namespace App\Models;
 
-use App\Enum\ActiveStatusEnum;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CourtLevel extends Model
 {
-    use HasFactory;
-
-    protected $casts = [
-        'status' => ActiveStatusEnum::class
-    ];
-
     protected $fillable = [
-        'name',
-        'status',
+        'name'
     ];
+
+    public function courts()
+    {
+        return $this->belongsToMany(Court::class);
+    }
+
+    public function matters()
+    {
+        return $this->hasMany(Matter::class);
+    }
 
 }

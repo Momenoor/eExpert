@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Select;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -57,5 +59,16 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    public function boot()
+    {
+        Group::configureUsing(function (Group $group) {
+            $group->columns(2)
+                ->columnSpanFull();
+        });
+        Select::configureUsing(function (Select $select) {
+            $select->native(false);
+        });
     }
 }

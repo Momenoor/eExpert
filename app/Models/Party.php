@@ -2,71 +2,28 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasRole;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 class Party extends Model
 {
-    use HasFactory, LogsActivity, HasRole;
-
-    protected static bool $logOnlyDirty = true;
-
-    protected $table = 'entities';
-
-    protected static bool $submitEmptyLogs = false;
-
-    protected array $logAttributes = [
-        'name',
-        'phone',
-        'fax',
-        'address',
-        'email',
-        'type',
-        'extra',
-        'parent_id',
-        'user_id',
-    ];
     protected $fillable = [
-        'name',
-        'phone',
-        'fax',
-        'address',
-        'email',
-        'type',
-        'parent_id',
-        'user_id',
+        'entity_id',
+        'party_type_id',
     ];
 
-    protected static function boot(): void
+    public function entity()
     {
-        parent::boot();
-        static::addGlobalScope('party', function ($query) {
-            $query->whereHas('roles', function ($query) {
-                $query->where('role_name', 'party');
-            });
-        });
-//        static::creating(function ($query) {
-//            $query->user_id = auth()->id();
-//        });
+        return $this->belongsTo(Entity::class);
     }
 
-    public function getActivitylogOptions(): LogOptions
+    public function partyType()
     {
-        return LogOptions::defaults();
+        return $this->belongsTo(PartyType::class);
     }
 
-    public function scopeNotBlackList()
+    public function matterParties()
     {
-        return $this->where('black_list', false);
+        return $this->hasMany(MatterParty::class);
     }
-
-    public function parent()
-    {
-        return $this->belongsTo(Party::class, 'parent_id');
-    }
-
 
 }

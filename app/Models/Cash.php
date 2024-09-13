@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Services\Money;
+use App\Forms\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -10,7 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Cash extends Model
 {
-    use HasFactory,LogsActivity;
+    use HasFactory, LogsActivity;
 
     const PAID = 'paid';
     const UNPAID = 'unpaid';
@@ -21,7 +21,7 @@ class Cash extends Model
 
     protected static $submitEmptyLogs = false;
 
-    protected $logAttributes  = [
+    protected $logAttributes = [
         'datetime',
         'amount',
         'description',
@@ -40,7 +40,15 @@ class Cash extends Model
         'user_id',
     ];
 
-
+    public static function statusList()
+    {
+        return [
+            self::PAID,
+            self::UNPAID,
+            self::OVERPAID,
+            self::PARTIAL,
+        ];
+    }
 
     protected static function boot()
     {
@@ -51,10 +59,12 @@ class Cash extends Model
             $query->datetime = now();
         });
     }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults();
     }
+
     public function matter()
     {
         return $this->belongsTo(Matter::class);
@@ -68,15 +78,5 @@ class Cash extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public static function statusList()
-    {
-        return [
-            self::PAID,
-            self::UNPAID,
-            self::OVERPAID,
-            self::PARTIAL,
-        ];
     }
 }

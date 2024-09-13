@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Services\Money;
+use App\Forms\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -60,6 +60,7 @@ class Claim extends Model
     {
         return LogOptions::defaults();
     }
+
     public function matter()
     {
         return $this->belongsTo(Matter::class);
@@ -101,14 +102,14 @@ class Claim extends Model
         return \Str::lower($this->recurring);
     } */
 
-    public function getSumCash()
-    {
-        return $this->cashes->sum('amount');
-    }
-
     public function getDueAmount()
     {
         return $this->amount - $this->getSumCash();
+    }
+
+    public function getSumCash()
+    {
+        return $this->cashes->sum('amount');
     }
 
     public function getClaimAmountAttribute()

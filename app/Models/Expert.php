@@ -2,70 +2,44 @@
 
 namespace App\Models;
 
-use App\Enum\EntitySubRoleEnum;
-use App\Models\Traits\HasRole;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Traits\HasEntity;
 use Illuminate\Database\Eloquent\Model;
 
 class Expert extends Model
 {
-    use HasFactory, HasRole;
-
-    protected $table = 'entities';
+    use HasEntity;
 
     protected $fillable = [
-        'name',
-        'phone',
-        'email',
-        'fax',
-        'address',
-        'expert_role',
-        'expert_field_id',
-        'user_id',
+        'entity_id',
+        'expertise_field_id'
     ];
 
-    protected $with = [
-        'user',
-        'expertField',
-    ];
+    /**
+     * Relationships
+     */
 
-    protected $casts = [
-        'expert_role' => EntitySubRoleEnum::class,
-    ];
 
-    protected static function boot(): void
+    public function expertiseField(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        parent::boot();
-        static::addGlobalScope('expert', function ($query) {
-            $query->whereHas('roles', function ($query) {
-                $query->whereLike('name', '%expert%');
-            });
-        });
-//        static::creating(function ($query) {
-//            $query->user_id = auth()->id();
-//        });
+        return $this->belongsTo(ExpertiseField::class);
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function matters()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(Matter::class, 'matter_experts')
+            ->withPivot('expert_type_id') // Include additional pivot fields if needed
+            ->withTimestamps();
     }
 
-    public function expertField(): \Illuminate\Database\Eloquent\Relations\hasManyThrough
+    public function matterExperts(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasManyThrough(
-            ExpertField::class,
-            EntityRole::class,
-            'entity_id',
-            'id',
-            'id',
-            'expert_field_id'
-        )
-            ->select([
-                'expert_fields.id',
-                'expert_fields.name'
-            ]);
+        return $this->hasMany(MatterExpert::class);
     }
 
+    public function types(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(ExpertType::class, 'expert_expert_type')
+            ->withTimestamps();
+    }
 
 }

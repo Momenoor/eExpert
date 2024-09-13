@@ -55,10 +55,6 @@ class UserResource extends Resource
                             'ar' => 'Arabic',
                             'en' => 'English',
                         ]),
-                    Forms\Components\Select::make('roles')
-                        ->relationship('roles', 'name')
-                        ->multiple()
-                        ->preload()
                 ]),
             ]);
     }
@@ -82,17 +78,14 @@ class UserResource extends Resource
                     ->color('success'),
                 Tables\Columns\TextColumn::make('language')
                     ->badge(),
-                Tables\Columns\TextColumn::make('roles.name')
-                    ->badge()
-                    ->color('danger'),
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('language')
                     ->options(['ar' => 'Arabic', 'en' => 'English']),
                 Tables\Filters\SelectFilter::make('gender')
                     ->options(['male' => 'Male', 'female' => 'Female']),
-                Tables\Filters\SelectFilter::make('roles')
-                ->relationship('roles', 'name'),
+                
 
             ])
             ->actions([

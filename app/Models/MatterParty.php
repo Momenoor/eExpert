@@ -2,37 +2,45 @@
 
 namespace App\Models;
 
-use App\Contracts\MatterPartyContract;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 class MatterParty extends Pivot
 {
-    //
-    use LogsActivity;
+    public $incrementing = true;
     protected $fillable = [
         'matter_id',
         'party_id',
+        'party_type_id',
         'parent_id',
-        'role',
-    ];
-    protected $logAttributes = [
-        'matter_id',
-        'party_id',
-        'parent_id',
-        'role_id',
     ];
 
-    public $timestamps = true;
-
-    public function getActivitylogOptions(): LogOptions
+    public function matter()
     {
-        return LogOptions::defaults();
+        return $this->belongsTo(Matter::class);
     }
-    public function subParties(){
 
-        return $this->belongsTo(Party::class,'parent_id');
+    // BelongsTo with Party
+    public function party()
+    {
+        return $this->belongsTo(Party::class);
+    }
+
+    // BelongsTo with PartyType
+    public function partyType()
+    {
+        return $this->belongsTo(PartyType::class);
+    }
+
+    // Self-referencing parent relationship
+    public function parent()
+    {
+        return $this->belongsTo(MatterParty::class, 'parent_id');
+    }
+
+    // Self-referencing child relationships
+    public function children()
+    {
+        return $this->hasMany(MatterParty::class, 'parent_id');
     }
 
 }

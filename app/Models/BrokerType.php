@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MatterStatus extends Model
+class BrokerType extends Model
 {
     protected $fillable = ['name'];
 
-    public function matters()
+    public function broker()
     {
-        return $this->hasMany(Matter::class);
+        return $this->hasMany('App\Models\Broker');
     }
 
 }
