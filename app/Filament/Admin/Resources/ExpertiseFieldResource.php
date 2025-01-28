@@ -2,10 +2,10 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\CourtLevelResource\Pages;
-use App\Filament\Admin\Resources\CourtLevelResource\RelationManagers;
-use App\Filament\Forms\CourtLevelForm;
-use App\Models\CourtLevel;
+use App\Filament\Admin\Resources\ExpertiseFieldResource\Pages;
+use App\Filament\Admin\Resources\ExpertiseFieldResource\RelationManagers;
+use App\Filament\Forms\ExpertiseFieldForm;
+use App\Models\ExpertiseField;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,19 +14,17 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class CourtLevelResource extends Resource
+class ExpertiseFieldResource extends Resource
 {
-    protected static ?string $model = CourtLevel::class;
-
-    protected static ?string $navigationGroup = 'Courts';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $model = ExpertiseField::class;
+    protected static ?string $navigationGroup = 'Experts';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                ...CourtLevelForm::make()
+                ...ExpertiseFieldForm::make(),
             ]);
     }
 
@@ -35,14 +33,11 @@ class CourtLevelResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('courts.entity.name')
-                    ->label('Courts')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('experts.entity.name')
                     ->searchable()
                     ->listWithLineBreaks()
-                    ->badge(),
-                Tables\Columns\TextColumn::make('matters_count')->counts('matters')
+                    ->bulleted(),
             ])
             ->filters([
                 //
@@ -67,9 +62,9 @@ class CourtLevelResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCourtLevels::route('/'),
-            'create' => Pages\CreateCourtLevel::route('/create'),
-            'edit' => Pages\EditCourtLevel::route('/{record}/edit'),
+            'index' => Pages\ListExpertiseFields::route('/'),
+            'create' => Pages\CreateExpertiseField::route('/create'),
+            'edit' => Pages\EditExpertiseField::route('/{record}/edit'),
         ];
     }
 }
