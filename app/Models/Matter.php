@@ -304,6 +304,12 @@ class Matter extends Model
         return $this->hasMany(Attachment::class);
     }
 
+    public function finalReportSubmission(): void
+    {
+        $this->final_report_at = now();
+        $this->save();
+    }
+
     public function incentiveLines(): HasMany
     {
         return $this->hasMany(IncentiveLine::class);
