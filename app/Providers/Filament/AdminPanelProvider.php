@@ -16,6 +16,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\FontProviders\GoogleFontProvider;
 use Filament\FontProviders\LocalFontProvider;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -156,6 +157,7 @@ class AdminPanelProvider extends PanelProvider
         FilamentAsset::register([
             Css::make('custom-css', asset('css/custom-css.css')),
         ]);
+        FileUpload::configureUsing(fn(FileUpload $component) => $component->maxSize(1024 * 1024 * 50));
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
