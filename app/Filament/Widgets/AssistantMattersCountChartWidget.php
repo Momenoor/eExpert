@@ -25,7 +25,7 @@ class AssistantMattersCountChartWidget extends ChartWidget
             ->where('matter_party.type', 'assistant')
             ->whereHas('party', fn($q) => $q->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
             )
-            ->whereHas('matter', fn($q) => $q->whereNull('initial_report_at')
+            ->whereHas('matter', fn($q) => $q->whereNull('final_report_memo_date')
                 ->whereNull('final_report_at')
             )
             ->with('party:id,name')
@@ -43,7 +43,7 @@ class AssistantMattersCountChartWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => __('Active Matters'),
+                    'label' => __('Active Matters').__('Initial Report'),
                     'data' => array_values($assistants->map->count()->toArray()),
                     // ✅ ids array is now included so the JS click handler can read it
                     'ids' => array_values($assistants->keys()->toArray()),
