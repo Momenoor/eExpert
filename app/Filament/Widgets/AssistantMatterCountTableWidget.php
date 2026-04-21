@@ -48,7 +48,7 @@ class AssistantMatterCountTableWidget extends TableWidget
             )
             ->whereHas('matter', fn($q) => $q->whereNotNull('distributed_at')
                 ->whereNull('final_report_at')
-                ->whereNull('initial_report_at'))
+                ->whereNull('final_report_memo_date'))
             ->with(['party', 'matter', 'matter.court', 'matter.type'])
             ->when($this->selectedPartyId, fn($q) => $q->where('matter_party.party_id', $this->selectedPartyId)
             );
@@ -68,6 +68,8 @@ class AssistantMatterCountTableWidget extends TableWidget
                 TextColumn::make('party.name')
                     ->label(__('Assistant'))
                     ->sortable(),
+                TextColumn::make('matter.status')
+                    ->label(__('Status')),
                 TextColumn::make('matter.reference')
                     ->label(__('Matter'))
                     ->getStateUsing(fn($record) => "{$record->matter?->year}/{$record->matter?->number}")
