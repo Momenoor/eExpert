@@ -43,7 +43,7 @@ class AssistantMattersCountChartWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => __('Active Matters').' '.__('Initial Report'),
+                    'label' => __('Active Matters').' + '.__('Initial Report'),
                     'data' => array_values($assistants->map->count()->toArray()),
                     // ✅ ids array is now included so the JS click handler can read it
                     'ids' => array_values($assistants->keys()->toArray()),
