@@ -15,6 +15,7 @@ use App\Filament\Actions\Request\RejectRequestAction;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Helpers\FileUploadHelper;
 use App\Models\Allocation;
+use App\Models\MatterFieldDefinition;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\DatePicker;
@@ -148,7 +149,34 @@ class MatterInfolist
                 TextEntry::make('type.name')->label(__('Type'))->icon('heroicon-o-rectangle-stack'),
                 TextEntry::make('level')->label(__('Level'))->badge(),
                 TextEntry::make('difficulty')->label(__('Difficulty'))->badge(),
+                Group::make()
+                    ->schema(function ($record) {
+                        if (!$record || !$record->type_id) {
+                            return [];
+                        }
 
+                        $fields = MatterFieldDefinition::where('type_id', $record->type_id)->get();
+                        $entries = [];
+
+                        foreach ($fields as $field) {
+                            $value = $record->custom_fields[$field->id] ?? null;
+
+                            if ($value === null) continue;
+
+                            $entry = TextEntry::make("custom_fields.{$field->id}")
+                                ->label($field->label);
+
+                            if ($field->type === 'select') {
+                                $entry->formatStateUsing(fn($state) => $field->options[$state] ?? $state);
+                            }
+
+                            $entries[] = $entry;
+                        }
+
+                        return $entries;
+                    })
+                    ->columns(2)
+                    ->columnSpanFull(),
             ]);
     }
 

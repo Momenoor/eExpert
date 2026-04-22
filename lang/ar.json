@@ -375,6 +375,11 @@
     "Is Office Work": "تمت المباشرة من خلال المكتب",
     "IT": "تقنية المعلومات",
     "Key Dates": "تواريخ هامة",
+    "Label": "التسمية",
+    "text": "نص",
+    "select": "قائمة اختيار",
+    "date": "تاريخ",
+    "Options": "الخيارات",
     "Last": "الأخير",
     "Last Action": "آخر إجراء",
     "Last Action Date": "تاريخ آخر إجراء",
@@ -807,7 +812,16 @@
     "Notify by Email": "إشعار بالبريد الإلكتروني",
     "Display name": "الاسم المعروض",
     "Auto-generated: Matter received date confirmed.": "تمت تأكيد تاريخ استلام الدعوى تلقائياً.",
-    "Final Report must be approved first.": "يجب إعتماد التقرير النهائي أولاً."
+    "Final Report must be approved first.": "يجب إعتماد التقرير النهائي أولاً.",
+    "select_input": "قائمة اختيار",
+    "date_input": " تاريخ",
+    "toggle_input": "زر تبديل",
+    "text_input": "نص",
+    "Matter Field Definition": "تعريف الحقول المخصصة",
+    "Required": "إلزامي",
+    "matter field definitions": "تعريفات الحقول المخصصة",
+    "Field Definition":"حقل مخصص",
+    "Field Definitions":"حقول مخصصة"
 
 }
 

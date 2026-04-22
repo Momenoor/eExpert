@@ -37,4 +37,9 @@ class Type extends Model
     {
         return $this->hasOne(MatterTypeIncentiveConfig::class);
     }
+
+    public function fieldDefinitions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MatterFieldDefinition::class, 'type_id');
+    }
 }

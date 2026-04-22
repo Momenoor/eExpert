@@ -60,6 +60,7 @@ class TypeResource extends Resource
     {
         return [
             IncentiveConfigRelationManager::class,
+            \App\Filament\Resources\Types\RelationManagers\FieldDefinitionsRelationManager::class,
         ];
     }
 

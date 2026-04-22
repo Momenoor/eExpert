@@ -46,7 +46,8 @@ class Matter extends Model
         'has_court_penalty',
         'final_report_memo_date',
         'is_office_work',
-        'received_at'
+        'received_at',
+        'custom_fields'
     ];
 
     protected array $dates = [
@@ -71,6 +72,7 @@ class Matter extends Model
         'final_report_memo_date' => 'date',
         'is_office_work' => 'boolean',
         'created_at' => 'date:Y-m-d',
+        'custom_fields' => 'json',
     ];
 
     public $timestamps = true;

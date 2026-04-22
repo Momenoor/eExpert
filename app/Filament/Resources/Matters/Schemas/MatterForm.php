@@ -7,6 +7,7 @@ use App\Enums\MatterDifficulty;
 use App\Enums\MatterLevel;
 use App\Filament\Resources\Parties\Schemas\PartyForm;
 use App\Models\Matter;
+use App\Models\MatterFieldDefinition;
 use App\Models\Party;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -132,7 +133,42 @@ class MatterForm
                                         })
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        ->live(),
+                                    Group::make()
+                                        ->schema(function (Get $get) {
+                                            $typeId = $get('type_id');
+                                            if (!$typeId) {
+                                                return [];
+                                            }
+
+                                            $fields = MatterFieldDefinition::where('type_id', $typeId)->get();
+                                            $components = [];
+
+                                            foreach ($fields as $field) {
+                                                $component = match ($field->type) {
+                                                    'select_input' => Select::make("custom_fields.{$field->id}")
+                                                        ->options($field->options ?? [])
+                                                        ->label($field->label),
+                                                    'date_input' => DatePicker::make("custom_fields.{$field->id}")
+                                                        ->label($field->label),
+                                                    'toggle_input' => Toggle::make("custom_fields.{$field->id}")
+                                                        ->label($field->label),
+                                                    default => TextInput::make("custom_fields.{$field->id}")
+                                                        ->label($field->label),
+                                                };
+
+                                                if ($field->required) {
+                                                    $component->required();
+                                                }
+
+                                                $components[] = $component;
+                                            }
+
+                                            return $components;
+                                        })
+                                        ->columns(2)
+                                        ->columnSpanFull(),
                                     Select::make('difficulty')
                                         ->label(__('Difficulty'))
                                         ->options(MatterDifficulty::class)
