@@ -821,7 +821,9 @@
     "Required": "إلزامي",
     "matter field definitions": "تعريفات الحقول المخصصة",
     "Field Definition":"حقل مخصص",
-    "Field Definitions":"حقول مخصصة"
+    "Field Definitions":"حقول مخصصة",
+    "matter type incentive configs": "إعدادات مكافآت نوع الدعوى",
+    "Value": "القيمة"
 
 }
 

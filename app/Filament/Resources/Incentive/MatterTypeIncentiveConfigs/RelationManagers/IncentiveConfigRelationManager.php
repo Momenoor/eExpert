@@ -23,6 +23,15 @@ class IncentiveConfigRelationManager extends RelationManager
         return __('Incentive Config');
     }
 
+    public static function getPluralModelLabel(): string
+    {
+        return __('Incentive Configs');
+    }
+    public static function getModelLabel(): string
+    {
+        return __('Incentive Config');
+    }
+
     public function form(Schema $schema): Schema
     {
         return MatterTypeIncentiveConfigForm::configure($schema);
