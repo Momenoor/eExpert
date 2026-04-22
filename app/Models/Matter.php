@@ -307,8 +307,10 @@ class Matter extends Model
     public function finalReportSubmission(): void
     {
         $this->final_report_at = now();
-        if($this->final_report_memo_date === null)
-        {
+        if ($this->initial_report_at === null) {
+            $this->initial_report_at = now();
+        }
+        if ($this->final_report_memo_date === null) {
             $this->final_report_memo_date = now();
         }
         $this->save();
