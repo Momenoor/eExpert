@@ -24,10 +24,16 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class FieldDefinitionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'fieldDefinitions';
+
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('Field Definitions');
+    }
 
     public static function getModelLabel(): string
     {
@@ -38,6 +44,8 @@ class FieldDefinitionsRelationManager extends RelationManager
     {
         return __('Field Definitions');
     }
+
+    protected static ?string $recordTitleAttribute = 'label';
 
     public function form(Schema $schema): Schema
     {
@@ -60,7 +68,7 @@ class FieldDefinitionsRelationManager extends RelationManager
                     ->label(__('Required')),
                 KeyValue::make('options')
                     ->label(__('Options'))
-                    ->visible(fn(Get $get) => $get('type') === 'select'),
+                    ->visible(fn(Get $get) => $get('type') === 'select_input'),
             ]);
     }
 
