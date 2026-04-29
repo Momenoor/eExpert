@@ -85,7 +85,6 @@ class MatterInfolist
         return $schema
             ->columns(2)
             ->components([
-                TextEntry::make('number')->label(__('Number'))->weight(FontWeight::SemiBold),
                 Grid::make(1)->columnSpan(1)->schema([
                     static::identitySection(),
                     static::classificationSection(),
