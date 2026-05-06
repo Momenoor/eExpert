@@ -28,6 +28,7 @@
         "saade/filament-fullcalendar": "^4.0",
         "symfony/mailer": "^8.0",
         "tomatophp/filament-users": "^5.0",
+        "webklex/laravel-imap": "^6.2",
         "ymsoft/filament-money": "^0.1.3"
     },
     "require-dev": {

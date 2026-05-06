@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Andreia\FilamentUiSwitcher\Models\Traits\HasUiPreferences;
+
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Permission\Traits\HasPermissions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
 
@@ -20,11 +19,13 @@ class User extends Authenticatable implements FilamentUser
     use  HasFactory, Notifiable, HasRoles;
     use LogsActivity;
 
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logAll();
     }
+
 
     protected $fillable = [
         'name',

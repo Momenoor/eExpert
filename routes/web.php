@@ -2,11 +2,19 @@
 
 use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\MatterReceivedNotificationController;
+use App\Models\BulkMailRecipient;
+use App\Enums\BulkMailRecipientStatus;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/mail/unsubscribe/{token}', function ($token) {
+    $recipient = BulkMailRecipient::where('unsubscribe_token', $token)->firstOrFail();
+    $recipient->update(['status' => BulkMailRecipientStatus::Skipped]);
+    return __('You have been successfully unsubscribed.');
+})->name('bulk-mail.unsubscribe');
 
 Route::get('attachments/{attachment}/download', function (\App\Models\Attachment $attachment) {
     abort_unless(auth()->user()->can('view', $attachment->matter), 403);
