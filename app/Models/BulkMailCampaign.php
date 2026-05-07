@@ -115,7 +115,7 @@ class BulkMailCampaign extends Model
         if (!isset($placeholder['name']))
             $placeholder['name'] = $recipient->name;
         if (!isset($placeholder['email']))
-            $placeholder['email'] = $recipient->email;
+            $placeholder['email'] = is_array($recipient->email) ? implode(', ', $recipient->email) : $recipient->email;
         foreach ($placeholder as $key => $value) {
             $body = str_replace("{{{$key}}}", $value, $body);
         }
