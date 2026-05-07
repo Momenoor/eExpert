@@ -61,7 +61,7 @@ class SendBulkMailBatch implements ShouldQueue
         foreach ($recipients as $recipient) {
             try {
                 $this->withMailerConfig($campaign, function () use ($campaign, $recipient) {
-
+                    $email = is_array($recipient->email) ? implode('; ', $recipient->email) : $recipient->email;
                     $message = Mail::to($recipient->email)
                         ->cc(array_merge($campaign->cc_emails ?? [], $recipient->cc_emails ?? []))
                         ->bcc($campaign->bcc_emails ?? [])
@@ -82,23 +82,23 @@ class SendBulkMailBatch implements ShouldQueue
                 try {
 
 
-                $pdfPath = app(BulkMailService::class)->generate($campaign, $recipient);
-                $recipient->update([
-                    'status' => BulkMailRecipientStatus::Sent,
-                    'sent_at' => now(),
-                    'pdf_path' => $pdfPath,
-                ]);
+                    $pdfPath = app(BulkMailService::class)->generate($campaign, $recipient);
+                    $recipient->update([
+                        'status' => BulkMailRecipientStatus::Sent,
+                        'sent_at' => now(),
+                        'pdf_path' => $pdfPath,
+                    ]);
 
-                $campaign->increment('sent_count');
+                    $campaign->increment('sent_count');
 
-                BulkMailLog::create([
-                    'campaign_id' => $campaign->id,
-                    'recipient_id' => $recipient->id,
-                    'action' => 'sent',
-                    'metadata' => ['pdf_path'=> $pdfPath],
-                    'timestamp' => now(),
-                ]);
-                }catch (\Exception $e) {
+                    BulkMailLog::create([
+                        'campaign_id' => $campaign->id,
+                        'recipient_id' => $recipient->id,
+                        'action' => 'sent',
+                        'metadata' => ['pdf_path' => $pdfPath],
+                        'timestamp' => now(),
+                    ]);
+                } catch (\Exception $e) {
                     $recipient->update([
                         'status' => BulkMailRecipientStatus::Sent,
                         'sent_at' => now(),

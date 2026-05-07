@@ -41,9 +41,9 @@ class RecipientsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('email')
+            TagsInput::make('email')
                 ->label(__('bulk_mail.fields.email'))
-                ->email()
+                ->separator(';')
                 ->required(),
             TextInput::make('name')
                 ->label(__('bulk_mail.fields.name')),
@@ -107,7 +107,9 @@ class RecipientsRelationManager extends RelationManager
                     ->visible(fn($record) => filled($record->sent_at))
                     ->requiresConfirmation()
                     ->action(function ($record) {
-                        Storage::delete($record->pdf_path);
+                        if ($record->pdf_path && Storage::exists($record->pdf_path)) {
+                            Storage::delete($record->pdf_path);
+                        }
                         $record->update([
                             'status' => BulkMailRecipientStatus::Pending,
                             'sent_at' => null,
@@ -169,7 +171,9 @@ class RecipientsRelationManager extends RelationManager
                         ->label(__('bulk_mail.actions.resend'))
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                Storage::delete($record->pdf_path);
+                                if ($record->pdf_path && Storage::exists($record->pdf_path)) {
+                                    Storage::delete($record->pdf_path);
+                                }
                                 $record->update([
                                     'status' => BulkMailRecipientStatus::Pending,
                                     'sent_at' => null,
