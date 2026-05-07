@@ -65,6 +65,7 @@ class BulkMailMessage extends Mailable
                 : json_decode($this->campaign->attachment_path, true) ?? [];
 
             foreach ($paths as $path) {
+                dd($path);
                 if ($path && Storage::disk($disk)->exists($path)) {
                     dd(Attachment::fromStorageDisk($disk, $path));
                     $attachments[] = Attachment::fromStorageDisk($disk, $path)
