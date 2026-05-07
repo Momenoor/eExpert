@@ -97,7 +97,7 @@ return [
                                style="display: inline-block; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px; background: #fff;
-                                           border: 1px solid #dadce0; border-radius: 3px;">
+                                            border-radius: 3px;">
                                 <img src="https://new.jpaemirates.com/images/GoogleSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"

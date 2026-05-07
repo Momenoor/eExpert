@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class RecipientsRelationManager extends RelationManager
 {
@@ -28,15 +29,15 @@ class RecipientsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-                TextInput::make('email')
-                    ->email()
-                    ->required(),
-                TextInput::make('name'),
-                TagsInput::make('cc_emails')
-                    ->label(__('bulk_mail.fields.cc_emails')),
-                KeyValue::make('placeholders')
-                    ->label(__('bulk_mail.fields.placeholders')),
-            ]);
+            TextInput::make('email')
+                ->email()
+                ->required(),
+            TextInput::make('name'),
+            TagsInput::make('cc_emails')
+                ->label(__('bulk_mail.fields.cc_emails')),
+            KeyValue::make('placeholders')
+                ->label(__('bulk_mail.fields.placeholders')),
+        ]);
     }
 
     public function table(Table $table): Table
@@ -65,7 +66,7 @@ class RecipientsRelationManager extends RelationManager
                     }),
                 ImportAction::make()
                     ->importer(BulkMailRecipientImporter::class)
-                    ->options(fn ($livewire) => [
+                    ->options(fn($livewire) => [
                         'campaign_id' => $livewire->getOwnerRecord()->id,
                     ])
                     ->after(function ($livewire) {
@@ -84,33 +85,46 @@ class RecipientsRelationManager extends RelationManager
                 Action::make('resend')
                     ->label(__('bulk_mail.actions.resend'))
                     ->icon('heroicon-o-arrow-path')
+                    ->visible(fn($record) => filled($record->sent_at))
                     ->requiresConfirmation()
                     ->action(function ($record) {
+                        Storage::delete($record->pdf_path);
                         $record->update([
                             'status' => BulkMailRecipientStatus::Pending,
                             'sent_at' => null,
                             'failed_at' => null,
                             'attempt_count' => 0,
+                            'pdf_path' => null,
                         ]);
+                        $record->campaign->decrement('sent_count');
+
                     }),
                 Action::make('print')
                     ->label('Print')
                     ->icon('heroicon-o-printer')
-                    ->url(fn ($record) => route('bulk-mail.preview', [
-                        'campaign'  => $record->campaign_id,
+                    ->url(fn($record) => route('bulk-mail.preview', [
+                        'campaign' => $record->campaign_id,
                         'recipient' => $record->id,
-                        'print'     => 1,   // auto-triggers print dialog
+                        'print' => 1,   // auto-triggers print dialog
                     ]))
+                    ->visible(fn($record) => filled($record->sent_at))
                     ->openUrlInNewTab(),
 
                 // Preview only
                 Action::make('preview')
                     ->label('Preview')
                     ->icon('heroicon-o-eye')
-                    ->url(fn ($record) => route('bulk-mail.preview', [
-                        'campaign'  => $record->campaign_id,
+                    ->url(fn($record) => route('bulk-mail.preview', [
+                        'campaign' => $record->campaign_id,
                         'recipient' => $record->id,
                     ]))
+                    ->visible(fn($record) => filled($record->sent_at))
+                    ->openUrlInNewTab(),
+                Action::make('downloadPdf')
+                    ->label('Download PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->visible(fn($record) => filled($record->pdf_path))
+                    ->url(fn($record) => Storage::url($record->pdf_path))
                     ->openUrlInNewTab(),
 
             ])
@@ -128,19 +142,32 @@ class RecipientsRelationManager extends RelationManager
                                         'failed_at' => null,
                                         'attempt_count' => 0,
                                     ]);
+                                    $record->campaign->decrement('failed_count');
                                 }
                             });
                         }),
                     BulkAction::make('resend')
-                    ->label(__('bulk_mail.actions.resend'))
+                        ->label(__('bulk_mail.actions.resend'))
+                        ->action(function (Collection $records) {
+                            $records->each(function ($record) {
+                                Storage::delete($record->pdf_path);
+                                $record->update([
+                                    'status' => BulkMailRecipientStatus::Pending,
+                                    'sent_at' => null,
+                                    'failed_at' => null,
+                                    'attempt_count' => 0,
+                                    'pdf_path' => null,
+                                ]);
+                                $record->campaign->decrement('sent_count');
+                            });
+                        }),
+                    BulkAction::make('downloadPdf')
+                    ->label('Download PDF')
                     ->action(function (Collection $records) {
                         $records->each(function ($record) {
-                            $record->update([
-                                'status' => BulkMailRecipientStatus::Pending,
-                                'sent_at' => null,
-                                'failed_at' => null,
-                                'attempt_count' => 0,
-                            ]);
+                            if ($record->pdf_path) {
+                                Storage::download($record->pdf_path);
+                            }
                         });
                     })
                 ]),

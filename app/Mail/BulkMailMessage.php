@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailRecipient;
+use App\Services\BulkMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -44,6 +45,9 @@ class BulkMailMessage extends Mailable
     public function content(): Content
     {
         $html = $this->campaign->renderBody($this->recipient);
+        if (BulkMailService::containsArabic($html)) {
+            $html = '<div dir="rtl">' . $html . '</div>';
+        }
         return new Content(
             htmlString: new HtmlString($html),
         );

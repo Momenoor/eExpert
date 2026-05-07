@@ -25,6 +25,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "momenoor/laravel-msgraph-mailer": "^1.0",
+        "mpdf/mpdf": "^8.3",
         "saade/filament-fullcalendar": "^4.0",
         "symfony/mailer": "^8.0",
         "tomatophp/filament-users": "^5.0",

@@ -17,35 +17,38 @@ Route::get('/mail/unsubscribe/{token}', function ($token) {
     return __('You have been successfully unsubscribed.');
 })->name('bulk-mail.unsubscribe');
 
-Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class,'__invoke'])
-    ->name('bulk-mail.preview');
 
-Route::get('attachments/{attachment}/download', function (\App\Models\Attachment $attachment) {
-    abort_unless(auth()->user()->can('view', $attachment->matter), 403);
+Route::middleware('auth')->group(function () {
+    Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class, '__invoke'])
+        ->name('bulk-mail.preview');
 
-    return response()->download(
-        Storage::disk('public')->path($attachment->path),
-        $attachment->name  // original filename from DB
-    );
-})->name('attachment.download')->middleware('auth');
+    Route::get('attachments/{attachment}/download', function (\App\Models\Attachment $attachment) {
+        abort_unless(auth()->user()->can('view', $attachment->matter), 403);
 
-Route::get('incentive/calculations/{calculation}/print', IncentiveCalculationPrintController::class)
-    ->name('incentive.calculation.print')
-    ->middleware(['auth']);
+        return response()->download(
+            Storage::disk('public')->path($attachment->path),
+            $attachment->name  // original filename from DB
+        );
+    })->name('attachment.download')->middleware('auth');
 
-Route::prefix('admin/matter/{matter}/received-date')->group(function () {
+    Route::get('incentive/calculations/{calculation}/print', IncentiveCalculationPrintController::class)
+        ->name('incentive.calculation.print')
+        ->middleware(['auth']);
 
-    // Accept link from email (GET — no auth required)
-    Route::get('accept/{matterRequest}', [MatterReceivedNotificationController::class, 'accept'])
-        ->name('matter.received.accept')
-        ->middleware('signed');
+    Route::prefix('admin/matter/{matter}/received-date')->group(function () {
 
-    // Dispute link from email — shows form (GET — no auth required)
-    Route::get('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeForm'])
-        ->name('matter.received.dispute')
-        ->middleware('signed');
+        // Accept link from email (GET — no auth required)
+        Route::get('accept/{matterRequest}', [MatterReceivedNotificationController::class, 'accept'])
+            ->name('matter.received.accept')
+            ->middleware('signed');
 
-    // Dispute form submission (POST — no auth required)
-    Route::post('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeSubmit'])
-        ->name('matter.received.dispute.submit');
+        // Dispute link from email — shows form (GET — no auth required)
+        Route::get('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeForm'])
+            ->name('matter.received.dispute')
+            ->middleware('signed');
+
+        // Dispute form submission (POST — no auth required)
+        Route::post('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeSubmit'])
+            ->name('matter.received.dispute.submit');
+    });
 });

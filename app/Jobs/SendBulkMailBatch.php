@@ -8,6 +8,7 @@ use App\Mail\BulkMailMessage;
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailLog;
 use App\Models\BulkMailRecipient;
+use App\Services\BulkMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -78,10 +79,14 @@ class SendBulkMailBatch implements ShouldQueue
                     }
 
                 });
+                try {
 
+
+                $pdfPath = app(BulkMailService::class)->generate($campaign, $recipient);
                 $recipient->update([
                     'status' => BulkMailRecipientStatus::Sent,
                     'sent_at' => now(),
+                    'pdf_path' => $pdfPath,
                 ]);
 
                 $campaign->increment('sent_count');
@@ -90,8 +95,25 @@ class SendBulkMailBatch implements ShouldQueue
                     'campaign_id' => $campaign->id,
                     'recipient_id' => $recipient->id,
                     'action' => 'sent',
+                    'metadata' => ['pdf_path'=> $pdfPath],
                     'timestamp' => now(),
                 ]);
+                }catch (\Exception $e) {
+                    $recipient->update([
+                        'status' => BulkMailRecipientStatus::Sent,
+                        'sent_at' => now(),
+                    ]);
+
+                    $campaign->increment('sent_count');
+
+                    BulkMailLog::create([
+                        'campaign_id' => $campaign->id,
+                        'recipient_id' => $recipient->id,
+                        'action' => 'sent',
+                        'timestamp' => now(),
+                    ]);
+                    Log::error('Failed to generate PDF for campaign: ' . $campaign->id . ', recipient: ' . $recipient->email, ['exception' => $e]);
+                }
             } catch (\Exception $e) {
 
                 $recipient->increment('attempt_count');

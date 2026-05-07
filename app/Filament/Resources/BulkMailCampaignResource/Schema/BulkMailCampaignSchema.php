@@ -33,9 +33,7 @@ class BulkMailCampaignSchema
                         ->label(__('bulk_mail.fields.body'))
                         ->required()
                         ->hint(__('bulk_mail.hints.body'))
-                        ->toolbarButtons([
-                            'blockquote', 'bold', 'bulletList', 'codeBlock', 'h2', 'h3', 'italic', 'link', 'orderedList', 'redo', 'strike', 'undo',
-                        ])
+
                         ->columnSpanFull()
                         ->live(),
 
