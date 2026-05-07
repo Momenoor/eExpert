@@ -11,7 +11,7 @@ return [
             'port'=>587,
             'encryption'=>'tls',
             'signature' => <<<HTML
-                <div id="Signature" style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000000;">
+                <div dir="ltr" id="Signature" style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000000;">
                   <br>
                   <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                     <span style="color: #404040;"><b>Best Regards</b></span>
@@ -65,7 +65,7 @@ return [
                             <a href="https://www.facebook.com/jpaemirates/"
                                style="display: inline-block; margin-right: 4px; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
-                                           width: 20px; height: 20px; background: #1877f2; border-radius: 3px;">
+                                           width: 20px; height: 20px;  border-radius: 3px;">
                                 <img src="https://new.jpaemirates.com/images/FacebookSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
@@ -76,8 +76,7 @@ return [
                                style="display: inline-block; margin-right: 4px; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px;
-                                           background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-                                           border-radius: 3px;">
+                                                                                     border-radius: 3px;">
                                 <img src="https://new.jpaemirates.com/images/InstagramSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
@@ -87,7 +86,7 @@ return [
                             <a href="https://in.linkedin.com/company/jpa-emirates"
                                style="display: inline-block; margin-right: 4px; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
-                                           width: 20px; height: 20px; background: #0a66c2; border-radius: 3px;">
+                                           width: 20px; height: 20px;  border-radius: 3px;">
                                 <img src="https://new.jpaemirates.com/images/LinkedInSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
@@ -99,7 +98,7 @@ return [
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px; background: #fff;
                                            border: 1px solid #dadce0; border-radius: 3px;">
-                                <img src="https://new.jpaemirates.com/images/GoogleMapSignatureLogo.png"
+                                <img src="https://new.jpaemirates.com/images/GoogleSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
                                      alt="Google Maps Logo">
