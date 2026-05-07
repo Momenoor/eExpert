@@ -59,15 +59,15 @@ class BulkMailMessage extends Mailable
         $attachments = [];
 
         if ($this->campaign->has_attachment && $this->campaign->attachment_path) {
-            $disk  = $this->campaign->attachment_disk ?? 'public';
+            $disk  = 'public';
             $paths = is_array($this->campaign->attachment_path)
                 ? $this->campaign->attachment_path
                 : json_decode($this->campaign->attachment_path, true) ?? [];
 
             foreach ($paths as $path) {
-                dd($path);
+
                 if ($path && Storage::disk($disk)->exists($path)) {
-                    dd(Attachment::fromStorageDisk($disk, $path));
+
                     $attachments[] = Attachment::fromStorageDisk($disk, $path)
                         ->withMime(Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream');
                 }
