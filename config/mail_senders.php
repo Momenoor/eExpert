@@ -233,7 +233,7 @@ return [
         'easar' => [
             'username'=>'easar@jpaemirates.com',
             'address' => 'easar@jpaemirates.com',
-            'name' => 'JPA Easar Department قسم الإعصار',
+            'name' => 'JPA Easar Department قسم الإعسار',
             'password' => 'lK80$nTTm10J',
             'host'=>'mail.jpaemirates.com',
             'port'=>587,
@@ -265,7 +265,7 @@ return [
                             <span style="color: #1f3864;"><b>رضا درويش آل رحمة</b></span>
                           </p>
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 10.5pt;">
-                            <span style="color: #767171;"><i>قسم الإعصار</i></span>
+                            <span style="color: #767171;"><i>قسم الإعسار</i></span>
                           </p>
                           <p style="margin: 0; font-size: 4pt;">&nbsp;</p>
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 9pt;">
