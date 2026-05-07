@@ -78,7 +78,7 @@ class BulkMailService
         ))->render();
 
         $mpdf->WriteHTML($renderedHtml);
-        $sanitize = fn(string $name): string => preg_replace('/[^A-Za-z0-9\-_. ]/', '_', $name);
+        $sanitize = fn(string $name): string => preg_replace('/[\s\\/:"*?<>|]+/', '_', $name);
         $storagePath = "bulk-mail-pdfs/{$sanitize($campaign->name)}/{$sanitize($recipient->name)}.pdf";
         $fullPath    = storage_path('app/public/' . $storagePath);
 

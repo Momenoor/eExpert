@@ -15,12 +15,14 @@ use Filament\Actions\ImportAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 
 class RecipientsRelationManager extends RelationManager
 {
@@ -181,11 +183,36 @@ class RecipientsRelationManager extends RelationManager
                     BulkAction::make('downloadPdf')
                         ->label(__('bulk_mail.actions.download_pdf'))
                         ->action(function (Collection $records) {
-                            $records->each(function ($record) {
-                                if ($record->pdf_path) {
-                                    Storage::download($record->pdf_path);
-                                }
+                            $files = $records->filter(fn($r) => $r->pdf_path && Storage::exists($r->pdf_path));
+
+                            if ($files->isEmpty()) {
+                                Notification::make()
+                                    ->title(__('bulk_mail.notifications.no_pdfs'))
+                                    ->warning()
+                                    ->send();
+                                return false;
+                            }
+
+                            $zipName = 'bulk-mail-' . now()->format('Y-m-d-His') . '.zip';
+                            $zipPath = storage_path('app/temp/' . $zipName);
+
+                            if (!is_dir(dirname($zipPath))) {
+                                mkdir(dirname($zipPath), 0755, true);
+                            }
+
+                            $zip = new ZipArchive();
+                            $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+                            $files->each(function ($record) use ($zip) {
+                                $zip->addFile(
+                                    storage_path('app/public/' . $record->pdf_path),
+                                    basename($record->pdf_path)
+                                );
                             });
+
+                            $zip->close();
+
+                            return response()->download($zipPath, $zipName)->deleteFileAfterSend(true);
                         })
                 ]),
             ]);
