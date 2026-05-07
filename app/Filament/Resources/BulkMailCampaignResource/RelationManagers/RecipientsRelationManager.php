@@ -57,7 +57,6 @@ class RecipientsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('email')
             ->columns([
                 TextColumn::make('email')
                     ->label(__('bulk_mail.fields.email'))
