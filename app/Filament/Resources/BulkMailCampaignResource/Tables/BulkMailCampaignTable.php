@@ -36,7 +36,7 @@ class BulkMailCampaignTable
                     ->dateTime()
                     ->sortable(),
                 TextColumn::make('created_at')
-                    ->label(__('Created'))
+                    ->label(__('bulk_mail.fields.created_at'))
                     ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

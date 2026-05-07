@@ -94,6 +94,7 @@
     "Attach": "إرفاق",
     "Attachment": "المرفق",
     "Attachment deleted.": "تم حذف المرفق.",
+    "attachment": "مرفق|مرفقان|مرفقات|مرفقاً|مرفق",
     "Attachments": "المرفقات",
     "Attachments added successfully.": "تمت إضافة المرفقات بنجاح.",
     "Back to Calculation": "العودة إلى الحساب",
@@ -106,6 +107,7 @@
     "Basic Data": "البيانات الأساسية",
     "Basic Information": "البيانات الأساسية",
     "Black List": "القائمة السوداء",
+    "Bcc": "نسخة مخفية",
     "Browse": "تصفح",
     "By": "بواسطة",
     "Calculated": "تم احتساب",
@@ -128,6 +130,7 @@
     "Certified experts, assistants, and external appointments": "الخبراء المعتمدون والمساعدون والتعيينات الخارجية",
     "Change Difficulty": "تغيير درجة الصعوبة",
     "Cheque number, bank transfer ref, etc.": "رقم الشيك، مرجع التحويل البنكي، إلخ.",
+    "Cc": "نسخة",
     "Choose": "اختر",
     "Choose :name": "اختر :name",
     "Choose File": "اختر ملف",
@@ -784,9 +787,9 @@
     "Distributed At": "تاريخ التوزيع",
     "Total Fees (excl. VAT)": "الأتعاب (غير شاملة للضريبة)",
     "Total Collected (excl. VAT)": "التحصيل (غير شامل للضريبة)",
-    "Reports" : "التقارير",
-    "Assistant Matters Report" : "تقرير ملفات المساعد",
-    "Assistant Matters Count" : "عدد ملفات المساعد",
+    "Reports": "التقارير",
+    "Assistant Matters Report": "تقرير ملفات المساعد",
+    "Assistant Matters Count": "عدد ملفات المساعد",
     "Active Matters": "الملفات قيد العمل",
     "All Assistant Matters": " ملفات جميع المساعدين",
     "Matters for: :name": "ملفات: :name",
@@ -820,12 +823,14 @@
     "Matter Field Definition": "تعريف الحقول المخصصة",
     "Required": "إلزامي",
     "matter field definitions": "تعريفات الحقول المخصصة",
-    "Field Definition":"حقل مخصص",
-    "Field Definitions":"حقول مخصصة",
+    "Field Definition": "حقل مخصص",
+    "Field Definitions": "حقول مخصصة",
     "matter type incentive configs": "إعدادات مكافآت نوع الدعوى",
     "Value": "القيمة",
     "Mail Batches": "الحزم البريدية",
-    "Mail Batch": "حزمة بريدية"
- }
+    "Mail Batch": "حزمة بريدية",
+    "Bulk Mail Recipient": "مستلم بريد جماعي",
+    "Bulk Mail Recipients": "مستلمو بريد جماعي"
+}
 
 

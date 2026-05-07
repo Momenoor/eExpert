@@ -29,6 +29,11 @@ return [
         'failed' => 'فشل',
         'pending' => 'قيد الانتظار',
         'progress' => 'التقدم',
+        'email' => 'البريد الإلكتروني',
+        'sent_at' => 'تاريخ الإرسال',
+        'failed_at' => 'تاريخ الفشل',
+        'created_at' => 'تاريخ الإنشاء',
+        'signature_preview' => 'معاينة التوقيع',
     ],
     'status' => [
         'draft' => 'مسودة',
@@ -51,6 +56,8 @@ return [
         'preview' => 'معاينة',
         'retry_failed' => 'إعادة محاولة الفاشلة',
         'resend' => 'إعادة إرسال',
+        'print' => 'طباعة',
+        'download_pdf' => 'تحميل PDF',
     ],
     'hints' => [
         'subject' => 'استخدم {{name}}، {{matter_number}} إلخ.',

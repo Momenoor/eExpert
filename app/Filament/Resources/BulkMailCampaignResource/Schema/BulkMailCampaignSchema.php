@@ -44,7 +44,7 @@ class BulkMailCampaignSchema
                         ->live(),
 
                     TextEntry::make('sender_signature')
-                        ->label(__('Signature Preview'))
+                        ->label(__('bulk_mail.fields.signature_preview'))
                         ->state(fn ($get) => new HtmlString(Config::get("mail_senders.senders.{$get('from_sender_key')}.signature", '')))
                         ->visible(fn ($get) => filled($get('from_sender_key'))),
                 ])->columns(2),

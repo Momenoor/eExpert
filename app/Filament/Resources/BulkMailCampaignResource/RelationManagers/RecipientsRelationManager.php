@@ -26,13 +26,25 @@ class RecipientsRelationManager extends RelationManager
 {
     protected static string $relationship = 'recipients';
 
+    public static function getModelLabel(): ?string
+    {
+        return __('Bulk Mail Recipient');
+    }
+
+    public static function getPluralModelLabel(): ?string
+    {
+        return __('Bulk Mail Recipients');
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
             TextInput::make('email')
+                ->label(__('bulk_mail.fields.email'))
                 ->email()
                 ->required(),
-            TextInput::make('name'),
+            TextInput::make('name')
+                ->label(__('bulk_mail.fields.name')),
             TagsInput::make('cc_emails')
                 ->label(__('bulk_mail.fields.cc_emails')),
             KeyValue::make('placeholders')
@@ -46,14 +58,19 @@ class RecipientsRelationManager extends RelationManager
             ->recordTitleAttribute('email')
             ->columns([
                 TextColumn::make('email')
+                    ->label(__('bulk_mail.fields.email'))
                     ->searchable(),
                 TextColumn::make('name')
+                    ->label(__('bulk_mail.fields.name'))
                     ->searchable(),
                 TextColumn::make('status')
+                    ->label(__('bulk_mail.fields.status'))
                     ->badge(),
                 TextColumn::make('sent_at')
+                    ->label(__('bulk_mail.fields.sent_at'))
                     ->dateTime(),
                 TextColumn::make('failed_at')
+                    ->label(__('bulk_mail.fields.failed_at'))
                     ->dateTime(),
             ])
             ->filters([
@@ -100,7 +117,7 @@ class RecipientsRelationManager extends RelationManager
 
                     }),
                 Action::make('print')
-                    ->label('Print')
+                    ->label(__('bulk_mail.actions.print'))
                     ->icon('heroicon-o-printer')
                     ->url(fn($record) => route('bulk-mail.preview', [
                         'campaign' => $record->campaign_id,
@@ -112,7 +129,7 @@ class RecipientsRelationManager extends RelationManager
 
                 // Preview only
                 Action::make('preview')
-                    ->label('Preview')
+                    ->label(__('bulk_mail.actions.preview'))
                     ->icon('heroicon-o-eye')
                     ->url(fn($record) => route('bulk-mail.preview', [
                         'campaign' => $record->campaign_id,
@@ -121,7 +138,7 @@ class RecipientsRelationManager extends RelationManager
                     ->visible(fn($record) => filled($record->sent_at))
                     ->openUrlInNewTab(),
                 Action::make('downloadPdf')
-                    ->label('Download PDF')
+                    ->label(__('bulk_mail.actions.download_pdf'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->visible(fn($record) => filled($record->pdf_path))
                     ->url(fn($record) => Storage::url($record->pdf_path))
@@ -162,14 +179,14 @@ class RecipientsRelationManager extends RelationManager
                             });
                         }),
                     BulkAction::make('downloadPdf')
-                    ->label('Download PDF')
-                    ->action(function (Collection $records) {
-                        $records->each(function ($record) {
-                            if ($record->pdf_path) {
-                                Storage::download($record->pdf_path);
-                            }
-                        });
-                    })
+                        ->label(__('bulk_mail.actions.download_pdf'))
+                        ->action(function (Collection $records) {
+                            $records->each(function ($record) {
+                                if ($record->pdf_path) {
+                                    Storage::download($record->pdf_path);
+                                }
+                            });
+                        })
                 ]),
             ]);
     }

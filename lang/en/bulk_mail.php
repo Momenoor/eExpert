@@ -29,6 +29,11 @@ return [
         'failed' => 'Failed',
         'pending' => 'Pending',
         'progress' => 'Progress',
+        'email' => 'Email',
+        'sent_at' => 'Sent At',
+        'failed_at' => 'Failed At',
+        'created_at' => 'Created At',
+        'signature_preview' => 'Signature Preview',
     ],
     'status' => [
         'draft' => 'Draft',
@@ -51,6 +56,8 @@ return [
         'preview' => 'Preview',
         'retry_failed' => 'Retry Failed',
         'resend' => 'Resend',
+        'print' => 'Print',
+        'download_pdf' => 'Download PDF',
     ],
     'hints' => [
         'subject' => 'Use {{name}}, {{matter_number}} etc.',
