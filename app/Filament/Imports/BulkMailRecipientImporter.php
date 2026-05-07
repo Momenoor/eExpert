@@ -21,7 +21,7 @@ class BulkMailRecipientImporter extends Importer
                 ->example('شركة جيه بي ايه لتدقيق ومراجعة الحسابات'),
             ImportColumn::make('email')
                 ->requiredMapping()
-                ->multiple(';')
+                ->multiple(',')
                 ->example('example1@example.com;example2@example.com'),
         ];
     }
