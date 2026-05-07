@@ -43,7 +43,6 @@ class RecipientsRelationManager extends RelationManager
         return $schema->components([
             TagsInput::make('email')
                 ->label(__('bulk_mail.fields.email'))
-                ->separator(';')
                 ->required(),
             TextInput::make('name')
                 ->label(__('bulk_mail.fields.name')),

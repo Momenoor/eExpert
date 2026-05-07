@@ -61,7 +61,6 @@ class SendBulkMailBatch implements ShouldQueue
 
         foreach ($recipients as $recipient) {
             $email = is_array($recipient->email) ? implode('; ', $recipient->email) : $recipient->email;
-
             try {
                 // 1. Send mail — stop everything if this fails
                 $this->withMailerConfig($campaign, function () use ($campaign, $recipient) {
