@@ -13,6 +13,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class BulkMailMessage extends Mailable
@@ -58,10 +59,15 @@ class BulkMailMessage extends Mailable
         $attachments = [];
 
         if ($this->campaign->has_attachment && $this->campaign->attachment_path) {
-            $disk = $this->campaign->attachment_disk ?? 'public';
-            foreach ($this->campaign->attachment_path as $path) {
-                if ($path) {
-                    $attachments[] = Attachment::fromStorageDisk($disk, $path);
+            $disk  = $this->campaign->attachment_disk ?? 'public';
+            $paths = is_array($this->campaign->attachment_path)
+                ? $this->campaign->attachment_path
+                : json_decode($this->campaign->attachment_path, true) ?? [];
+
+            foreach ($paths as $path) {
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    $attachments[] = Attachment::fromStorageDisk($disk, $path)
+                        ->withMime(Storage::disk($disk)->mimeType($path) ?? 'application/octet-stream');
                 }
             }
         }
