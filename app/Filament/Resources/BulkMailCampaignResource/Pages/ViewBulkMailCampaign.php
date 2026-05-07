@@ -27,7 +27,7 @@ class ViewBulkMailCampaign extends ViewRecord
                     $recipient = new \App\Models\BulkMailRecipient([
                         'email' => auth()->user()->email,
                         'name' => auth()->user()->name,
-                        'placeholders' => collect($this->record->placeholders)->mapWithKeys(fn($p) => [$p => "[$p]"])->toArray(),
+                        'placeholders' => $this->record->placeholders ? collect($this->record->placeholders)->mapWithKeys(fn($p) => [$p => "[$p]"])->toArray() : null,
                     ]);
                     Mail::to(auth()->user()->email)
                         ->send(new BulkMailMessage($record, $recipient));
