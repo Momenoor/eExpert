@@ -29,13 +29,9 @@ class BulkMailMessage extends Mailable
     {
         $sender = $this->campaign->sender_config;
 
-        $from = new Address($sender['address'], $sender['name']);
-
         $subject = $this->campaign->renderSubject($this->recipient);
 
         return new Envelope(
-            from: $from,
-            replyTo: [$from],
             subject: $subject,
             tags: ['bulk-mail', "campaign-{$this->campaign->id}"],
             metadata: [
@@ -73,8 +69,8 @@ class BulkMailMessage extends Mailable
     {
         return new Headers(
             text: [
-            'X-Campaign-ID' => $this->campaign->id,
-            'X-Recipient-ID' => $this->recipient->id ?? auth()->user()->id,
-        ]);
+                'X-Campaign-ID' => $this->campaign->id,
+                'X-Recipient-ID' => $this->recipient->id ?? auth()->user()->id,
+            ]);
     }
 }

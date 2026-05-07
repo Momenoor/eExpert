@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BulkMailCampaignStatus;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,9 +65,11 @@ class BulkMailCampaign extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function getSenderConfigAttribute(): ?array
+    public function senderConfig(): Attribute
     {
-        return Config::get("mail_senders.senders.{$this->from_sender_key}");
+        return new Attribute(
+            get: fn() => Config::get("mail_senders.senders.{$this->from_sender_key}")
+        );
     }
 
     public function getRemainingDailyLimit(): int
@@ -79,7 +82,7 @@ class BulkMailCampaign extends Model
         return max(0, $this->daily_send_limit - $sentToday);
     }
 
-    public function renderBody(BulkMailRecipient $recipient,array $recipientPlaceholders = []): string
+    public function renderBody(BulkMailRecipient $recipient, array $recipientPlaceholders = []): string
     {
         $body = $this->body;
         $body = $this->getDefaultPlaceholder($recipient, $recipientPlaceholders, $body);

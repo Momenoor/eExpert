@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BulkMailController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Models\BulkMailRecipient;
@@ -15,6 +16,9 @@ Route::get('/mail/unsubscribe/{token}', function ($token) {
     $recipient->update(['status' => BulkMailRecipientStatus::Skipped]);
     return __('You have been successfully unsubscribed.');
 })->name('bulk-mail.unsubscribe');
+
+Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class,'__invoke'])
+    ->name('bulk-mail.preview');
 
 Route::get('attachments/{attachment}/download', function (\App\Models\Attachment $attachment) {
     abort_unless(auth()->user()->can('view', $attachment->matter), 403);

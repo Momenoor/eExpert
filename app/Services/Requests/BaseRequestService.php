@@ -104,7 +104,7 @@ abstract class BaseRequestService
     public function onCreateNotify(): void
     {
         try {
-
+            $users = User::role(['admin', 'super-admin', 'super_admin'])->get();
             $this->notify(
                 __('Request Created'),
                 __("A new :type request has been created, for matter #:number / :year", [
@@ -112,9 +112,9 @@ abstract class BaseRequestService
                     'number' => $this->request->matter->number,
                     'year' => $this->request->matter->year
                 ]),
-                User::role(['admin', 'super-admin', 'super_admin'])->get()
+                $users
             );
-            $users = User::role(['admin', 'super-admin', 'super_admin'])->get();
+
             $whatsappUsers = $users->filter(function ($user) {
                 return $user->notify_by_whatsapp;
             });

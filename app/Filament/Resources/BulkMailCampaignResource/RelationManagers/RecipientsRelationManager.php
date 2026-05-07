@@ -93,6 +93,26 @@ class RecipientsRelationManager extends RelationManager
                             'attempt_count' => 0,
                         ]);
                     }),
+                Action::make('print')
+                    ->label('Print')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn ($record) => route('bulk-mail.preview', [
+                        'campaign'  => $record->campaign_id,
+                        'recipient' => $record->id,
+                        'print'     => 1,   // auto-triggers print dialog
+                    ]))
+                    ->openUrlInNewTab(),
+
+                // Preview only
+                Action::make('preview')
+                    ->label('Preview')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('bulk-mail.preview', [
+                        'campaign'  => $record->campaign_id,
+                        'recipient' => $record->id,
+                    ]))
+                    ->openUrlInNewTab(),
+
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -111,6 +131,18 @@ class RecipientsRelationManager extends RelationManager
                                 }
                             });
                         }),
+                    BulkAction::make('resend')
+                    ->label(__('bulk_mail.actions.resend'))
+                    ->action(function (Collection $records) {
+                        $records->each(function ($record) {
+                            $record->update([
+                                'status' => BulkMailRecipientStatus::Pending,
+                                'sent_at' => null,
+                                'failed_at' => null,
+                                'attempt_count' => 0,
+                            ]);
+                        });
+                    })
                 ]),
             ]);
     }

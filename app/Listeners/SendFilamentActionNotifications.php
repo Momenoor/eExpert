@@ -78,7 +78,7 @@ class SendFilamentActionNotifications
         $recipients = collect();
 
         // 1. All users with role admin or superadmin
-        $admins = User::role(['admin', 'super-admin'])->get();
+        $admins = User::role(['admin', 'super-admin','super_admin'])->get();
         $recipients = $recipients->merge($admins);
 
         // 2. Notify role accountant only if action related to fee or allocation
