@@ -71,7 +71,7 @@ class BulkMailMessage extends Mailable
                 }
             }
         }
-
+        dd($attachments);
         return $attachments;
     }
 
