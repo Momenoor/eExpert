@@ -66,7 +66,7 @@ return [
                                style="display: inline-block; margin-right: 4px; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px; background: #1877f2; border-radius: 3px;">
-                                <img src="https://new.jpaemirates.com/images/FacebookSigatureLogo.png"
+                                <img src="https://new.jpaemirates.com/images/FacebookSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
                                      alt="Facebook Logo">
@@ -78,7 +78,7 @@ return [
                                            width: 20px; height: 20px;
                                            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
                                            border-radius: 3px;">
-                                <img src="https://new.jpaemirates.com/images/InstagramSigatureLogo.png"
+                                <img src="https://new.jpaemirates.com/images/InstagramSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
                                      alt="Instagram Logo">
@@ -88,7 +88,7 @@ return [
                                style="display: inline-block; margin-right: 4px; text-decoration: none;">
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px; background: #0a66c2; border-radius: 3px;">
-                                <img src="https://new.jpaemirates.com/images/LinkedInSigatureLogo.png"
+                                <img src="https://new.jpaemirates.com/images/LinkedInSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
                                      alt="LinkedIn Logo">
@@ -99,7 +99,7 @@ return [
                               <span style="display: inline-flex; align-items: center; justify-content: center;
                                            width: 20px; height: 20px; background: #fff;
                                            border: 1px solid #dadce0; border-radius: 3px;">
-                                <img src="https://new.jpaemirates.com/images/GoogleMapSigatureLogo.png"
+                                <img src="https://new.jpaemirates.com/images/GoogleMapSignatureLogo.png"
                                      width="16" height="16"
                                      style="width: 16px; height: 16px; margin: 0; display: inline-block;"
                                      alt="Google Maps Logo">
