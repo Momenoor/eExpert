@@ -36,7 +36,7 @@ return [
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #1f3864;"><b>رضا درويش آل رحمة</b></span>
                           </p>
-                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 10.5pt;">
+                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #767171;"><i>قسم الإفلاس</i></span>
                           </p>
                           <p style="margin: 0; font-size: 4pt;">&nbsp;</p>
@@ -53,9 +53,9 @@ return [
                           </p>
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 9pt;">
                             <span style="color: #1f3864;">Email:&nbsp;</span>
-                            <a href="mailto:momen.noor@jpaemirates.com"
+                            <a href="mailto:iflas@jpaemirates.com"
                                style="color: #0563c1; font-size: 9pt;">
-                              <u>momen.noor@jpaemirates.com</u>
+                              <u>iflas@jpaemirates.com</u>
                             </a>
                             <span style="color: #1f3864;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             <a href="http://www.jpaemirates.com/"
@@ -150,7 +150,7 @@ return [
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #1f3864;"><b>رضا درويش آل رحمة</b></span>
                           </p>
-                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 10.5pt;">
+                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #767171;"><i>قسم إعادة الهيكة</i></span>
                           </p>
                           <p style="margin: 0; font-size: 4pt;">&nbsp;</p>
@@ -167,9 +167,9 @@ return [
                           </p>
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 9pt;">
                             <span style="color: #1f3864;">Email:&nbsp;</span>
-                            <a href="mailto:momen.noor@jpaemirates.com"
+                            <a href="mailto:haikala@jpaemirates.com"
                                style="color: #0563c1; font-size: 9pt;">
-                              <u>momen.noor@jpaemirates.com</u>
+                              <u>haikala@jpaemirates.com</u>
                             </a>
                             <span style="color: #1f3864;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             <a href="http://www.jpaemirates.com/"
@@ -264,7 +264,7 @@ return [
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #1f3864;"><b>رضا درويش آل رحمة</b></span>
                           </p>
-                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 10.5pt;">
+                          <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
                             <span style="color: #767171;"><i>قسم الإعسار</i></span>
                           </p>
                           <p style="margin: 0; font-size: 4pt;">&nbsp;</p>
@@ -281,9 +281,9 @@ return [
                           </p>
                           <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 9pt;">
                             <span style="color: #1f3864;">Email:&nbsp;</span>
-                            <a href="mailto:momen.noor@jpaemirates.com"
+                            <a href="mailto:easar@jpaemirates.com"
                                style="color: #0563c1; font-size: 9pt;">
-                              <u>momen.noor@jpaemirates.com</u>
+                              <u>easar@jpaemirates.com</u>
                             </a>
                             <span style="color: #1f3864;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             <a href="http://www.jpaemirates.com/"
