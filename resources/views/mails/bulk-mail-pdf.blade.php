@@ -4,7 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'Arial Unicode MS', Arial, sans-serif;
@@ -20,14 +24,19 @@
             margin-bottom: 10px;
         }
 
-        .outlook-brand table { border-collapse: collapse; }
-        .outlook-brand td   { vertical-align: middle; }
+        .outlook-brand table {
+            border-collapse: collapse;
+        }
+
+        .outlook-brand td {
+            vertical-align: middle;
+        }
 
         .outlook-text {
             font-size: 16pt;
             font-weight: normal;
             color: #1a1a1a;
-            padding-{{ $isRtl ? 'right' : 'left' }}: 8px;
+            padding- {{ $isRtl ? 'right' : 'left' }}: 8px;
         }
 
         /* ── Subject ── */
@@ -78,7 +87,9 @@
         }
 
         /* ── Body ── */
-        .body-gap { height: 16px; }
+        .body-gap {
+            height: 16px;
+        }
 
         .email-body {
             font-size: 10.5pt;
@@ -124,14 +135,18 @@
     </tr>
     <tr>
         <td class="label">To</td>
-        <td>{{ $recipient->name }} &lt;{{ $recipient->email }}&gt;</td>
+        <td>{{ $recipient->name }}
+            &lt;{{ is_array($recipient->email)?implode('>; <',$recipient->email):$recipient->email }}&gt;
+        </td>
     </tr>
     @if(!empty($cc))
         <tr>
             <td class="label">Cc</td>
             <td>
                 @foreach($cc as $ccEmail)
-                    {{ $ccEmail }}@if(!$loop->last); @endif
+                    {{ $ccEmail }}@if(!$loop->last)
+                        ;
+                    @endif
                 @endforeach
             </td>
         </tr>
@@ -150,7 +165,9 @@
         &#128206; {{ count($attachments) }} {{ \Illuminate\Support\Str::plural('attachment', count($attachments)) }}
         <div class="att-names">
             @foreach($attachments as $path)
-                {{ basename($path) }}@if(!$loop->last); @endif
+                {{ basename($path) }}@if(!$loop->last)
+                    ;
+                @endif
             @endforeach
         </div>
     </div>

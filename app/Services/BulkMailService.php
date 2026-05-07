@@ -52,6 +52,7 @@ class BulkMailService
         $mpdf->SetTitle($subject);
         $mpdf->SetAuthor($sender['name']);
 
+
         // Header (printed on every page like Outlook)
         $mpdf->SetHTMLHeader('
             <table dir="ltr" width="100%" style="font-size:8pt;color:#555;border-bottom:1px solid #ccc;padding-bottom:4px;">

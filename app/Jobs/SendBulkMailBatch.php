@@ -51,96 +51,85 @@ class SendBulkMailBatch implements ShouldQueue
             ->get();
 
         if ($recipients->isEmpty()) {
-            if (BulkMailRecipient::where('campaign_id', $this->campaignId)->where('status', BulkMailRecipientStatus::Pending)->count() === 0) {
+            if (BulkMailRecipient::where('campaign_id', $this->campaignId)
+                    ->where('status', BulkMailRecipientStatus::Pending)
+                    ->count() === 0) {
                 $campaign->update(['status' => BulkMailCampaignStatus::Completed]);
-                // Notify creator (handled via observer or event later)
             }
             return;
         }
 
         foreach ($recipients as $recipient) {
+            $email = is_array($recipient->email) ? implode('; ', $recipient->email) : $recipient->email;
+
             try {
+                // 1. Send mail — stop everything if this fails
                 $this->withMailerConfig($campaign, function () use ($campaign, $recipient) {
-                    $email = is_array($recipient->email) ? implode('; ', $recipient->email) : $recipient->email;
                     $message = Mail::to($recipient->email)
                         ->cc(array_merge($campaign->cc_emails ?? [], $recipient->cc_emails ?? []))
                         ->bcc($campaign->bcc_emails ?? [])
                         ->send(new BulkMailMessage($campaign, $recipient));
-                    try {
-                        $cm = new ClientManager($this->getIMAPConfig($campaign));
-                        $client = $cm->account($campaign->from_sender_key);
-                        $client->connect();
-                        $sendFolder = $client->getFolder('Sent');
-                        $sendFolder->appendMessage($message->getSymfonySentMessage()->toString(), ['\Seen'], now()->format("d-M-Y h:i:s O"));
 
-                    } catch (\Exception $e) {
-                        Log::error('Failed to connect to IMAP server for campaign: ' . $campaign->id . ', recipient: ' . $recipient->email, ['exception' => $e]);
-                        return;
-                    }
-
+                    // 2. Save to IMAP Sent folder — stop everything if this fails
+                    $cm = new ClientManager($this->getIMAPConfig($campaign));
+                    $client = $cm->account($campaign->from_sender_key);
+                    $client->connect();
+                    $sendFolder = $client->getFolder('Sent');
+                    $sendFolder->appendMessage(
+                        $message->getSymfonySentMessage()->toString(),
+                        ['\Seen'],
+                        now()->format("d-M-Y h:i:s O")
+                    );
                 });
-                try {
 
+                // 3. Generate PDF — stop everything if this fails
+                $pdfPath = app(BulkMailService::class)->generate($campaign, $recipient);
 
-                    $pdfPath = app(BulkMailService::class)->generate($campaign, $recipient);
-                    $recipient->update([
-                        'status' => BulkMailRecipientStatus::Sent,
-                        'sent_at' => now(),
-                        'pdf_path' => $pdfPath,
-                    ]);
+                // 4. All succeeded — update record
+                $recipient->update([
+                    'status'   => BulkMailRecipientStatus::Sent,
+                    'sent_at'  => now(),
+                    'pdf_path' => $pdfPath,
+                ]);
+                $campaign->increment('sent_count');
 
-                    $campaign->increment('sent_count');
+                BulkMailLog::create([
+                    'campaign_id'  => $campaign->id,
+                    'recipient_id' => $recipient->id,
+                    'action'       => 'sent',
+                    'metadata'     => ['pdf_path' => $pdfPath],
+                    'timestamp'    => now(),
+                ]);
 
-                    BulkMailLog::create([
-                        'campaign_id' => $campaign->id,
-                        'recipient_id' => $recipient->id,
-                        'action' => 'sent',
-                        'metadata' => ['pdf_path' => $pdfPath],
-                        'timestamp' => now(),
-                    ]);
-                } catch (\Exception $e) {
-                    $recipient->update([
-                        'status' => BulkMailRecipientStatus::Sent,
-                        'sent_at' => now(),
-                    ]);
-
-                    $campaign->increment('sent_count');
-
-                    BulkMailLog::create([
-                        'campaign_id' => $campaign->id,
-                        'recipient_id' => $recipient->id,
-                        'action' => 'sent',
-                        'timestamp' => now(),
-                    ]);
-                    Log::error('Failed to generate PDF for campaign: ' . $campaign->id . ', recipient: ' . $recipient->email, ['exception' => $e]);
-                }
             } catch (\Exception $e) {
+                // Log the failure
+                Log::error("Bulk mail batch stopped. Failed for recipient {$email}: " . $e->getMessage());
 
                 $recipient->increment('attempt_count');
-                $retryAttempts = config('mail_senders.retry_attempts', 3);
 
-                if ($recipient->attempt_count >= $retryAttempts) {
+                if ($recipient->attempt_count >= config('mail_senders.retry_attempts', 3)) {
                     $recipient->update([
-                        'status' => BulkMailRecipientStatus::Failed,
-                        'failed_at' => now(),
+                        'status'         => BulkMailRecipientStatus::Failed,
+                        'failed_at'      => now(),
                         'failure_reason' => $e->getMessage(),
                     ]);
                     $campaign->increment('failed_count');
                 }
 
                 BulkMailLog::create([
-                    'campaign_id' => $campaign->id,
+                    'campaign_id'  => $campaign->id,
                     'recipient_id' => $recipient->id,
-                    'action' => 'failed',
-                    'metadata' => ['error' => $e->getMessage()],
-                    'timestamp' => now(),
+                    'action'       => 'failed',
+                    'metadata'     => ['error' => $e->getMessage()],
+                    'timestamp'    => now(),
                 ]);
 
-                Log::error("Failed to send bulk mail to {$recipient->email}: " . $e->getMessage());
+                // Stop the entire batch — do NOT dispatch next batch
+                return;
             }
         }
 
-        // Dispatch next batch if there are still pending recipients and daily limit not reached
+        // Only reached if ALL recipients in this batch succeeded
         if ($campaign->getRemainingDailyLimit() > 0) {
             static::dispatch($this->campaignId, $this->batchSize)->delay(now()->addSeconds(30));
         }
