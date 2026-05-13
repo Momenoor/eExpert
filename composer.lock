@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b76839860d3449a217b29840e5dac4a1",
+    "content-hash": "dd1ffb4cdf607d38c8e43adb4a2531d3",
     "packages": [
         {
             "name": "alizharb/filament-activity-log",
@@ -7267,6 +7267,72 @@
             "time": "2026-03-22T23:03:24+00:00"
         },
         {
+            "name": "qalainau/filament-inbox",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/qalainau/filament-inbox.git",
+                "reference": "3c2df374237db3693fc2221c2a09b0dfff49f579"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/qalainau/filament-inbox/zipball/3c2df374237db3693fc2221c2a09b0dfff49f579",
+                "reference": "3c2df374237db3693fc2221c2a09b0dfff49f579",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.14"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "orchestra/testbench": "^10.0",
+                "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-laravel": "^4.0",
+                "pestphp/pest-plugin-livewire": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "FilamentInbox\\FilamentInboxServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "FilamentInbox\\": "src/",
+                    "FilamentInbox\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Qalainau",
+                    "homepage": "https://github.com/qalainau"
+                }
+            ],
+            "description": "Email-like inbox messaging plugin for Filament v5 — threads, starring, trash, forwarding, read receipts, and multi-tenancy out of the box.",
+            "homepage": "https://github.com/qalainau/filament-inbox",
+            "keywords": [
+                "filament",
+                "filament-plugin",
+                "inbox",
+                "laravel",
+                "livewire",
+                "messaging"
+            ],
+            "support": {
+                "issues": "https://github.com/qalainau/filament-inbox/issues",
+                "source": "https://github.com/qalainau/filament-inbox/tree/v1.0.0"
+            },
+            "time": "2026-04-24T11:10:08+00:00"
+        },
+        {
             "name": "ralouphie/getallheaders",
             "version": "3.0.3",
             "source": {
@@ -7463,6 +7529,60 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "time": "2025-12-14T04:43:48+00:00"
+        },
+        {
+            "name": "relaticle/activity-log",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/relaticle/activity-log.git",
+                "reference": "04725b4351a2f87e2a9c39356e3e9fd487f86148"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/relaticle/activity-log/zipball/04725b4351a2f87e2a9c39356e3e9fd487f86148",
+                "reference": "04725b4351a2f87e2a9c39356e3e9fd487f86148",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "illuminate/contracts": "^12.0|^13.0",
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "php": "^8.4",
+                "spatie/laravel-activitylog": "^5.0",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^4.0",
+                "pestphp/pest-plugin-laravel": "^4.0",
+                "pestphp/pest-plugin-livewire": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Relaticle\\ActivityLog\\ActivityLogServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Relaticle\\ActivityLog\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Reusable Filament plugin that renders a unified activity-log timeline for any Eloquent model",
+            "support": {
+                "issues": "https://github.com/relaticle/activity-log/issues",
+                "source": "https://github.com/relaticle/activity-log/tree/v1.0.1"
+            },
+            "time": "2026-04-29T12:06:53+00:00"
         },
         {
             "name": "ryangjchandler/blade-capture-directive",
@@ -11733,6 +11853,202 @@
                 }
             ],
             "time": "2026-04-08T06:04:43+00:00"
+        },
+        {
+            "name": "zpm-packages/cron-manager",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zpm-packages/cron-manager-php.git",
+                "reference": "05695550f395b2f667670206a2aa4bb59050fadf"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zpm-packages/cron-manager-php/zipball/05695550f395b2f667670206a2aa4bb59050fadf",
+                "reference": "05695550f395b2f667670206a2aa4bb59050fadf",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ZPMPackages\\CronManager\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "ZPMPackages",
+                    "email": "developer@zpm-packages.com"
+                }
+            ],
+            "description": "A PHP package for managing cron jobs on Unix-like systems and Windows Task Scheduler",
+            "support": {
+                "issues": "https://github.com/zpm-packages/cron-manager-php/issues",
+                "source": "https://github.com/zpm-packages/cron-manager-php/tree/v1.0.0"
+            },
+            "time": "2026-05-06T05:34:34+00:00"
+        },
+        {
+            "name": "zpm-packages/cron-manager-filament",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zpm-packages/cron-manager-filament.git",
+                "reference": "162ca99ab1935921651dc43a3bff89022b95ac32"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zpm-packages/cron-manager-filament/zipball/162ca99ab1935921651dc43a3bff89022b95ac32",
+                "reference": "162ca99ab1935921651dc43a3bff89022b95ac32",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "~5.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.3",
+                "zpm-packages/cron-manager-laravel": "^1.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^11.0@dev",
+                "phpunit/phpunit": "^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "ZPMPackages\\FilamentCronManager\\FilamentCronManagerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ZPMPackages\\FilamentCronManager\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "ZPMPackages",
+                    "email": "developer@zpm-packages.com"
+                }
+            ],
+            "description": "Filament plugin for managing system and database-synced cron jobs.",
+            "support": {
+                "issues": "https://github.com/zpm-packages/cron-manager-filament/issues",
+                "source": "https://github.com/zpm-packages/cron-manager-filament/tree/v1.0.0"
+            },
+            "time": "2026-05-06T05:43:07+00:00"
+        },
+        {
+            "name": "zpm-packages/cron-manager-laravel",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zpm-packages/cron-manager-laravel.git",
+                "reference": "9444560c16d8f58e54383da2c52af01e67b8722d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zpm-packages/cron-manager-laravel/zipball/9444560c16d8f58e54383da2c52af01e67b8722d",
+                "reference": "9444560c16d8f58e54383da2c52af01e67b8722d",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/support": "^13.0",
+                "php": "^8.3",
+                "zpm-packages/cron-manager": "^1.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^11.0@dev",
+                "phpunit/phpunit": "^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "ZPMPackages\\LaravelCronManager\\CronManagerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ZPMPackages\\LaravelCronManager\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "ZPMPackages",
+                    "email": "developer@zpm-packages.com"
+                }
+            ],
+            "description": "Laravel integration for ZPMPackages cron manager.",
+            "support": {
+                "issues": "https://github.com/zpm-packages/cron-manager-laravel/issues",
+                "source": "https://github.com/zpm-packages/cron-manager-laravel/tree/v1.0.0"
+            },
+            "time": "2026-05-06T05:39:21+00:00"
+        },
+        {
+            "name": "zpmlabs/filament-popup",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zpm-packages/filament-popup.git",
+                "reference": "bf00b9a31cf90c71f24cb51e51c7994ba3214604"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zpm-packages/filament-popup/zipball/bf00b9a31cf90c71f24cb51e51c7994ba3214604",
+                "reference": "bf00b9a31cf90c71f24cb51e51c7994ba3214604",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "~5.0",
+                "laravel/framework": "^13.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "ZPMLabs\\FilamentPopup\\FilamentPopupServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ZPMLabs\\FilamentPopup\\": "src/",
+                    "ZPMLabs\\FilamentPopup\\Examples\\": "examples/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament table column popup plugin.",
+            "support": {
+                "issues": "https://github.com/zpm-packages/filament-popup/issues",
+                "source": "https://github.com/zpm-packages/filament-popup/tree/v1.0.0"
+            },
+            "time": "2026-04-30T03:47:50+00:00"
         }
     ],
     "packages-dev": [
@@ -12597,16 +12913,16 @@
         },
         {
             "name": "laravel-lang/attributes",
-            "version": "2.15.5",
+            "version": "2.15.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Laravel-Lang/attributes.git",
-                "reference": "b0938874353d376e8f5d646e6f77db265c9aafd5"
+                "reference": "5e1806802af893b9ede26210be1ff90efd0697f1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Laravel-Lang/attributes/zipball/b0938874353d376e8f5d646e6f77db265c9aafd5",
-                "reference": "b0938874353d376e8f5d646e6f77db265c9aafd5",
+                "url": "https://api.github.com/repos/Laravel-Lang/attributes/zipball/5e1806802af893b9ede26210be1ff90efd0697f1",
+                "reference": "5e1806802af893b9ede26210be1ff90efd0697f1",
                 "shasum": ""
             },
             "require": {
@@ -12660,7 +12976,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Laravel-Lang/attributes/issues",
-                "source": "https://github.com/Laravel-Lang/attributes/tree/2.15.5"
+                "source": "https://github.com/Laravel-Lang/attributes/tree/2.15.6"
             },
             "funding": [
                 {
@@ -12672,7 +12988,7 @@
                     "type": "yoomoney"
                 }
             ],
-            "time": "2026-03-24T15:20:52+00:00"
+            "time": "2026-05-09T16:34:18+00:00"
         },
         {
             "name": "laravel-lang/common",
@@ -12986,16 +13302,16 @@
         },
         {
             "name": "laravel-lang/lang",
-            "version": "15.29.4",
+            "version": "15.29.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Laravel-Lang/lang.git",
-                "reference": "c2e40b08fc7bccb8668fdff89b95f504f1ff393c"
+                "reference": "9a1d194c9a72b8ee70a3515d8415e9645fe531fe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Laravel-Lang/lang/zipball/c2e40b08fc7bccb8668fdff89b95f504f1ff393c",
-                "reference": "c2e40b08fc7bccb8668fdff89b95f504f1ff393c",
+                "url": "https://api.github.com/repos/Laravel-Lang/lang/zipball/9a1d194c9a72b8ee70a3515d8415e9645fe531fe",
+                "reference": "9a1d194c9a72b8ee70a3515d8415e9645fe531fe",
                 "shasum": ""
             },
             "require": {
@@ -13056,7 +13372,7 @@
                     "type": "yoomoney"
                 }
             ],
-            "time": "2026-05-03T18:05:18+00:00"
+            "time": "2026-05-09T16:34:39+00:00"
         },
         {
             "name": "laravel-lang/locale-list",
@@ -13294,16 +13610,16 @@
         },
         {
             "name": "laravel-lang/moonshine",
-            "version": "1.8.0",
+            "version": "1.9.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Laravel-Lang/moonshine.git",
-                "reference": "5daace4284fb706f735b172740bce52f990d2359"
+                "reference": "2340066d456e989f3c40ace85945bc182d64e710"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Laravel-Lang/moonshine/zipball/5daace4284fb706f735b172740bce52f990d2359",
-                "reference": "5daace4284fb706f735b172740bce52f990d2359",
+                "url": "https://api.github.com/repos/Laravel-Lang/moonshine/zipball/2340066d456e989f3c40ace85945bc182d64e710",
+                "reference": "2340066d456e989f3c40ace85945bc182d64e710",
                 "shasum": ""
             },
             "require": {
@@ -13313,7 +13629,7 @@
             },
             "require-dev": {
                 "dragon-code/support": "^6.15.2",
-                "illuminate/support": "^10.0 || ^11.0 || ^12.0",
+                "illuminate/support": "^10.0 || ^11.0 || ^12.0 || ^13.0",
                 "laravel-lang/lang": "^14.8 || ^15.14",
                 "laravel-lang/status-generator": "^2.12",
                 "phpunit/phpunit": "^10.0 || ^11.0 || ^12.0",
@@ -13356,7 +13672,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Laravel-Lang/moonshine/issues",
-                "source": "https://github.com/Laravel-Lang/moonshine/tree/1.8.0"
+                "source": "https://github.com/Laravel-Lang/moonshine/tree/1.9.0"
             },
             "funding": [
                 {
@@ -13368,7 +13684,7 @@
                     "type": "yoomoney"
                 }
             ],
-            "time": "2026-02-01T09:24:41+00:00"
+            "time": "2026-05-09T16:41:40+00:00"
         },
         {
             "name": "laravel-lang/native-country-names",
@@ -16267,12 +16583,13 @@
         }
     ],
     "aliases": [],
-    "minimum-stability": "beta",
+    "minimum-stability": "dev",
     "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.5"
+        "php": "^8.5",
+        "ext-zip": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

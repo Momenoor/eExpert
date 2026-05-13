@@ -39,9 +39,13 @@ use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
+use FilamentInbox\FilamentInboxPlugin;
+use FilamentTiptapEditor\FilamentTiptapEditor;
+use FilamentTiptapEditor\FilamentTiptapEditorServiceProvider;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
@@ -56,6 +60,8 @@ use TomatoPHP\FilamentUsers\Filament\Resources\Users\Schemas\UserForm;
 use TomatoPHP\FilamentUsers\Filament\Resources\Users\UserResource;
 use TomatoPHP\FilamentUsers\FilamentUsersPlugin;
 use TomatoPHP\FilamentUsers\Services\FilamentUserServices;
+use ZPMLabs\FilamentPopup\FilamentPopupPlugin;
+use ZPMPackages\FilamentCronManager\FilamentCronManagerPlugin;
 
 
 class AdminPanelProvider extends PanelProvider
@@ -91,7 +97,7 @@ class AdminPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
+                PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
@@ -107,6 +113,9 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 //FilamentEnvEditorPlugin::make(),
+                FilamentPopupPlugin::make(),
+                FilamentInboxPlugin::make(),
+                FilamentCronManagerPlugin::make(),
                 FilamentUsersPlugin::make(),
                 FilamentShieldPlugin::make(),
                 FilamentFullCalendarPlugin::make()
