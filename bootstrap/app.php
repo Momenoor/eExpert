@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('matter:confirm-receiving')->everyMinute();
+        $schedule->command('mail:send-bulk-campaigns')->everyMinute();
+        $schedule->command('queue:work')->everyFifteenSeconds();
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
