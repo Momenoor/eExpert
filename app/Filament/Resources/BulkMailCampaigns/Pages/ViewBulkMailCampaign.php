@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\Pages;
+namespace App\Filament\Resources\BulkMailCampaigns\Pages;
 
 use App\Enums\BulkMailCampaignStatus;
-use App\Filament\Resources\BulkMailCampaignResource\BulkMailCampaignResource;
-use App\Filament\Resources\BulkMailCampaignResource\Widgets\CampaignStatsWidget;
+use App\Filament\Resources\BulkMailCampaigns\BulkMailCampaignResource;
+use App\Filament\Resources\BulkMailCampaigns\Widgets\CampaignStatsWidget;
 use App\Mail\BulkMailMessage;
 use Filament\Actions;
 use Filament\Notifications\Notification;

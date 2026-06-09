@@ -6,7 +6,7 @@ use App\Enums\BulkMailCampaignStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use League\Csv\Writer;
-use App\Filament\Resources\BulkMailCampaignResource\Actions\ImportRecipientsAction;
+use App\Filament\Resources\BulkMailCampaigns\Actions\ImportRecipientsAction;
 
 require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';

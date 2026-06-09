@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\Schema;
+namespace App\Filament\Resources\BulkMailCampaigns\Schema;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
