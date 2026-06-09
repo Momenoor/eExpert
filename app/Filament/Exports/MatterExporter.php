@@ -112,12 +112,6 @@ class MatterExporter extends Exporter
         return $body;
     }
 
-    public static function getChunkSize(): int
-    {
-        // Processes 1000 rows at once instead of building complex batch chains
-        return 1000;
-    }
-
     public function getXlsxCellStyle(): ?Style
     {
         return new Style()
@@ -184,9 +178,9 @@ class MatterExporter extends Exporter
         return $query->with([
             'court',
             'type',
-            'mainPartiesOnly.party',
-            'mainPartiesOnly.representatives.party',
-            'expertsOnly.party',
+            'mainPartiesOnly.party',           // used by getIndexedPartiesAttribute()
+            'mainPartiesOnly.representatives.party', // loaded inside indexedParties too
+            'expertsOnly.party',           // used by getIndexedExpertsAttribute()
             'fees',
             'notes',
             'allocations',
