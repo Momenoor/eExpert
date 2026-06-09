@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\Pages;
+namespace App\Filament\Resources\BulkMailCampaigns\Pages;
 
-use App\Filament\Resources\BulkMailCampaignResource\BulkMailCampaignResource;
+use App\Filament\Resources\BulkMailCampaigns\BulkMailCampaignResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 

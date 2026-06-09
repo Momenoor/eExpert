@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\RelationManagers;
+namespace App\Filament\Resources\BulkMailCampaigns\RelationManagers;
 
 use App\Enums\BulkMailRecipientStatus;
 use App\Filament\Imports\BulkMailRecipientImporter;

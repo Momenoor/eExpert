@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\Tables;
+namespace App\Filament\Resources\BulkMailCampaigns\Tables;
 
 use App\Filament\Imports\BulkMailRecipientImporter;
 use Filament\Actions\BulkActionGroup;

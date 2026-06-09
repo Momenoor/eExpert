@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource\Widgets;
+namespace App\Filament\Resources\BulkMailCampaigns\Widgets;
 
 use App\Models\BulkMailCampaign;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;

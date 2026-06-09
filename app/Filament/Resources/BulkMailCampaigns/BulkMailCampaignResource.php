@@ -1,14 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\BulkMailCampaignResource;
+namespace App\Filament\Resources\BulkMailCampaigns;
 
-use App\Filament\Resources\BulkMailCampaignResource\Actions\ImportRecipientsAction;
-use App\Filament\Resources\BulkMailCampaignResource\Schema\BulkMailCampaignSchema;
-use App\Filament\Resources\BulkMailCampaignResource\Tables\BulkMailCampaignTable;
+use App\Filament\Resources\BulkMailCampaigns\Schema\BulkMailCampaignSchema;
+use App\Filament\Resources\BulkMailCampaigns\Tables\BulkMailCampaignTable;
 use App\Models\BulkMailCampaign;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;

@@ -21,6 +21,7 @@
         "filament/widgets": "^5.0",
         "flowframe/laravel-trend": "*",
         "geo-sot/filament-env-editor": "*",
+        "iazaran/trace-replay": "^1.2",
         "jeffersongoncalves/filament-logo": "*",
         "jibaymcs/filament-tour": "*",
         "laravel/framework": "^13.0",
