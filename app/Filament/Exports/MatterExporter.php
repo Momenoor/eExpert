@@ -187,8 +187,6 @@ class MatterExporter extends Exporter
             'mainPartiesOnly.party',
             'mainPartiesOnly.representatives.party',
             'expertsOnly.party',
-            'indexedParties.party',
-            'indexedExperts.party',
             'fees',
             'notes',
             'allocations',
