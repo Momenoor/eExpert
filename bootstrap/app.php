@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('mail:send-bulk-campaigns')->everyMinute();
         $schedule->command('queue:work')->everyFifteenSeconds();
 
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
