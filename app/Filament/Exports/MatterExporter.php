@@ -112,12 +112,6 @@ class MatterExporter extends Exporter
         return $body;
     }
 
-    public static function getChunkSize(): int
-    {
-        // Processes 1000 rows at once instead of building complex batch chains
-        return 1000;
-    }
-
     public function getXlsxCellStyle(): ?Style
     {
         return new Style()
