@@ -80,6 +80,7 @@ class ListMatters extends ListRecords
                 ->exporter(MatterExporter::class)
                 ->label(__('Export'))
                 ->color('warning')
+                ->fileDisk('public')
                 ->columnMappingColumns(3),
             CreateAction::make(),
 
