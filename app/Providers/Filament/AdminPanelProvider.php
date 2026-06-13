@@ -113,9 +113,9 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 //FilamentEnvEditorPlugin::make(),
-                FilamentPopupPlugin::make(),
-                FilamentInboxPlugin::make(),
-                FilamentCronManagerPlugin::make(),
+//                FilamentPopupPlugin::make(),
+//                FilamentInboxPlugin::make(),
+//                FilamentCronManagerPlugin::make(),
                 FilamentUsersPlugin::make(),
                 FilamentShieldPlugin::make(),
                 FilamentFullCalendarPlugin::make()
@@ -129,10 +129,11 @@ class AdminPanelProvider extends PanelProvider
                 //FilamentUiSwitcherPlugin::make(),
                 FilamentLanguageSwitcherPlugin::make()
                     ->locales(['en', ['code' => 'ar', 'name' => __('Arabic'), 'flag' => 'ae']]),
-                FilamentTourPlugin::make()
-                    ->enableCssSelector()
+//                FilamentTourPlugin::make()
+//                    ->enableCssSelector()
             ])
             ->databaseNotifications()
+            ->databaseNotificationsPolling('10s')
             ->databaseTransactions()
             ->globalSearch(false)
             ->maxContentWidth(Width::Full);
@@ -167,6 +168,11 @@ class AdminPanelProvider extends PanelProvider
             Css::make('custom-css', asset('css/custom-css.css')),
         ]);
         FileUpload::configureUsing(fn(FileUpload $component) => $component->maxSize(1024 * 1024 * 50));
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn(): string => Blade::render("@livewire('notification-poller')")
+        );
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,

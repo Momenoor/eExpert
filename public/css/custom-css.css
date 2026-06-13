@@ -27,3 +27,4 @@ html {
 @media (max-width: 1280px),(-webkit-min-device-pixel-ratio: 1.25),(-moz-min-device-pixel-ratio: 1.25),(-o-min-device-pixel-ratio: 1.25/1),(-ms-min-device-pixel-ratio: 125/100),(-webkit-min-resolution: 120dpi),(-moz-min-resolution: 120dpi),(-o-min-resolution: 120dpi),(-ms-min-resolution: 120dpi) {
     .type-label { display: none; }
 }
+@variant dark (&:where(.dark, .dark *));

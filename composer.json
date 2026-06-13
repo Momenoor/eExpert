@@ -25,6 +25,7 @@
         "jeffersongoncalves/filament-logo": "*",
         "jibaymcs/filament-tour": "*",
         "laravel/framework": "^13.0",
+        "laravel/reverb": "^1.0",
         "laravel/tinker": "^3.0",
         "momenoor/laravel-msgraph-mailer": "^1.0",
         "mpdf/mpdf": "^8.3",

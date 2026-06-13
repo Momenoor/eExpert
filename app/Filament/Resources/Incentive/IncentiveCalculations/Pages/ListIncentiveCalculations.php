@@ -3,12 +3,16 @@
 namespace App\Filament\Resources\Incentive\IncentiveCalculations\Pages;
 
 use App\Filament\Exports\AssistantMattersExporter;
+use App\Filament\Exports\MattersCompletingDataExporter;
 use App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource;
+use App\Models\Matter;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ExportAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Section;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListIncentiveCalculations extends ListRecords
@@ -18,8 +22,9 @@ class ListIncentiveCalculations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+
             CreateAction::make(),
-            ExportAction::make()
+            ExportAction::make('matters')
                 ->exporter(AssistantMattersExporter::class)
                 ->label(__('Export'))
                 ->schema([
@@ -63,6 +68,18 @@ class ListIncentiveCalculations extends ListRecords
 
                     return $query;
                 }),
+            ExportAction::make('data')
+                ->modalWidth(Width::ThreeExtraLarge)
+                ->schema([
+                    DatePicker::make('start_date'),
+                    DatePicker::make('end_date')
+                ])
+                ->columnMapping(false)
+                ->model(Matter::class)
+                ->icon(Heroicon::DocumentChartBar)
+                ->exporter(MattersCompletingDataExporter::class)
+                ->label(__('Check Data'))
+                ->modifyQueryUsing(fn(Builder $query, array $options) => Matter::query()->whereBetween('final_report_at', [$options['start_date'], $options['end_date']])),
         ];
     }
 }
