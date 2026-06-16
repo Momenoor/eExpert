@@ -24,6 +24,16 @@ class MigrateClaimsToFees extends Page
     protected static ?string $navigationLabel = 'Migrate Claims to Fees';
     protected static ?string $title = 'Migrate Claims to Fees';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('Migrate Claims to Fees');
+    }
+
+    public function getTitle(): string
+    {
+        return __('Migrate Claims to Fees');
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         return false;
@@ -32,18 +42,18 @@ class MigrateClaimsToFees extends Page
     public function content(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Current Statistics')->schema([
+            Section::make(__('Current Statistics'))->schema([
                 TextEntry::make('total_claims')
-                    ->label('Total Claims')
+                    ->label(__('Total Claims'))
                     ->default(Claim::count()),
                 TextEntry::make('total_cashes')
-                    ->label('Total Cashes')
+                    ->label(__('Total Cashes'))
                     ->default(Cash::count()),
                 TextEntry::make('total_fees')
-                    ->label('Total Fees')
+                    ->label(__('Total Fees'))
                     ->default(Fee::count()),
                 TextEntry::make('total_allocations')
-                    ->label('Total Allocations')
+                    ->label(__('Total Allocations'))
                     ->default(Allocation::count()),
             ]),
         ]);
@@ -53,20 +63,20 @@ class MigrateClaimsToFees extends Page
     {
         return [
             Action::make('migrate')
-                ->label('Migrate Now')
+                ->label(__('Migrate Now'))
                 ->color('primary')
                 ->icon('heroicon-o-arrow-path')
                 ->requiresConfirmation()
-                ->modalHeading('Migrate Claims to Fees')
-                ->modalDescription('This will create Fees from existing Claims and Allocations from existing Cashes. Are you sure?')
+                ->modalHeading(__('Migrate Claims to Fees'))
+                ->modalDescription(__('This will create Fees from existing Claims and Allocations from existing Cashes. Are you sure?'))
                 ->action(fn() => $this->runMigration()),
             Action::make('fixStatuses')
-                ->label('Fix Collection Statuses')
+                ->label(__('Fix Collection Statuses'))
                 ->color('warning')
                 ->icon('heroicon-o-wrench-screwdriver')
                 ->requiresConfirmation()
-                ->modalHeading('Fix All Collection Statuses')
-                ->modalDescription('This will recalculate the status of ALL Fees and the Collection Status of ALL Matters based on their current allocations. Are you sure?')
+                ->modalHeading(__('Fix All Collection Statuses'))
+                ->modalDescription(__('This will recalculate the status of ALL Fees and the Collection Status of ALL Matters based on their current allocations. Are you sure?'))
                 ->action(fn() => $this->runFixStatuses()),
         ];
     }
@@ -78,7 +88,7 @@ class MigrateClaimsToFees extends Page
         $total = $totalFees + $totalMatters;
 
         if ($total === 0) {
-            Notification::make()->title('No records to fix')->info()->send();
+            Notification::make()->title(__('No records to fix'))->info()->send();
             return;
         }
 
@@ -99,8 +109,8 @@ class MigrateClaimsToFees extends Page
         });
 
         Notification::make()
-            ->title('Status Fix Successful')
-            ->body('All fee and matter collection statuses have been recalculated.')
+            ->title(__('Status Fix Successful'))
+            ->body(__('All fee and matter collection statuses have been recalculated.'))
             ->success()
             ->send();
     }
@@ -112,7 +122,7 @@ class MigrateClaimsToFees extends Page
         $total = $totalClaims + $totalMatters;
 
         if ($total === 0) {
-            Notification::make()->title('No claims to migrate')->info()->send();
+            Notification::make()->title(__('No claims to migrate'))->info()->send();
             return;
         }
 
@@ -157,8 +167,8 @@ class MigrateClaimsToFees extends Page
         });
 
         Notification::make()
-            ->title('Migration Successful')
-            ->body('All claims and cashes have been migrated to fees and allocations.')
+            ->title(__('Migration Successful'))
+            ->body(__('All claims and cashes have been migrated to fees and allocations.'))
             ->success()
             ->send();
     }

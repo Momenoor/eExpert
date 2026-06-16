@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Matters\Pages;
 
+use App\Filament\Exports\AssistantMattersExporter;
 use App\Filament\Exports\MatterExporter;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Enums\MatterStatus;
 use App\Models\Matter;
+use App\Models\MatterParty;
 use Filament\Actions\BulkAction;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
@@ -76,12 +78,20 @@ class ListMatters extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            ExportAction::make()
+            ExportAction::make('all_matters')
                 ->exporter(MatterExporter::class)
-                ->label(__('Export'))
+                ->label(__('Export All'))
                 ->color('warning')
                 ->fileDisk('public')
-                ->columnMappingColumns(3),
+                ->columnMappingColumns(3)
+                ->icon('heroicon-o-arrow-down-tray'),
+            ExportAction::make('all_matters_by_assistant')
+                ->exporter(AssistantMattersExporter::class)
+                ->label(__('Export by Assistant'))
+                ->color('warning')
+                ->fileDisk('public')
+                ->columnMappingColumns(3)
+                ->icon('heroicon-o-users'),
             CreateAction::make(),
 
         ];

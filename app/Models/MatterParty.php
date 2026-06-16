@@ -100,6 +100,13 @@ class MatterParty extends Model
             ->where('role', 'representative');
     }
 
+    public function matter_assistants(): HasMany
+    {
+        return $this->hasMany(MatterParty::class, 'matter_id', 'matter_id')
+            ->where('role', 'expert')
+            ->where('type', 'assistant');
+    }
+
     public function experts(): BelongsTo
     {
         return $this->belongsTo(Party::class, 'party_id')->whereJsonContains('role' , ['role' => 'expert', 'type' => 'certified']);

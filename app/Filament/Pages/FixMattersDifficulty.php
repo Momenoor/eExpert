@@ -20,6 +20,16 @@ class FixMattersDifficulty extends Page
     protected static ?string $navigationLabel = 'Fix Matters Difficulty';
     protected static ?string $title = 'Fix Matters Difficulty';
 
+    public static function getNavigationLabel(): string
+    {
+        return __('Fix Matters Difficulty');
+    }
+
+    public function getTitle(): string
+    {
+        return __('Fix Matters Difficulty');
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         return false;
@@ -29,18 +39,18 @@ class FixMattersDifficulty extends Page
     public function content(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Current Statistics')->schema([
+            Section::make(__('Current Statistics'))->schema([
                 TextEntry::make('total_matters')
-                    ->label('Total Matters')
+                    ->label(__('Total Matters'))
                     ->default(Matter::count()),
                 TextEntry::make('simple_count')
-                    ->label('Matters with "simple" difficulty')
+                    ->label(__('Matters with "simple" difficulty'))
                     ->default(Matter::where('difficulty', 'simple')->count()),
                 TextEntry::make('exceptional_count')
-                    ->label('Matters with "exceptional" difficulty')
+                    ->label(__('Matters with "exceptional" difficulty'))
                     ->default(Matter::where('difficulty', 'exceptional')->count()),
                 TextEntry::make('medium_count')
-                    ->label('Matters with "medium" difficulty')
+                    ->label(__('Matters with "medium" difficulty'))
                     ->default(Matter::where('difficulty', 'medium')->count()),
             ]),
         ]);
@@ -50,12 +60,12 @@ class FixMattersDifficulty extends Page
     {
         return [
             Action::make('fixDifficulty')
-                ->label('Fix Difficulty Values')
+                ->label(__('Fix Difficulty Values'))
                 ->color('primary')
                 ->icon('heroicon-o-arrow-path')
                 ->requiresConfirmation()
-                ->modalHeading('Fix Matters Difficulty')
-                ->modalDescription('This will change "simple" to "easy" and "exceptional" to "hard" in the matters table. Are you sure?')
+                ->modalHeading(__('Fix Matters Difficulty'))
+                ->modalDescription(__('This will change "simple" to "easy" and "exceptional" to "hard" in the matters table. Are you sure?'))
                 ->action(fn() => $this->runFix()),
         ];
     }
@@ -67,7 +77,7 @@ class FixMattersDifficulty extends Page
         $total = $totalSimple + $totalExceptional;
 
         if ($total === 0) {
-            Notification::make()->title('Difficulty Values Already Fixed')->info()->send();
+            Notification::make()->title(__('Difficulty Values Already Fixed'))->info()->send();
             return;
         }
 
@@ -84,8 +94,8 @@ class FixMattersDifficulty extends Page
         });
 
         Notification::make()
-            ->title('Difficulty Values Fixed')
-            ->body("Successfully updated $total records.")
+            ->title(__('Difficulty Values Fixed'))
+            ->body(__('Successfully updated :total records.', ['total' => $total]))
             ->success()
             ->send();
     }

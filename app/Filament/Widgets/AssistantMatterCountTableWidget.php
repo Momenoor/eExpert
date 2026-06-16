@@ -84,12 +84,12 @@ class AssistantMatterCountTableWidget extends TableWidget
                     ->date(),
                 TextColumn::make('matter.court.name')
                     ->label(__('Court'))
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
 
                 TextColumn::make('matter.type.name')
                     ->label(__('Type'))
                     ->badge()
-                    ->placeholder('—'),
+                    ->placeholder(__('—')),
             ])
             ->headerActions([
                 Action::make('clearFilter')

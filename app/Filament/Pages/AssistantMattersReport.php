@@ -135,14 +135,14 @@ class AssistantMattersReport extends Page implements HasTable
                 TextColumn::make('matter.distributed_at')
                     ->label(__('Distributed At'))
                     ->date('d M Y')
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->sortable()
                     ->width('7%'),
                 // ── Initial Report Date ───────────────────────────────────
                 TextColumn::make('matter.initial_report_at')
                     ->label(__('Initial Report'))
                     ->date('d M Y')
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->sortable()
                     ->width('7%'),
 
@@ -150,7 +150,7 @@ class AssistantMattersReport extends Page implements HasTable
                 TextColumn::make('matter.final_report_at')
                     ->label(__('Final Report'))
                     ->date('d M Y')
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->sortable()
                     ->width('7%'),
 
@@ -172,7 +172,7 @@ class AssistantMattersReport extends Page implements HasTable
                 TextColumn::make('matter.notes.text')
                     ->label(__('Notes'))
                     ->listWithLineBreaks()
-                    ->placeholder('—')
+                    ->placeholder(__('—'))
                     ->wrap()
                     ->limit(80)
                     ->tooltip(fn($record) => $record->matter?->notes
