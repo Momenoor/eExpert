@@ -60,6 +60,7 @@ use TomatoPHP\FilamentUsers\Filament\Resources\Users\Schemas\UserForm;
 use TomatoPHP\FilamentUsers\Filament\Resources\Users\UserResource;
 use TomatoPHP\FilamentUsers\FilamentUsersPlugin;
 use TomatoPHP\FilamentUsers\Services\FilamentUserServices;
+use TraceReplay\Http\Middleware\TraceMiddleware;
 use ZPMLabs\FilamentPopup\FilamentPopupPlugin;
 use ZPMPackages\FilamentCronManager\FilamentCronManagerPlugin;
 
@@ -101,6 +102,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                TraceMiddleware::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make(__('Finance')),
