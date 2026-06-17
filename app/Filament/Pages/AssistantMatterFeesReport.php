@@ -111,6 +111,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
                             ->when($data['final_until'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])));
                     })->indicateUsing(fn($data) => ($data['final_from'] || $data['final_until'] ? __('Final Report Date') . ' ' . ($data['final_from'] ? __('From:') . $data['final_from'] : '') . ($data['final_until'] ? ' '.__('Until:') . $data['final_until'] : ''):'')),
             ])
+            ->queryStringIdentifier('final_report')
             ->persistSearchInSession()
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
