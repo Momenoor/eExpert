@@ -91,6 +91,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
                 SelectFilter::make('party_id')
                     ->label(__('Assistant'))
                     ->multiple()
+                    ->preload()
                     ->options(Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
                         ->orderBy('name')
                         ->pluck('name', 'id')
