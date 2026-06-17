@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Events\FilamentActionEvent;
 use App\Listeners\SendFilamentActionNotifications;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 

@@ -117,6 +117,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
             ->headerActions([
                 ExportAction::make()
                     ->exporter(AssistantMatterFeesExporter::class)
+                    ->fileDisk('public')
                     ->label(__('Export Excel'))
                     ->icon('heroicon-o-arrow-down-tray'),
             ]);
