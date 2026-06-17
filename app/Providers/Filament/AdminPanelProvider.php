@@ -102,7 +102,6 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                TraceMiddleware::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make(__('Finance')),
