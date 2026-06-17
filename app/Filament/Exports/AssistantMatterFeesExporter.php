@@ -4,6 +4,7 @@ namespace App\Filament\Exports;
 
 use App\Enums\FeeType;
 use App\Models\MatterParty;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -134,5 +135,11 @@ class AssistantMatterFeesExporter extends Exporter
             $q->where('type', '!=', FeeType::VAT->value);
         }], 'amount')
         ->withCount(['matter_assistants as assistants_count']);
+    }
+    public function getFormats(): array
+    {
+        return [
+            ExportFormat::Csv, // Remove ExportFormat::Xlsx if it's there
+        ];
     }
 }
