@@ -8,6 +8,7 @@ use App\Models\MatterParty;
 use App\Models\Party;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\Jobs\CreateXlsxFile;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
@@ -117,13 +118,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
                 ExportAction::make()
-                    ->after(function(Export $export){
-                        if (blank($export->completed_at) && blank($export->failed_at)) {
-                            $export->update([
-                                'completed_at' => now(),
-                            ]);
-                        }
-                    })
+                    ->job(CreateXlsxFile::class)
                     ->exporter(AssistantMatterFeesExporter::class)
                     ->fileDisk('public')
                     ->label(__('Export Excel'))
