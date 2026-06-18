@@ -139,7 +139,7 @@ class AssistantMatterFeesExporter extends Exporter
     public function getFormats(): array
     {
         return [
-            ExportFormat::Csv, // Remove ExportFormat::Xlsx if it's there
+            ExportFormat::Xlsx, // Remove ExportFormat::Xlsx if it's there
         ];
     }
 }

@@ -118,7 +118,6 @@ class AssistantMatterFeesReport extends Page implements HasTable
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
                 ExportAction::make()
-                    ->job(PrepareCsvExport::class)
                     ->exporter(AssistantMatterFeesExporter::class)
                     ->fileDisk('public')
                     ->label(__('Export Excel'))
