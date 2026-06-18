@@ -9,6 +9,7 @@ use App\Models\Party;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\Jobs\CreateXlsxFile;
+use Filament\Actions\Exports\Jobs\PrepareCsvExport;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
@@ -118,7 +119,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
                 ExportAction::make()
-                    ->job(CreateXlsxFile::class)
+                    ->job(PrepareCsvExport::class)
                     ->exporter(AssistantMatterFeesExporter::class)
                     ->fileDisk('public')
                     ->label(__('Export Excel'))
