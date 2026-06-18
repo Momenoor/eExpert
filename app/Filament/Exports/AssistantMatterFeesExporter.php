@@ -122,7 +122,7 @@ class AssistantMatterFeesExporter extends Exporter
     }
     public static function getChunkSize(): int
     {
-        return 200; // Try lowering this to ease memory pressure per job loop
+        return 4000; // Try lowering this to ease memory pressure per job loop
     }
     public static function modifyQuery(Builder $query): Builder
     {
