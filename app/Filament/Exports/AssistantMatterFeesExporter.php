@@ -142,16 +142,4 @@ class AssistantMatterFeesExporter extends Exporter
             ExportFormat::Csv, // Remove ExportFormat::Xlsx if it's there
         ];
     }
-
-    public static function afterCreate(Export $export): void
-    {
-        // If the system stalls, we force-update the state columns directly in the DB
-        if (blank($export->completed_at) && blank($export->failed_at)) {
-            $export->update([
-                'processed_rows' => $export->total_rows,
-                'successful_rows' => $export->total_rows,
-                'completed_at' => now(),
-            ]);
-        }
-    }
 }
