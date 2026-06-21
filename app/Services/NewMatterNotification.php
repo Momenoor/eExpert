@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Mail;
 
 class NewMatterNotification
 {
-    public function sendToAssistants(Matter $matter): void
+    public function sendToAssistants($matterId): void
     {
+        $matter = Matter::find($matterId);
+        if (!$matter) return;
 
         if (!$matter->distributed_at) return;
 
