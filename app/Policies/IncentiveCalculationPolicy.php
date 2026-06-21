@@ -11,7 +11,7 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 class IncentiveCalculationPolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:IncentiveCalculation');
@@ -67,4 +67,18 @@ class IncentiveCalculationPolicy
         return $authUser->can('Reorder:IncentiveCalculation');
     }
 
+    public function runCalculation(AuthUser $authUser, IncentiveCalculation $incentiveCalculation): bool
+    {
+        return $authUser->can('RunCalculation:IncentiveCalculation');
+    }
+
+    public function finalize(AuthUser $authUser, IncentiveCalculation $incentiveCalculation): bool
+    {
+        return $authUser->can('Finalize:IncentiveCalculation');
+    }
+
+    public function print(AuthUser $authUser, IncentiveCalculation $incentiveCalculation): bool
+    {
+        return $authUser->can('Print:IncentiveCalculation');
+    }
 }

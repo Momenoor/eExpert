@@ -84,7 +84,6 @@ class IncentiveCalculatorService
 
             $fees = Fee::with([
                 'matter.type.incentiveConfig.tiers',
-                'matter.procedures', // for working days calc if needed
             ])
                 ->where('status', 'paid')
                 ->whereNotIn('id', $alreadyCalculatedFeeIds)
@@ -217,24 +216,33 @@ class IncentiveCalculatorService
                 }
 
                 foreach ($matterLines as $item) {
-                    $line          = $item['line'];
+                    $line = $item['line'];
                     $totalForAssistants = round($line->net_amount * $assistantRate / 100, 2);
-                    $sharePerHead  = round($totalForAssistants / $assistantCount, 2);
+
+                    // Check if custom percentages are set
+                    $hasCustomPercentages = $assistants->contains(fn($mp) => !empty($mp->commission_percentage));
 
                     foreach ($assistants as $mp) {
+                        if ($hasCustomPercentages) {
+                            $commission = (float)($mp->commission_percentage ?? 0);
+                            $shareAmount = round($totalForAssistants * ($commission / 100), 2);
+                        } else {
+                            $shareAmount = round($totalForAssistants / $assistantCount, 2);
+                        }
+
                         IncentiveAssistantLine::create([
                             'incentive_line_id'       => $line->id,
                             'party_id'                => $mp->party_id,
-                            'share_amount'            => $sharePerHead,
+                            'share_amount'            => $shareAmount,
                             'extra_percentage'        => 0,
                             'extra_amount'            => 0,
                             'minimum_penalty_pct'     => 0,
                             'minimum_penalty_amount'  => 0,
-                            'total_amount'            => $sharePerHead,
+                            'total_amount'            => $shareAmount,
                         ]);
 
                         if ($isTiered) {
-                            $assistantTotals[$mp->party_id] = ($assistantTotals[$mp->party_id] ?? 0) + $sharePerHead;
+                            $assistantTotals[$mp->party_id] = ($assistantTotals[$mp->party_id] ?? 0) + $shareAmount;
                         }
                     }
                 }
@@ -442,8 +450,8 @@ class IncentiveCalculatorService
      */
     public function getAssistantSummary(Model $calculation): Collection
     {
-        return IncentiveAssistantLine::with('party', 'line.matter')
-            ->whereHas('line', fn($q) => $q->where('incentive_calculation_id', $calculation->id))
+        return IncentiveAssistantLine::with('party', 'incentiveLine.matter')
+            ->whereHas('incentiveLine', fn($q) => $q->where('incentive_calculation_id', $calculation->id))
             ->get()
             ->groupBy('party_id')
             ->map(function ($lines, $partyId) use ($calculation) {
@@ -453,7 +461,7 @@ class IncentiveCalculatorService
 
                 return [
                     'party'                  => $lines->first()->party,
-                    'matter_count'           => $lines->pluck('line.matter_id')->unique()->count(),
+                    'matter_count'           => $lines->pluck('incentiveLine.matter_id')->unique()->count(),
                     'completed_matter_count' => $extra?->completed_matter_count ?? 0,
                     'meets_minimum'          => $extra?->meets_minimum ?? true,
                     'share_total'            => $lines->sum('share_amount'),
@@ -461,7 +469,8 @@ class IncentiveCalculatorService
                     'extra_amount'           => $extra?->extra_amount ?? 0,
                     'minimum_penalty_pct'    => $extra?->minimum_penalty_pct ?? 0,
                     'penalty_amount'         => $extra?->penalty_amount ?? 0,
-                    'total'                  => $lines->sum('total_amount'),
+                    'fixed_deduction'        => $extra?->fixed_deduction ?? 0,
+                    'total'                  => max(0, $lines->sum('total_amount') - ($extra?->fixed_deduction ?? 0)),
                 ];
             })
             ->values();

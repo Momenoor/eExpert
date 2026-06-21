@@ -42,6 +42,11 @@ class IncentiveAssistantLine extends Model
         return $this->belongsTo(IncentiveLine::class);
     }
 
+    public function line(): BelongsTo
+    {
+        return $this->incentiveLine();
+    }
+
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);

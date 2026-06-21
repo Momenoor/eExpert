@@ -28,4 +28,16 @@ class IncentiveExtraRule extends Model
         return LogOptions::defaults()
             ->logAll();
     }
+
+    public static function getPercentageForCount(int $count): float
+    {
+        return static::query()
+            ->where('min_count', '<=', $count)
+            ->where(function ($query) use ($count) {
+                $query->where('max_count', '>=', $count)
+                    ->orWhereNull('max_count');
+            })
+            ->first()
+            ?->extra_percentage ?? 0;
+    }
 }

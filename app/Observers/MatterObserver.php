@@ -23,7 +23,7 @@ class MatterObserver
 
         dispatch(function () use ($matter) {
             app(NewMatterNotification::class)->sendToAssistants($matter);
-        })->afterResponse();
+        })->afterCommit();
     }
 
     public function saved(Matter $matter): void

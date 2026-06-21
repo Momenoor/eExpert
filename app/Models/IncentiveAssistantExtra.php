@@ -21,6 +21,7 @@ class IncentiveAssistantExtra extends Model
         'extra_percentage',
         'extra_amount',
         'penalty_amount',
+        'fixed_deduction',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class IncentiveAssistantExtra extends Model
         'extra_percentage' => 'decimal:2',
         'extra_amount' => 'decimal:2',
         'penalty_amount' => 'decimal:2',
+        'fixed_deduction' => 'decimal:2',
     ];
 
     public function getActivitylogOptions(): LogOptions

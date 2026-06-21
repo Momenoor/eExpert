@@ -215,6 +215,7 @@ class MatterForm
                                             ->table([
                                                 Repeater\TableColumn::make(__('Type'))->width(250),
                                                 Repeater\TableColumn::make(__('Name')),
+                                                Repeater\TableColumn::make(__('Commission %')),
                                             ])
                                             ->defaultItems(1)
                                             ->default([['type' => 'certified', 'party_id' => 7358]])
@@ -274,6 +275,14 @@ class MatterForm
                                                     ->searchable()
                                                     ->preload()
                                                     ->required(),
+
+                                                TextInput::make('commission_percentage')
+                                                    ->label(__('Commission %'))
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->maxValue(100)
+                                                    ->suffix('%')
+                                                    ->visible(fn(Get $get) => in_array($get('type'), ['assistant', 'external-assistant'])),
 
                                                 Hidden::make('matter_id'),
                                                 Hidden::make('role')->default('expert'),

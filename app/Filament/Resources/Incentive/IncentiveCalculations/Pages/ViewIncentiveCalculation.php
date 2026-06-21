@@ -21,7 +21,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
                 ->color('info')
-                ->authorize('runCalculation')
+
                 ->visible(fn() => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->modalHeading(__('Run Incentive Calculation'))
@@ -51,7 +51,6 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Manage Deductions'))
                 ->icon('heroicon-o-minus-circle')
                 ->color('warning')
-                ->authorize('update')
                 ->visible(fn() => $this->record->isDraft() && $this->record->lines()->exists())
                 ->url(fn() => IncentiveCalculationResource::getUrl('deductions', ['record' => $this->record])),
 
@@ -59,7 +58,6 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Finalize'))
                 ->icon('heroicon-o-lock-closed')
                 ->color('success')
-                ->authorize('finalize')
                 ->visible(fn() => $this->record->isDraft() && $this->record->lines()->exists())
                 ->requiresConfirmation()
                 ->modalHeading(__('Finalize Calculation'))
@@ -89,7 +87,6 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Print Summary'))
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->authorize('print')
                 ->url(fn() => route('incentive.calculation.print', $this->record))
                 ->openUrlInNewTab(),
         ];

@@ -116,6 +116,7 @@
                         <th class="px-3 py-2 text-right">{{ __('Extra Amount') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Penalty %') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Penalty Amount') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('Fixed Deduction') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Total') }}</th>
                     </tr>
                     </thead>
@@ -141,6 +142,7 @@
                             <td class="px-3 py-2 text-right text-success-600">{{ number_format($extra->extra_amount, 2) }}</td>
                             <td class="px-3 py-2 text-right text-danger-600">{{ $extra->minimum_penalty_pct > 0 ? '-' . $extra->minimum_penalty_pct . '%' : '—' }}</td>
                             <td class="px-3 py-2 text-right text-danger-600">{{ $extra->penalty_amount > 0 ? number_format($extra->penalty_amount, 2) : '—' }}</td>
+                            <td class="px-3 py-2 text-right text-danger-600">{{ $extra->fixed_deduction > 0 ? number_format($extra->fixed_deduction, 2) : '—' }}</td>
                             <td class="px-3 py-2 text-right font-bold text-success-700">{{ number_format($row['total'], 2) }}</td>
                         </tr>
                     @endforeach
@@ -151,6 +153,7 @@
                         <td class="px-3 py-2 text-right">AED {{ number_format($this->getGrandTotalShare(), 2) }}</td>
                         <td colspan="3"></td>
                         <td class="px-3 py-2 text-right text-danger-600">AED {{ number_format($this->record->assistantExtras->sum('penalty_amount'), 2) }}</td>
+                        <td class="px-3 py-2 text-right text-danger-600">AED {{ number_format($this->record->assistantExtras->sum('fixed_deduction'), 2) }}</td>
                         <td class="px-3 py-2 text-right text-success-700">AED {{ number_format($this->getGrandTotal(), 2) }}</td>
                     </tr>
                     </tfoot>

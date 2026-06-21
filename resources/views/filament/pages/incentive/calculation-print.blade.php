@@ -115,6 +115,7 @@
             <th class="px-3 py-2 text-right">{{ __('Extra Amount') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Penalty %') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Penalty') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Fixed Ded.') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Total') }}</th>
         </tr>
         </thead>
@@ -148,6 +149,9 @@
                 <td class="px-3 py-2 text-right text-red-600">
                     {{ $row['penalty_amount'] > 0 ? number_format($row['penalty_amount'], 2) : '—' }}
                 </td>
+                <td class="px-3 py-2 text-right text-red-600">
+                    {{ $row['fixed_deduction'] > 0 ? number_format($row['fixed_deduction'], 2) : '—' }}
+                </td>
                 <td class="px-3 py-2 text-right font-bold text-green-800">
                     AED {{ number_format($row['total'], 2) }}
                 </td>
@@ -164,6 +168,8 @@
             <td class="px-3 py-2"></td>
             <td class="px-3 py-2 text-right text-red-600">
                 AED {{ number_format($assistantSummary->sum('penalty_amount'), 2) }}</td>
+            <td class="px-3 py-2 text-right text-red-600">
+                AED {{ number_format($assistantSummary->sum('fixed_deduction'), 2) }}</td>
             <td class="px-3 py-2 text-right text-green-800">
                 AED {{ number_format($assistantSummary->sum('total'), 2) }}</td>
         </tr>

@@ -47,7 +47,7 @@ class ManageIncentiveDeductions extends ViewRecord
     public function getLinesWithDeductions(): \Illuminate\Support\Collection
     {
         return $this->record->lines()
-            ->with(['matter', 'fee.type', 'deductions', 'assistantLines.party'])
+            ->with(['matter', 'deductions', 'assistantLines.party'])
             ->get()
             ->map(fn($line) => [
                 'line'       => $line,
@@ -68,15 +68,16 @@ class ManageIncentiveDeductions extends ViewRecord
         return $this->record->assistantExtras()->with('party')->get()
             ->map(function ($extra) {
                 $lines = IncentiveAssistantLine::whereHas(
-                    'line',
+                    'incentiveLine',
                     fn($q) => $q->where('incentive_calculation_id', $this->record->id)
                 )->where('party_id', $extra->party_id)->get();
 
                 return [
-                    'extra'       => $extra,
-                    'party'       => $extra->party,
-                    'share_total' => $lines->sum('share_amount'),
-                    'total'       => $lines->sum('total_amount'),
+                    'extra'           => $extra,
+                    'party'           => $extra->party,
+                    'share_total'     => $lines->sum('share_amount'),
+                    'fixed_deduction' => $extra->fixed_deduction,
+                    'total'           => max(0, $lines->sum('total_amount') - $extra->fixed_deduction),
                 ];
             });
     }
@@ -94,16 +95,20 @@ class ManageIncentiveDeductions extends ViewRecord
     public function getGrandTotalShare(): float
     {
         return (float) IncentiveAssistantLine::whereHas(
-            'line',
+            'incentiveLine',
             fn($q) => $q->where('incentive_calculation_id', $this->record->id)
         )->sum('share_amount');
     }
 
     public function getGrandTotal(): float
     {
-        return (float) IncentiveAssistantLine::whereHas(
-            'line',
+        $assistantLinesSum = (float) IncentiveAssistantLine::whereHas(
+            'incentiveLine',
             fn($q) => $q->where('incentive_calculation_id', $this->record->id)
         )->sum('total_amount');
+
+        $fixedDeductionsSum = (float) $this->record->assistantExtras->sum('fixed_deduction');
+
+        return max(0, $assistantLinesSum - $fixedDeductionsSum);
     }
 }
