@@ -135,7 +135,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('10s')
-            ->databaseTransactions()
+//            ->databaseTransactions()
             ->globalSearch(false)
             ->maxContentWidth(Width::Full);
     }
