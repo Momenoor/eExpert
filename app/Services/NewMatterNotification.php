@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\NewMatterNotificationMail;
 use App\Models\Matter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class NewMatterNotification
@@ -11,7 +12,10 @@ class NewMatterNotification
     public function sendToAssistants($matterId): void
     {
         $matter = Matter::find($matterId);
-        if (!$matter) return;
+        if (!$matter) {
+            Log::error(($matterId .' / '. $matter));
+
+        };
 
         if (!$matter->distributed_at) return;
 
