@@ -19,7 +19,18 @@ class MatterObserver
 
     public function created(Matter $matter): void
     {
+        Log::debug('MatterObserver@created fired', [
+            'matter_id' => $matter->id,
+            'exists'    => $matter->exists,
+            'dirty'     => $matter->getDirty(),
+        ]);
+
         $matterId = $matter->id;
+
+        if (! $matterId) {
+            Log::error('MatterObserver@created: matter has no ID at observer time.');
+            return;
+        }
 
         dispatch(function () use ($matterId) {
             try {
