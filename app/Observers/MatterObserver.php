@@ -22,7 +22,7 @@ class MatterObserver
         //if ($matter->distributed_at <= now()->subDays(30)) return;
 
         dispatch(function () use ($matter) {
-            app(NewMatterNotification::class)->sendToAssistants($matter);
+            app(NewMatterNotification::class)->sendToAssistants($matter->id);
         })->afterCommit();
     }
 
