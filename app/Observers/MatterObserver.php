@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\MatterCollectionStatus;
 use App\Models\Matter;
 use App\Services\NewMatterNotification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class MatterObserver
@@ -18,11 +19,31 @@ class MatterObserver
 
     public function created(Matter $matter): void
     {
-        // Dispatch the notification check after the response to ensure relations are saved (e.g. assistants)
-        //if ($matter->distributed_at <= now()->subDays(30)) return;
+        $matterId = $matter->id;
 
-        dispatch(function () use ($matter) {
-            app(NewMatterNotification::class)->sendToAssistants($matter);
+        dispatch(function () use ($matterId) {
+            try {
+                $matter = Matter::withTrashed()->find($matterId);
+
+                if (! $matter) {
+                    Log::error("NewMatterNotification [created]: Matter #{$matterId} not found in DB.");
+                    return;
+                }
+
+                if (! $matter->distributed_at) {
+                    Log::info("NewMatterNotification [created]: Matter #{$matterId} has no distributed_at, skipping.");
+                    return;
+                }
+
+                app(NewMatterNotification::class)->sendToAssistants($matter);
+
+            } catch (\Throwable $e) {
+                Log::error("NewMatterNotification [created]: Failed for Matter #{$matterId}.", [
+                    'error'   => $e->getMessage(),
+                    'file'    => $e->getFile(),
+                    'line'    => $e->getLine(),
+                ]);
+            }
         })->afterResponse();
     }
 
