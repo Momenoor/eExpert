@@ -44,7 +44,7 @@ class MatterObserver
                     'line'    => $e->getLine(),
                 ]);
             }
-        })->afterResponse();
+        })->afterCommit();
     }
 
     public function saved(Matter $matter): void
