@@ -20,10 +20,10 @@ class MatterObserver
     {
         // Dispatch the notification check after the response to ensure relations are saved (e.g. assistants)
         //if ($matter->distributed_at <= now()->subDays(30)) return;
-
+        dd($matter);
         dispatch(function () use ($matter) {
             app(NewMatterNotification::class)->sendToAssistants($matter->id);
-        })->afterCommit();
+        })->afterResponse();
     }
 
     public function saved(Matter $matter): void
