@@ -89,8 +89,17 @@ class Matter extends Model
             if ($matter->isDirty('custom_fields') || $matter->wasRecentlyCreated) {
                 $customFields = $matter->custom_fields ?? [];
 
-                // Optional: Clear existing metas for these fields or all?
-                // To be safe and keep it clean, we can sync them.
+                // Get current meta field names to identify what to remove
+                $existingFieldNames = $matter->metas()->pluck('field_name')->toArray();
+                $newFieldNames = array_keys($customFields);
+
+                // Remove metas that are no longer in custom_fields
+                $fieldsToRemove = array_diff($existingFieldNames, $newFieldNames);
+                if (!empty($fieldsToRemove)) {
+                    $matter->metas()->whereIn('field_name', $fieldsToRemove)->delete();
+                }
+
+                // Update or create metas from custom_fields
                 foreach ($customFields as $key => $value) {
                     $matter->metas()->updateOrCreate(
                         ['field_name' => $key],

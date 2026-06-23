@@ -16,6 +16,7 @@ return new class extends Migration
         });
 
         Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
+            $table->dropForeign(['type_id']);
             $table->dropColumn('type_id');
         });
     }

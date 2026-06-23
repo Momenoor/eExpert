@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('matter_metas', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('matter_id')->constrained()->cascadeOnDelete();
+            $table->string('field_name');
+            $table->text('field_value')->nullable();
             $table->timestamps();
         });
     }

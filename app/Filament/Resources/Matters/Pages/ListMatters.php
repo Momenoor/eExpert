@@ -12,6 +12,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Notifications\Notification;
@@ -82,6 +83,7 @@ class ListMatters extends ListRecords
                 ->exporter(MatterExporter::class)
                 ->label(__('Export All'))
                 ->color('warning')
+                ->formats([ExportFormat::Xlsx])
                 ->fileDisk('public')
                 ->columnMappingColumns(3)
                 ->icon('heroicon-o-arrow-down-tray'),
