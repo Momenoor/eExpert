@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -13,7 +12,7 @@ class MatterTypeIncentiveConfig extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'type_id',
+        'name',
         'calculation_type',
         'fixed_percentage',
         'assistant_rate',
@@ -30,9 +29,9 @@ class MatterTypeIncentiveConfig extends Model
             ->logAll();
     }
 
-    public function matterType(): BelongsTo
+    public function matterTypes(): HasMany
     {
-        return $this->belongsTo(Type::class, 'type_id');
+        return $this->hasMany(Type::class, 'incentive_config_id');
     }
 
     public function tiers(): HasMany

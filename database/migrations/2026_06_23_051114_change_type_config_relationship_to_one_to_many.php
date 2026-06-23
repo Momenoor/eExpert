@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('types', function (Blueprint $table) {
+            $table->foreignId('incentive_config_id')->nullable()->constrained('matter_type_incentive_configs')->nullOnDelete();
+        });
+
+        Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
+            $table->dropColumn('type_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
+            $table->foreignId('type_id')->nullable()->constrained('types')->nullOnDelete();
+        });
+
+        Schema::table('types', function (Blueprint $table) {
+            $table->dropForeign(['incentive_config_id']);
+            $table->dropColumn('incentive_config_id');
+        });
+    }
+};

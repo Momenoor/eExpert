@@ -4,19 +4,19 @@ namespace App\Models;
 
 use App\Enums\MatterCollectionStatus;
 use App\Enums\MatterCommissiong;
-use App\Enums\MatterStatus;
 use App\Enums\MatterDifficulty;
 use App\Enums\MatterLevel;
+use App\Enums\MatterStatus;
 use App\Observers\MatterObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
-
 
 /**
  * @property mixed $status
@@ -24,10 +24,11 @@ use Spatie\Activitylog\Support\LogOptions;
 #[ObservedBy(MatterObserver::class)]
 class Matter extends Model
 {
-    use SoftDeletes;
     use LogsActivity;
+    use SoftDeletes;
 
     protected array $_cache = [];
+
     protected $fillable = [
         'year',
         'number',
@@ -47,7 +48,7 @@ class Matter extends Model
         'final_report_memo_date',
         'is_office_work',
         'received_at',
-        'custom_fields'
+        'custom_fields',
     ];
 
     protected array $dates = [
@@ -66,6 +67,11 @@ class Matter extends Model
         'level' => MatterLevel::class,
         'collection_status' => MatterCollectionStatus::class,
         'commissioning' => MatterCommissiong::class,
+        'distributed_at' => 'datetime',
+        'initial_report_at' => 'datetime',
+        'final_report_at' => 'datetime',
+        'received_at' => 'datetime',
+        'next_session_date' => 'datetime',
         'review_count' => 'integer',
         'has_substantive_changes' => 'boolean',
         'has_court_penalty' => 'boolean',
@@ -76,6 +82,24 @@ class Matter extends Model
     ];
 
     public $timestamps = true;
+
+    protected static function booted()
+    {
+        static::saved(function (Matter $matter) {
+            if ($matter->isDirty('custom_fields') || $matter->wasRecentlyCreated) {
+                $customFields = $matter->custom_fields ?? [];
+
+                // Optional: Clear existing metas for these fields or all?
+                // To be safe and keep it clean, we can sync them.
+                foreach ($customFields as $key => $value) {
+                    $matter->metas()->updateOrCreate(
+                        ['field_name' => $key],
+                        ['field_value' => is_array($value) ? json_encode($value) : $value]
+                    );
+                }
+            }
+        });
+    }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -88,12 +112,12 @@ class Matter extends Model
         return $this->hasMany(Matter::class, 'parent_id');
     }
 
-    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(Matter::class, 'parent_id');
     }
 
-    public function court(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
     }
@@ -113,7 +137,7 @@ class Matter extends Model
     public function mainParties(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'matter_id')
-            ->where(fn($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0));
+            ->where(fn ($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0));
     }
 
     /**
@@ -122,7 +146,7 @@ class Matter extends Model
     public function mainPartiesOnly(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'matter_id')
-            ->where(fn($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0))
+            ->where(fn ($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0))
             ->where('role', 'party');
     }
 
@@ -132,7 +156,7 @@ class Matter extends Model
     public function expertsOnly(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'matter_id')
-            ->where(fn($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0))
+            ->where(fn ($q) => $q->whereNull('parent_id')->orWhere('parent_id', 0))
             ->where('role', 'expert');
     }
 
@@ -169,7 +193,7 @@ class Matter extends Model
             // Filter the related Party record's JSON column
             ->whereJsonContains('parties.role', [
                 'role' => 'expert',
-                'type' => 'certified'
+                'type' => 'certified',
             ])
             // Filter the relationship link (Pivot Table)
             ->withPivot('id', 'type', 'role as pivot_role', 'parent_id');
@@ -194,7 +218,6 @@ class Matter extends Model
      */
     // Add this at the top of the class — a plain PHP property, invisible to Eloquent
 
-
     public function getIndexedPartiesAttribute()
     {
         if (isset($this->_cache['indexedParties'])) {
@@ -210,11 +233,13 @@ class Matter extends Model
             ->flatMap(function ($group) {
                 return $group->values()->map(function ($mp, $i) {
                     $mp->role_index = $i + 1;
+
                     return $mp;
                 });
             });
 
         $this->_cache['indexedParties'] = $result;
+
         return $result;
     }
 
@@ -233,20 +258,22 @@ class Matter extends Model
             ->flatMap(function ($group) {
                 return $group->values()->map(function ($mp, $i) {
                     $mp->role_index = $i + 1;
+
                     return $mp;
                 });
             });
 
         $this->_cache['indexedExperts'] = $result;
+
         return $result;
     }
 
-    public function fees(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function fees(): HasMany
     {
         return $this->hasMany(Fee::class);
     }
 
-    public function allocations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function allocations(): HasMany
     {
         return $this->hasMany(Allocation::class);
     }
@@ -261,9 +288,9 @@ class Matter extends Model
         if ($fees->isEmpty()) {
             $this->collection_status = MatterCollectionStatus::NO_FEES;
         } else {
-            $totalAmount = (float)$fees->sum(fn($fee) => abs($fee->amount));
+            $totalAmount = (float) $fees->sum(fn ($fee) => abs($fee->amount));
 
-            $totalAllocated = (float)$this->allocations->sum(fn($allocation) => abs($allocation->amount));
+            $totalAllocated = (float) $this->allocations->sum(fn ($allocation) => abs($allocation->amount));
 
             if ($totalAllocated <= 0) {
                 $this->collection_status = MatterCollectionStatus::UNPAID;
@@ -279,29 +306,38 @@ class Matter extends Model
         }
     }
 
-    public function type(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function type(): BelongsTo
     {
         return $this->belongsTo(Type::class);
+    }
+
+    public function metas(): HasMany
+    {
+        return $this->hasMany(MatterMeta::class);
     }
 
     public function status(): Attribute
     {
         return new Attribute(
             get: function () {
-                if (!$this->initial_report_at) return MatterStatus::IN_PROGRESS;
-                if (!$this->final_report_at) return MatterStatus::INITIALED;
+                if (! $this->initial_report_at) {
+                    return MatterStatus::IN_PROGRESS;
+                }
+                if (! $this->final_report_at) {
+                    return MatterStatus::INITIALED;
+                }
+
                 return MatterStatus::FINALIZED;
             }
         );
     }
 
-
-    public function notes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function notes(): HasMany
     {
         return $this->hasMany(Note::class);
     }
 
-    public function attachments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);
     }
@@ -323,7 +359,17 @@ class Matter extends Model
         return $this->hasMany(IncentiveLine::class);
     }
 
-    public function requests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function getReference(): string
+    {
+        return "{$this->number}/{$this->year}";
+    }
+
+    public function getReferenceAttribute(): string
+    {
+        return $this->getReference();
+    }
+
+    public function requests(): HasMany
     {
         return $this->hasMany(MatterRequest::class);
     }
@@ -333,14 +379,13 @@ class Matter extends Model
         return $this->final_report_at !== null;
     }
 
-    public function calendarEvents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function calendarEvents(): HasMany
     {
         return $this->hasMany(CalendarEvent::class);
     }
 
-    public function bulkCalendarEvents(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function bulkCalendarEvents(): BelongsToMany
     {
         return $this->belongsToMany(CalendarEvent::class, 'calendar_event_matter');
     }
-
 }

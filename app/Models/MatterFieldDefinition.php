@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MatterFieldDefinition extends Model
 {
     protected $fillable = [
-        'type_id',
         'label',
         'type',
         'required',
@@ -19,8 +19,8 @@ class MatterFieldDefinition extends Model
         'options' => 'json',
     ];
 
-    public function matterType(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function types(): BelongsToMany
     {
-        return $this->belongsTo(Type::class, 'type_id');
+        return $this->belongsToMany(Type::class, 'matter_field_definition_type');
     }
 }

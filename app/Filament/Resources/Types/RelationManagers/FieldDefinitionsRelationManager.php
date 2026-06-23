@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Types\RelationManagers;
 
-use Filament\Actions\AssociateAction;
+use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\DissociateAction;
-use Filament\Actions\DissociateBulkAction;
+use Filament\Actions\DetachAction;
+use Filament\Actions\DetachBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\KeyValue;
@@ -60,7 +60,7 @@ class FieldDefinitionsRelationManager extends RelationManager
                         'text_input' => __('text_input'),
                         'select_input' => __('select_input'),
                         'date_input' => __('date_input'),
-                        "toggle_input" => __("toggle_input")
+                        'toggle_input' => __('toggle_input'),
                     ])
                     ->required()
                     ->live(),
@@ -68,7 +68,7 @@ class FieldDefinitionsRelationManager extends RelationManager
                     ->label(__('Required')),
                 KeyValue::make('options')
                     ->label(__('Options'))
-                    ->visible(fn(Get $get) => $get('type') === 'select_input'),
+                    ->visible(fn (Get $get) => $get('type') === 'select_input'),
             ]);
     }
 
@@ -80,13 +80,13 @@ class FieldDefinitionsRelationManager extends RelationManager
                     ->label(__('Label')),
                 TextEntry::make('type')
                     ->label(__('Type'))
-                    ->formatStateUsing(fn($state) => __($state)),
+                    ->formatStateUsing(fn ($state) => __($state)),
                 IconEntry::make('required')
                     ->label(__('Required'))
                     ->boolean(),
                 KeyValueEntry::make('options')
                     ->label(__('Options'))
-                    ->visible(fn($record) => $record->type === 'select'),
+                    ->visible(fn ($record) => $record->type === 'select'),
                 TextEntry::make('created_at')
                     ->label(__('Created At'))
                     ->dateTime()
@@ -108,7 +108,7 @@ class FieldDefinitionsRelationManager extends RelationManager
                     ->searchable(),
                 TextColumn::make('type')
                     ->label(__('Type'))
-                    ->formatStateUsing(fn($state) => __($state))
+                    ->formatStateUsing(fn ($state) => __($state))
                     ->searchable(),
                 IconColumn::make('required')
                     ->label(__('Required'))
@@ -129,17 +129,17 @@ class FieldDefinitionsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make(),
-                AssociateAction::make(),
+                AttachAction::make()->preloadRecordSelect(),
             ])
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
-                DissociateAction::make(),
+                DetachAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DissociateBulkAction::make(),
+                    DetachBulkAction::make(),
                     DeleteBulkAction::make(),
                 ]),
             ]);

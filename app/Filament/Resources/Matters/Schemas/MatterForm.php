@@ -6,19 +6,16 @@ use App\Enums\FeeType;
 use App\Enums\MatterDifficulty;
 use App\Enums\MatterLevel;
 use App\Filament\Resources\Parties\Schemas\PartyForm;
-use App\Models\Matter;
-use App\Models\MatterFieldDefinition;
 use App\Models\Party;
+use App\Models\Type;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -64,52 +61,52 @@ class MatterForm
                                         ->afterOrEqual('received_at')
                                         ->label(__('Next Session Date'))
                                         ->live()
-//                                        ->afterStateUpdated(function ($state, $record, $livewire, $operation) {
-//                                            if ($state) {
-//                                                if ($operation === 'edit') {
-//                                                    $livewire->dispatch('mount-calendar-event-modal', [
-//                                                        'matter_id' => $record->id,
-//                                                        'start_datetime' => $state
-//                                                    ]);
-//                                                }
-//                                            }
-//                                        })
+                                    //                                        ->afterStateUpdated(function ($state, $record, $livewire, $operation) {
+                                    //                                            if ($state) {
+                                    //                                                if ($operation === 'edit') {
+                                    //                                                    $livewire->dispatch('mount-calendar-event-modal', [
+                                    //                                                        'matter_id' => $record->id,
+                                    //                                                        'start_datetime' => $state
+                                    //                                                    ]);
+                                    //                                                }
+                                    //                                            }
+                                    //                                        })
                                     ,
                                     DatePicker::make('initial_report_at')
                                         ->label(__('Initial Report Date'))
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->initial_report_at !== null
                                             && auth()->user()->can('UpdateInitialReportDate:Matter')
                                         ),
                                     DatePicker::make('final_report_at')
                                         ->label(__('Final Report Date'))
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->final_report_at !== null
                                             && auth()->user()->can('UpdateFinalReportDate:Matter')
                                         ),
                                     DatePicker::make('final_report_memo_date')
                                         ->label(__('Final Report Memo Date'))
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->final_report_memo_date !== null
                                             && auth()->user()->can('UpdateFinalReportDate:Matter')
                                         ),
                                     TextInput::make('review_count')
                                         ->label(__('Review Count'))
                                         ->numeric()
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->review_count !== null
                                             && auth()->user()->can('Update:Matter')
                                         )
                                         ->default(0),
                                     Toggle::make('has_substantive_changes')
                                         ->label(__('Has Substantive Changes'))
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->review_count !== null
                                             && auth()->user()->can('Update:Matter')
                                         ),
                                     Toggle::make('has_court_penalty')
                                         ->label(__('Has Court Penalty'))
-                                        ->visible(fn(string $operation, $record) => $operation === 'edit'
+                                        ->visible(fn (string $operation, $record) => $operation === 'edit'
                                             && $record->review_count !== null
                                             && auth()->user()->can('Update:Matter')
                                         ),
@@ -138,23 +135,28 @@ class MatterForm
                                     Group::make()
                                         ->schema(function (Get $get) {
                                             $typeId = $get('type_id');
-                                            if (!$typeId) {
+                                            if (! $typeId) {
                                                 return [];
                                             }
 
-                                            $fields = MatterFieldDefinition::where('type_id', $typeId)->get();
+                                            $type = Type::find($typeId);
+                                            if (! $type) {
+                                                return [];
+                                            }
+
+                                            $fields = $type->fieldDefinitions;
                                             $components = [];
 
                                             foreach ($fields as $field) {
                                                 $component = match ($field->type) {
-                                                    'select_input' => Select::make("custom_fields.{$field->id}")
+                                                    'select_input' => Select::make("custom_fields.{$field->label}")
                                                         ->options($field->options ?? [])
                                                         ->label($field->label),
-                                                    'date_input' => DatePicker::make("custom_fields.{$field->id}")
+                                                    'date_input' => DatePicker::make("custom_fields.{$field->label}")
                                                         ->label($field->label),
-                                                    'toggle_input' => Toggle::make("custom_fields.{$field->id}")
+                                                    'toggle_input' => Toggle::make("custom_fields.{$field->label}")
                                                         ->label($field->label),
-                                                    default => TextInput::make("custom_fields.{$field->id}")
+                                                    default => TextInput::make("custom_fields.{$field->label}")
                                                         ->label($field->label),
                                                 };
 
@@ -236,6 +238,7 @@ class MatterForm
                                                             $options['external'] = __('External Expert');
                                                             $options['external-assistant'] = __('External Assistant');
                                                         }
+
                                                         return $options;
                                                     })
                                                     ->required()
@@ -257,9 +260,10 @@ class MatterForm
                                                             $query->whereJsonContains('role', [['role' => 'expert']]);
                                                         }
                                                     })
-                                                    ->createOptionForm(fn(Schema $schema) => PartyForm::configure($schema))
+                                                    ->createOptionForm(fn (Schema $schema) => PartyForm::configure($schema))
                                                     ->createOptionAction(function (Action $action, Get $get) {
                                                         $type = $get('type') ?? null;
+
                                                         return $action->fillForm([
                                                             'role' => [
                                                                 'role' => ['expert'],
@@ -282,7 +286,7 @@ class MatterForm
                                                     ->minValue(0)
                                                     ->maxValue(100)
                                                     ->suffix('%')
-                                                    ->visible(fn(Get $get) => in_array($get('type'), ['assistant', 'external-assistant'])),
+                                                    ->visible(fn (Get $get) => in_array($get('type'), ['assistant', 'external-assistant'])),
 
                                                 Hidden::make('matter_id'),
                                                 Hidden::make('role')->default('expert'),
@@ -292,10 +296,11 @@ class MatterForm
                                             ->itemLabel(function (array $state): ?string {
                                                 $type = $state['type'] ?? '';
                                                 $role = $state['role'] ?? '';
+
                                                 return $type ? "{$type} ({$role})" : null;
                                             })
                                             ->addAction(
-                                                fn(Action $action) => $action
+                                                fn (Action $action) => $action
                                                     ->color('warning')
                                                     ->icon('heroicon-m-plus-circle')
                                             )
@@ -328,8 +333,8 @@ class MatterForm
                                                     ->relationship('party', 'name', function ($query) {
                                                         $query->whereJsonContains('role', [['role' => 'party']]);
                                                     })
-                                                    ->createOptionForm(fn(Schema $schema) => PartyForm::configure($schema))
-                                                    ->editOptionForm(fn(Schema $schema) => PartyForm::configure($schema))
+                                                    ->createOptionForm(fn (Schema $schema) => PartyForm::configure($schema))
+                                                    ->editOptionForm(fn (Schema $schema) => PartyForm::configure($schema))
                                                     ->createOptionAction(function (Action $action) {
                                                         return $action->fillForm([
                                                             'role' => [
@@ -358,15 +363,15 @@ class MatterForm
                                                         Repeater\TableColumn::make(__('Phone'))->width('15%'),
                                                     ])
                                                     ->columns(2)
-                                                    //->compact()
+                                                    // ->compact()
                                                     ->schema([
                                                         Select::make('party_id')
                                                             ->label(__('Representative'))
                                                             ->relationship('party', 'name', function ($query) {
                                                                 $query->whereJsonContains('role', [['role' => 'representative']]);
                                                             })
-                                                            ->createOptionForm(fn(Schema $schema) => PartyForm::configure($schema))
-                                                            ->editOptionForm(fn(Schema $schema) => PartyForm::configure($schema))
+                                                            ->createOptionForm(fn (Schema $schema) => PartyForm::configure($schema))
+                                                            ->editOptionForm(fn (Schema $schema) => PartyForm::configure($schema))
                                                             ->createOptionAction(function (Action $action) {
                                                                 return $action->fillForm([
                                                                     'role' => [
@@ -393,16 +398,16 @@ class MatterForm
                                                         Hidden::make('role')->default('representative'),
 
                                                         Hidden::make('type')
-                                                            ->dehydrateStateUsing(fn(Get $get) => $get('../../type')),
+                                                            ->dehydrateStateUsing(fn (Get $get) => $get('../../type')),
 
                                                         Hidden::make('parent_id')
-                                                            ->dehydrateStateUsing(fn(Get $get) => $get('../../id')),
+                                                            ->dehydrateStateUsing(fn (Get $get) => $get('../../id')),
 
                                                         Hidden::make('matter_id')
-                                                            ->dehydrateStateUsing(fn(Get $get, $state) => $state ?: $get('../../matter_id')),
+                                                            ->dehydrateStateUsing(fn (Get $get, $state) => $state ?: $get('../../matter_id')),
                                                     ])
                                                     ->addAction(
-                                                        fn(Action $action) => $action
+                                                        fn (Action $action) => $action
                                                             ->color('warning')
                                                             ->icon('heroicon-m-plus-circle')
                                                     )
@@ -414,18 +419,19 @@ class MatterForm
                                             ->itemLabel(function (array $state): ?string {
                                                 $type = $state['type'] ?? '';
                                                 $role = $state['role'] ?? '';
-                                                return $type ? __($role) . " (" . __($type) . ")" : null;
+
+                                                return $type ? __($role).' ('.__($type).')' : null;
                                             })
                                             ->addActionAlignment(Alignment::Start)
                                             ->addAction(
-                                                fn(Action $action) => $action
+                                                fn (Action $action) => $action
                                                     ->color('warning')
                                                     ->icon('heroicon-m-plus-circle')
                                             ),
                                     ]),
 
                                 Section::make(__('Fees'))
-                                    ->visible(fn() => auth()->user()->can('CreateFee:Matter') || auth()->user()->can('UpdateFee:Matter'))
+                                    ->visible(fn () => auth()->user()->can('CreateFee:Matter') || auth()->user()->can('UpdateFee:Matter'))
                                     ->schema([
                                         Repeater::make('fees')
                                             ->label(__('Fees'))
@@ -447,13 +453,17 @@ class MatterForm
                                                     ->label(__('Amount'))
                                                     ->numeric()
                                                     ->required()
-                                                    ->prefix(fn(Get $get) => $get('type')?->isNegative() ? '-' : '+')
+                                                    ->prefix(fn (Get $get) => $get('type')?->isNegative() ? '-' : '+')
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                        if (!$get('including_vat')) return;
+                                                        if (! $get('including_vat')) {
+                                                            return;
+                                                        }
 
-                                                        $amount = (float)$state;
-                                                        if ($amount <= 0) return;
+                                                        $amount = (float) $state;
+                                                        if ($amount <= 0) {
+                                                            return;
+                                                        }
 
                                                         $rowId = $get('row_id');
                                                         $fees = $get('../../fees') ?? [];
@@ -465,13 +475,17 @@ class MatterForm
                                                                 break;
                                                             }
                                                         }
-                                                        if ($currentKey === null) return;
+                                                        if ($currentKey === null) {
+                                                            return;
+                                                        }
 
                                                         $keys = array_keys($fees);
                                                         $currentPos = array_search($currentKey, $keys, true);
                                                         $nextKey = $keys[$currentPos + 1] ?? null;
 
-                                                        if (!$nextKey || ($fees[$nextKey]['type'] ?? '') !== 'vat') return;
+                                                        if (! $nextKey || ($fees[$nextKey]['type'] ?? '') !== 'vat') {
+                                                            return;
+                                                        }
 
                                                         $basic = round($amount / 1.05, 2);
                                                         $vat = round($amount - $basic, 2);
@@ -488,9 +502,9 @@ class MatterForm
                                                     ->live()
                                                     ->inline(false)
                                                     ->extraAttributes(['style' => 'margin: 0 1rem;'])
-                                                    ->disabled(fn(Get $get) => $get('type') === 'vat')
+                                                    ->disabled(fn (Get $get) => $get('type') === 'vat')
                                                     ->afterStateUpdated(function (bool $state, Set $set, Get $get) {
-                                                        $amount = (float)$get('amount');
+                                                        $amount = (float) $get('amount');
                                                         $rowId = $get('row_id');
                                                         $fees = $get('../../fees') ?? [];
 
@@ -501,13 +515,17 @@ class MatterForm
                                                                 break;
                                                             }
                                                         }
-                                                        if ($currentKey === null) return;
+                                                        if ($currentKey === null) {
+                                                            return;
+                                                        }
 
                                                         $keys = array_keys($fees);
                                                         $currentPos = array_search($currentKey, $keys, true);
 
                                                         if ($state) {
-                                                            if ($amount <= 0) return;
+                                                            if ($amount <= 0) {
+                                                                return;
+                                                            }
 
                                                             $basic = round($amount / 1.05, 2);
                                                             $vat = round($amount - $basic, 2);
@@ -517,7 +535,7 @@ class MatterForm
                                                             $fees[$currentKey]['including_vat'] = true;
 
                                                             $vatRow = [
-                                                                'row_id' => (string)Str::uuid(),
+                                                                'row_id' => (string) Str::uuid(),
                                                                 'type' => 'vat',
                                                                 'amount' => $vat,
                                                                 'including_vat' => false,
@@ -527,7 +545,7 @@ class MatterForm
                                                             foreach ($fees as $k => $fee) {
                                                                 $newFees[$k] = $fee;
                                                                 if ($k === $currentKey) {
-                                                                    $newFees[(string)Str::uuid()] = $vatRow;
+                                                                    $newFees[(string) Str::uuid()] = $vatRow;
                                                                 }
                                                             }
                                                             $set('../../fees', $newFees);
@@ -536,7 +554,7 @@ class MatterForm
                                                             $nextKey = $keys[$currentPos + 1] ?? null;
 
                                                             if ($nextKey && ($fees[$nextKey]['type'] ?? '') === 'vat') {
-                                                                $vatAmount = (float)$fees[$nextKey]['amount'];
+                                                                $vatAmount = (float) $fees[$nextKey]['amount'];
                                                                 $restored = round($amount + $vatAmount, 2);
 
                                                                 $set('amount', $restored);
@@ -550,7 +568,7 @@ class MatterForm
                                                     }),
 
                                                 Hidden::make('row_id')
-                                                    ->default(fn() => (string)Str::uuid()),
+                                                    ->default(fn () => (string) Str::uuid()),
                                             ])
                                             ->columns(1)
                                             ->addActionLabel(__('Add Fee')),

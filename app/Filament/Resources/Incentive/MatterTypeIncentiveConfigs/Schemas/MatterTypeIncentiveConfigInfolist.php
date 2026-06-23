@@ -14,18 +14,18 @@ class MatterTypeIncentiveConfigInfolist
         return $schema
             ->components([
                 Section::make(__('Configuration'))->schema([
-                    TextEntry::make('matterType.name')->label(__('Matter Type')),
+                    TextEntry::make('matterTypes.name')->label(__('Matter Type'))->listWithLineBreaks()->limitList(20),
+                    TextEntry::make('name')->label(__('Name')),
                     TextEntry::make('calculation_type')->label(__('Type'))->badge()
-                        ->color(fn($state) => match($state) {
+                        ->color(fn ($state) => match ($state) {
                             'fixed' => 'success', 'tiered' => 'info', 'committee' => 'warning', default => 'gray',
                         }),
                     TextEntry::make('assistant_rate')->label(__('Assistant Rate'))->suffix('%'),
                     TextEntry::make('fixed_percentage')->label(__('Fixed %'))->suffix('%')->placeholder('—'),
-                    TextEntry::make('committee_source')->label(__('Committee Source'))->placeholder('—'),
                 ])->columns(3),
 
                 Section::make(__('Tiers'))
-                    ->visible(fn($record) => in_array($record->calculation_type, ['tiered', 'committee']))
+                    ->visible(fn ($record) => in_array($record->calculation_type, ['tiered', 'committee']))
                     ->schema([
                         RepeatableEntry::make('tiers')->label('')->schema([
                             TextEntry::make('difficulty')->label(__('Difficulty'))->badge(),

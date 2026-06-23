@@ -3,23 +3,18 @@
 namespace App\Filament\Resources\Matters\Schemas;
 
 use App\Enums\FeeType;
-use App\Enums\MatterCollectionStatus;
-use App\Enums\MatterCommissiong;
-use App\Enums\MatterDifficulty;
 use App\Enums\RequestStatus;
-use App\Enums\RequestType;
 use App\Filament\Actions\Fee\CollectFeeAction;
 use App\Filament\Actions\Request\ApproveRequestAction;
 use App\Filament\Actions\Request\CreateRequestAction;
 use App\Filament\Actions\Request\RejectRequestAction;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Helpers\FileUploadHelper;
-use App\Models\Allocation;
-use App\Models\MatterFieldDefinition;
+use App\Models\Type;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -35,9 +30,9 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
-use Filament\Support\Enums\Size;
 use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class MatterInfolist
 {
@@ -112,12 +107,12 @@ class MatterInfolist
                 TextEntry::make('year')->label(__('Year')),
                 TextEntry::make('number')->label(__('Number')),
                 TextEntry::make('status')->label(__('Status'))
-                    ->formatStateUsing(fn($state) => $state->getLabel())
+                    ->formatStateUsing(fn ($state) => $state->getLabel())
                     ->badge()->columnSpan(2),
                 TextEntry::make('collection_status')->label(__('Collection'))->badge(),
                 IconEntry::make('has_court_penalty')->label(__('Has Court Penalty'))->boolean(),
                 TextEntry::make('commissioning')->label(__('Commissioning'))
-                    ->formatStateUsing(fn($state) => __($state->getLabel())),
+                    ->formatStateUsing(fn ($state) => __($state->getLabel())),
                 IconEntry::make('is_office_work')
                     ->label(__('Is Office Work'))
                     ->boolean(),
@@ -127,11 +122,11 @@ class MatterInfolist
                     ->label(__('Parent Matter'))
                     ->numeric()
                     ->placeholder('—')
-                    ->formatStateUsing(fn($state, $record) => $state
-                        ? __('Matter') . " #{$record->number}/{$record->year} [#{$state}]"
+                    ->formatStateUsing(fn ($state, $record) => $state
+                        ? __('Matter')." #{$record->number}/{$record->year} [#{$state}]"
                         : null
                     )
-                    ->url(fn($state) => $state ? MatterResource::getUrl('view', ['record' => $state]) : null)
+                    ->url(fn ($state) => $state ? MatterResource::getUrl('view', ['record' => $state]) : null)
                     ->icon('heroicon-o-link')
                     ->color('primary')
                     ->iconPosition(IconPosition::After)
@@ -151,23 +146,30 @@ class MatterInfolist
                 TextEntry::make('difficulty')->label(__('Difficulty'))->badge(),
                 Group::make()
                     ->schema(function ($record) {
-                        if (!$record || !$record->type_id) {
+                        if (! $record || ! $record->type_id) {
                             return [];
                         }
 
-                        $fields = MatterFieldDefinition::where('type_id', $record->type_id)->get();
+                        $type = Type::find($record->type_id);
+                        if (! $type) {
+                            return [];
+                        }
+
+                        $fields = $type->fieldDefinitions;
                         $entries = [];
 
                         foreach ($fields as $field) {
-                            $value = $record->custom_fields[$field->id] ?? null;
+                            $value = $record->custom_fields[$field->label] ?? null;
 
-                            if ($value === null) continue;
+                            if ($value === null) {
+                                continue;
+                            }
 
-                            $entry = TextEntry::make("custom_fields.{$field->id}")
+                            $entry = TextEntry::make("custom_fields.{$field->label}")
                                 ->label($field->label);
 
-                            if ($field->type === 'select') {
-                                $entry->formatStateUsing(fn($state) => $field->options[$state] ?? $state);
+                            if ($field->type === 'select_input') {
+                                $entry->formatStateUsing(fn ($state) => $field->options[$state] ?? $state);
                             }
 
                             $entries[] = $entry;
@@ -233,24 +235,24 @@ class MatterInfolist
                         TextEntry::make('comment')->label(__('Comment'))->columnSpanFull(),
                         TextEntry::make('approvedBy.display_name')
                             ->label(__('Reviewed By'))
-                            ->visible(fn($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
+                            ->visible(fn ($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
                         TextEntry::make('approved_at')
                             ->label(__('Date'))
                             ->dateTime()
-                            ->visible(fn($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
+                            ->visible(fn ($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
                         TextEntry::make('approved_comment')
                             ->label(__('Reviewer Comment'))
                             ->columnSpanFull()
-                            ->visible(fn($record) => !empty($record->approved_comment)),
+                            ->visible(fn ($record) => ! empty($record->approved_comment)),
                         RepeatableEntry::make('attachments')
                             ->label(__('Attachments'))
                             ->columnSpanFull()
-                            ->visible(fn($record) => $record->attachments->isNotEmpty())
+                            ->visible(fn ($record) => $record->attachments->isNotEmpty())
                             ->schema([
                                 TextEntry::make('name')
                                     ->hiddenLabel()
                                     ->icon('heroicon-o-paper-clip')
-                                    ->url(fn($record) => Storage::disk('public')->url($record->path))
+                                    ->url(fn ($record) => Storage::disk('public')->url($record->path))
                                     ->openUrlInNewTab()
                                     ->color('primary'),
                             ]),
@@ -274,7 +276,7 @@ class MatterInfolist
                     ->hiddenLabel()
                     ->columns(2)
                     ->columnSpanFull()
-                    ->visible(fn($record) => $record?->notes?->isNotEmpty())
+                    ->visible(fn ($record) => $record?->notes?->isNotEmpty())
                     ->schema([
                         TextEntry::make('text')->label(__('Note'))->columnSpanFull(),
                         TextEntry::make('user.display_name')->label(__('By'))
@@ -305,10 +307,10 @@ class MatterInfolist
                     ->schema([
                         TextEntry::make('type')
                             ->label(__('Role'))
-                            ->formatStateUsing(fn($state) => __($state
+                            ->formatStateUsing(fn ($state) => __($state
                                 ? ucfirst(str_replace('-', ' ', $state)) : ''))
                             ->badge()
-                            ->color(fn($state) => static::expertTypeColor($state)),
+                            ->color(fn ($state) => static::expertTypeColor($state)),
                         TextEntry::make('role_index')->label('#')->badge()->color('gray'),
                         TextEntry::make('party.name')
                             ->label(__('Name'))
@@ -332,10 +334,10 @@ class MatterInfolist
                     ->schema([
                         TextEntry::make('type')
                             ->label(__('Role'))
-                            ->formatStateUsing(fn($state) => __($state
+                            ->formatStateUsing(fn ($state) => __($state
                                 ? ucfirst(str_replace('-', ' ', $state)) : ''))
                             ->badge()
-                            ->color(fn($state) => static::partyTypeColor($state)),
+                            ->color(fn ($state) => static::partyTypeColor($state)),
                         TextEntry::make('role_index')
                             ->label('#')
                             ->badge()
@@ -350,7 +352,7 @@ class MatterInfolist
                             ->label(__('Representatives'))
                             ->columns(1)
                             ->columnSpanFull()
-                            ->visible(fn($record) => $record?->representatives?->isNotEmpty())
+                            ->visible(fn ($record) => $record?->representatives?->isNotEmpty())
                             ->schema([
                                 TextEntry::make('party.name')->label(__('Name'))
                                     ->icon('heroicon-o-user')->columnSpan(3),
@@ -365,20 +367,20 @@ class MatterInfolist
             ->icon('heroicon-o-banknotes')
             ->headerActions([
                 Action::make('create_fee')
-                    ->visible(fn($record) => auth()->user()->can('CreateFee:Matter'))
+                    ->visible(fn ($record) => auth()->user()->can('CreateFee:Matter'))
                     ->label(__('Add Fee'))
                     ->icon('heroicon-o-plus')
                     ->schema([
                         Select::make('type')
                             ->label(__('Type'))
                             ->options(FeeType::class)
-                            ->afterStateUpdated(fn($state, $component) => $state?->isNegative() ? $component->getLivewire()->refresh() : null)
+                            ->afterStateUpdated(fn ($state, $component) => $state?->isNegative() ? $component->getLivewire()->refresh() : null)
                             ->live(onBlur: true)
                             ->required(),
                         TextInput::make('amount')
                             ->label(__('Amount'))
                             ->numeric()
-                            ->prefix(fn(Get $get) => $get('type')?->isNegative() ? '-' : '+')
+                            ->prefix(fn (Get $get) => $get('type')?->isNegative() ? '-' : '+')
                             ->live()
                             ->required(),
                         Textarea::make('description')
@@ -388,7 +390,7 @@ class MatterInfolist
                         $record->updateCollectionStatus();
                         $record->refresh();
                         $component->getLivewire()->refresh();
-                    })
+                    }),
             ])
             ->schema([
                 RepeatableEntry::make('fees')
@@ -400,15 +402,15 @@ class MatterInfolist
                             ->money('AED')
                             ->weight(FontWeight::SemiBold)
                             ->icon('heroicon-o-banknotes')
-                            ->color(fn($state, Get $get) => $get('type')?->isNegative() ? 'danger' : null),
+                            ->color(fn ($state, Get $get) => $get('type')?->isNegative() ? 'danger' : null),
                         TextEntry::make('collected_amount')
                             ->label(__('Collected'))
                             ->money('AED')
                             ->icon('heroicon-o-check-circle')
-                            ->getStateUsing(fn($record) => $record?->allocations?->sum('amount') ?? 0)
-                            ->color(fn($state, $record) => match (true) {
-                                (float)$state >= (float)($record?->amount ?? 0) => 'success',
-                                (float)$state > 0 => 'warning',
+                            ->getStateUsing(fn ($record) => $record?->allocations?->sum('amount') ?? 0)
+                            ->color(fn ($state, $record) => match (true) {
+                                (float) $state >= (float) ($record?->amount ?? 0) => 'success',
+                                (float) $state > 0 => 'warning',
                                 default => 'danger',
                             }),
                         TextEntry::make('type')->badge(),
@@ -427,7 +429,7 @@ class MatterInfolist
                             ->label(__('Payment History'))
                             ->columns(4)
                             ->columnSpanFull()
-                            ->visible(fn($record) => $record?->allocations?->isNotEmpty())
+                            ->visible(fn ($record) => $record?->allocations?->isNotEmpty())
                             ->schema([
                                 TextEntry::make('amount')->label(__('Amount'))
                                     ->money('AED')->weight(FontWeight::SemiBold)->color('success'),
@@ -453,7 +455,7 @@ class MatterInfolist
                     ->hiddenLabel()
                     ->columns(5)
                     ->columnSpanFull()
-                    ->visible(fn($record) => $record?->attachments?->isNotEmpty())
+                    ->visible(fn ($record) => $record?->attachments?->isNotEmpty())
                     ->schema([
                         TextEntry::make('name')
                             ->label(__('Name'))
@@ -461,7 +463,7 @@ class MatterInfolist
                             ->columnSpan(4)
                             ->alignStart()
                             ->icon('heroicon-o-document-text')
-                            ->url(fn($record) => Storage::disk('public')->url($record->path))
+                            ->url(fn ($record) => Storage::disk('public')->url($record->path))
                             ->openUrlInNewTab()
                             ->alignJustify(),
                         Actions::make([
@@ -472,15 +474,15 @@ class MatterInfolist
                             ->label(__('Type'))
                             ->badge()
                             ->color('info')
-                            ->formatStateUsing(fn($state) => $state
+                            ->formatStateUsing(fn ($state) => $state
                                 ? __($state
                                         |> __(...)
-                                        |> (fn($x) => str_replace('_', ' ', $x))
+                                        |> (fn ($x) => str_replace('_', ' ', $x))
                                         |> ucfirst(...)) : ''),
                         TextEntry::make('extension')->label(__('Extension'))->badge()->color('gray'),
                         TextEntry::make('size')
                             ->label(__('Size'))
-                            ->formatStateUsing(fn($state) => number_format($state / (1024 * 1024), 2) . ' MB'),
+                            ->formatStateUsing(fn ($state) => number_format($state / (1024 * 1024), 2).' MB'),
                         TextEntry::make('created_at')
                             ->label(__('Date'))
                             ->dateTime(format: 'M, d Y - H:i A')
@@ -513,7 +515,7 @@ class MatterInfolist
         return Action::make('addNote')
             ->label(__('Add Note'))
             ->icon('heroicon-o-plus')
-            ->visible(fn($record) => auth()->user()->can('CreateNote:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('CreateNote:Matter'))
             ->modalHeading(__('Add New Note'))
             ->schema([
                 Textarea::make('text')->label(__('Content'))->required()->rows(3),
@@ -538,12 +540,12 @@ class MatterInfolist
             ->label(__('Edit'))
             ->iconButton()
             ->icon('heroicon-o-pencil')
-            ->visible(fn($record) => auth()->user()->can('UpdateNote:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('UpdateNote:Matter'))
             ->modalHeading(__('Edit Note'))
             ->schema([
                 Textarea::make('text')->label(__('Content'))->required()->rows(3),
             ])
-            ->fillForm(fn($record) => ['text' => $record->text])
+            ->fillForm(fn ($record) => ['text' => $record->text])
             ->action(function (array $data, $record, $component) {
                 $record->update(['text' => $data['text']]);
                 $record->refresh();
@@ -558,7 +560,7 @@ class MatterInfolist
             ->iconButton()
             ->icon('heroicon-o-trash')
             ->color('danger')
-            ->visible(fn($record) => auth()->user()->can('DeleteNote:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('DeleteNote:Matter'))
             ->requiresConfirmation()
             ->action(function ($record, $component) {
                 $record->delete();
@@ -580,14 +582,14 @@ class MatterInfolist
             ->label(__('Edit'))
             ->iconButton()
             ->icon('heroicon-o-pencil')
-            ->visible(fn($record) => auth()->user()->can('UpdateFee:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('UpdateFee:Matter'))
             ->modalHeading(__('Edit Fee'))
             ->schema([
                 TextInput::make('amount')->label(__('Fee Amount'))
                     ->numeric()->required()->prefix('AED'),
                 TextInput::make('description')->label(__('Description'))->required(),
             ])
-            ->fillForm(fn($record) => [
+            ->fillForm(fn ($record) => [
                 'amount' => $record->amount,
                 'description' => $record->description,
             ])
@@ -608,7 +610,7 @@ class MatterInfolist
             ->iconButton()
             ->icon('heroicon-o-trash')
             ->color('danger')
-            ->visible(fn($record) => auth()->user()->can('DeleteFee:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('DeleteFee:Matter'))
             ->requiresConfirmation()
             ->action(function ($record, $component) {
                 $record->delete();
@@ -622,7 +624,7 @@ class MatterInfolist
             ->label(__('Edit'))
             ->iconButton()
             ->icon('heroicon-o-pencil')
-            ->visible(fn($record) => auth()->user()->can('updateAllocation', $record->matter))
+            ->visible(fn ($record) => auth()->user()->can('updateAllocation', $record->matter))
             ->modalHeading(__('Edit Payment'))
             ->schema([
                 TextInput::make('amount')->label(__('Amount'))
@@ -630,7 +632,7 @@ class MatterInfolist
                 DatePicker::make('date')->label(__('Payment Date'))->required(),
                 Textarea::make('description')->label(__('Notes / Reference'))->rows(2),
             ])
-            ->fillForm(fn($record) => [
+            ->fillForm(fn ($record) => [
                 'amount' => $record->amount,
                 'date' => $record->date,
                 'description' => $record->description,
@@ -653,7 +655,7 @@ class MatterInfolist
             ->iconButton()
             ->icon('heroicon-o-trash')
             ->color('danger')
-            ->visible(fn($record) => auth()->user()->can('deleteAllocation', $record->matter))
+            ->visible(fn ($record) => auth()->user()->can('deleteAllocation', $record->matter))
             ->requiresConfirmation()
             ->action(function ($record, $component) {
                 $record->delete();
@@ -666,7 +668,7 @@ class MatterInfolist
         return Action::make('addAttachments')
             ->label(__('Add Attachments'))
             ->icon('heroicon-o-plus')
-            ->visible(fn($record) => auth()->user()->can('createAttachment', $record))
+            ->visible(fn ($record) => auth()->user()->can('createAttachment', $record))
             ->modalHeading(__('Add New Attachments'))
             ->schema([
                 Repeater::make('attachments_data')
@@ -678,14 +680,14 @@ class MatterInfolist
                             ->directory('matter-attachments')
                             ->visibility('public')
                             ->required()
-                            ->getUploadedFileNameForStorageUsing(fn($file) => FileUploadHelper::getUniqueFilename($file, 'matter-attachments'))
+                            ->getUploadedFileNameForStorageUsing(fn ($file) => FileUploadHelper::getUniqueFilename($file, 'matter-attachments'))
                             ->live()
                             ->afterStateUpdated(function ($state, $set) {
-                                if ($state instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                if ($state instanceof TemporaryUploadedFile) {
                                     $set('name', $state->getClientOriginalName());
                                 }
                             }),
-                        \Filament\Forms\Components\Hidden::make('name'),
+                        Hidden::make('name'),
                         Select::make('type')
                             ->label(__('Type'))
                             ->options([
@@ -729,7 +731,7 @@ class MatterInfolist
             ->icon('heroicon-o-arrow-down-tray')
             ->iconButton()
             ->tooltip(__('Download'))
-            ->url(fn($record) => route('attachment.download', $record))
+            ->url(fn ($record) => route('attachment.download', $record))
             ->openUrlInNewTab(false);
     }
 
@@ -740,7 +742,7 @@ class MatterInfolist
             ->iconButton()
             ->icon('heroicon-o-trash')
             ->color('danger')
-            ->visible(fn($record) => auth()->user()->can('deleteAttachment', $record->matter))
+            ->visible(fn ($record) => auth()->user()->can('deleteAttachment', $record->matter))
             ->requiresConfirmation()
             ->action(function ($record, $component) {
                 Storage::disk('public')->delete($record->path);

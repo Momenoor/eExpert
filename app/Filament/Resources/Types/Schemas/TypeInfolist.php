@@ -17,6 +17,9 @@ class TypeInfolist
                 IconEntry::make('active')
                     ->label(__('Active'))
                     ->boolean(),
+                IconEntry::make('allow_current_status_import')
+                    ->label(__('Allow Current Status Import'))
+                    ->boolean(),
                 TextEntry::make('matters_count')
                     ->counts('matters')
                     ->label(__('Total Matters')),

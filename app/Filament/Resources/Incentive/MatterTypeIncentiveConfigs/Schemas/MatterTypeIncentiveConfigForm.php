@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Incentive\MatterTypeIncentiveConfigs\Schemas;
 
 use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
-use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -20,19 +19,12 @@ class MatterTypeIncentiveConfigForm
             ->components([
                 Section::make(__('Matter Type Configuration'))
                     ->schema([
-                        Select::make('type_id')
-                            ->label(__('Matter Type'))
-                            ->relationship('matterType', 'name')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->searchable()
-                            ->preload(),
-
+                        TextInput::make('name')->label(__('Name'))->required(),
                         Select::make('calculation_type')
                             ->label(__('Calculation Type'))
                             ->options([
-                                'tiered'    => __('Tiered — % by working days & difficulty'),
-                                'fixed'     => __('Fixed — fixed % for all fees'),
+                                'tiered' => __('Tiered — % by working days & difficulty'),
+                                'fixed' => __('Fixed — fixed % for all fees'),
                                 'committee' => __('Committee — tiered ± 2%'),
                             ])
                             ->required()
@@ -55,15 +47,15 @@ class MatterTypeIncentiveConfigForm
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
-                            ->visible(fn(Get $get) => $get('calculation_type') === 'fixed')
-                            ->required(fn(Get $get) => $get('calculation_type') === 'fixed')
+                            ->visible(fn (Get $get) => $get('calculation_type') === 'fixed')
+                            ->required(fn (Get $get) => $get('calculation_type') === 'fixed')
                             ->helperText(__('e.g. 8 for 8% on all fees for this matter type')),
 
                     ])->columns(2),
 
                 Section::make(__('Completion Day Tiers'))
                     ->description(__('Working days from received date to initial report, by difficulty level'))
-                    ->visible(fn(Get $get) => in_array($get('calculation_type'), ['tiered', MatterCommissiong::COMMITTEE->value]))
+                    ->visible(fn (Get $get) => in_array($get('calculation_type'), ['tiered', MatterCommissiong::COMMITTEE->value]))
                     ->schema([
                         Repeater::make('tiers')
                             ->relationship()

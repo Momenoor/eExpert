@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
-
 
 class Type extends Model
 {
@@ -20,26 +20,30 @@ class Type extends Model
 
     protected $casts = [
         'active' => 'boolean',
+        'allow_current_status_import' => 'boolean',
+        'incentive_config_id' => 'integer',
     ];
 
     protected $fillable = [
         'name',
-        'active'
+        'active',
+        'incentive_trigger_type',
+        'allow_current_status_import',
+        'incentive_config_id',
     ];
-
 
     public function matters()
     {
         return $this->hasMany(Matter::class);
     }
 
-    public function incentiveConfig()
+    public function incentiveConfig(): BelongsTo
     {
-        return $this->hasOne(MatterTypeIncentiveConfig::class);
+        return $this->belongsTo(MatterTypeIncentiveConfig::class, 'incentive_config_id');
     }
 
-    public function fieldDefinitions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function fieldDefinitions(): BelongsToMany
     {
-        return $this->hasMany(MatterFieldDefinition::class, 'type_id');
+        return $this->belongsToMany(MatterFieldDefinition::class, 'matter_field_definition_type');
     }
 }
