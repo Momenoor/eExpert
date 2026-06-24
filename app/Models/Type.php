@@ -21,6 +21,7 @@ class Type extends Model
     protected $casts = [
         'active' => 'boolean',
         'allow_current_status_import' => 'boolean',
+        'exclude_from_incentive_count' => 'boolean',
         'incentive_config_id' => 'integer',
     ];
 
@@ -29,6 +30,7 @@ class Type extends Model
         'active',
         'incentive_trigger_type',
         'allow_current_status_import',
+        'exclude_from_incentive_count',
         'incentive_config_id',
     ];
 

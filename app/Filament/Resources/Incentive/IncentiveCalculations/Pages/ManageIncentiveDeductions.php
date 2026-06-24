@@ -7,17 +7,18 @@ use App\Models\IncentiveAssistantLine;
 use App\Services\IncentiveCalculatorService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Collection;
 
 class ManageIncentiveDeductions extends ViewRecord
 {
     protected static string $resource = IncentiveCalculationResource::class;
+
     protected string $view = 'filament.pages.incentive.manage-incentive-deductions';
 
     public function getTitle(): string
     {
-        return __('Manage Deductions') . ' — ' . $this->record->name;
+        return __('Manage Deductions').' — '.$this->record->name;
     }
 
     protected function getHeaderActions(): array
@@ -26,15 +27,15 @@ class ManageIncentiveDeductions extends ViewRecord
             Action::make('back')
                 ->label(__('Back to Calculation'))
                 ->icon('heroicon-o-arrow-left')
-                ->url(fn() => IncentiveCalculationResource::getUrl('view', ['record' => $this->record]))
+                ->url(fn () => IncentiveCalculationResource::getUrl('view', ['record' => $this->record]))
                 ->color('gray'),
 
             Action::make('recalculate')
                 ->label(__('Recalculate'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
-                ->authorize('runCalculation')
-                ->visible(fn() => $this->record->isDraft())
+
+                ->visible(fn () => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->action(function () {
                     app(IncentiveCalculatorService::class)->calculate($this->record);
@@ -44,40 +45,40 @@ class ManageIncentiveDeductions extends ViewRecord
         ];
     }
 
-    public function getLinesWithDeductions(): \Illuminate\Support\Collection
+    public function getLinesWithDeductions(): Collection
     {
         return $this->record->lines()
             ->with(['matter', 'deductions', 'assistantLines.party'])
             ->get()
-            ->map(fn($line) => [
-                'line'       => $line,
-                'matter'     => $line->matter,
+            ->map(fn ($line) => [
+                'line' => $line,
+                'matter' => $line->matter,
                 'deductions' => $line->deductions,
-                'assistants' => $line->assistantLines->map(fn($al) => [
-                    'name'    => $al->party->name,
-                    'share'   => $al->share_amount,
-                    'extra'   => $al->extra_amount,
+                'assistants' => $line->assistantLines->map(fn ($al) => [
+                    'name' => $al->party->name,
+                    'share' => $al->share_amount,
+                    'extra' => $al->extra_amount,
                     'penalty' => $al->minimum_penalty_amount,
-                    'total'   => $al->total_amount,
+                    'total' => $al->total_amount,
                 ]),
             ]);
     }
 
-    public function getAssistantSummary(): \Illuminate\Support\Collection
+    public function getAssistantSummary(): Collection
     {
         return $this->record->assistantExtras()->with('party')->get()
             ->map(function ($extra) {
                 $lines = IncentiveAssistantLine::whereHas(
                     'incentiveLine',
-                    fn($q) => $q->where('incentive_calculation_id', $this->record->id)
+                    fn ($q) => $q->where('incentive_calculation_id', $this->record->id)
                 )->where('party_id', $extra->party_id)->get();
 
                 return [
-                    'extra'           => $extra,
-                    'party'           => $extra->party,
-                    'share_total'     => $lines->sum('share_amount'),
+                    'extra' => $extra,
+                    'party' => $extra->party,
+                    'share_total' => $lines->sum('share_amount'),
                     'fixed_deduction' => $extra->fixed_deduction,
-                    'total'           => max(0, $lines->sum('total_amount') - $extra->fixed_deduction),
+                    'total' => max(0, $lines->sum('total_amount') - $extra->fixed_deduction),
                 ];
             });
     }
@@ -96,7 +97,7 @@ class ManageIncentiveDeductions extends ViewRecord
     {
         return (float) IncentiveAssistantLine::whereHas(
             'incentiveLine',
-            fn($q) => $q->where('incentive_calculation_id', $this->record->id)
+            fn ($q) => $q->where('incentive_calculation_id', $this->record->id)
         )->sum('share_amount');
     }
 
@@ -104,7 +105,7 @@ class ManageIncentiveDeductions extends ViewRecord
     {
         $assistantLinesSum = (float) IncentiveAssistantLine::whereHas(
             'incentiveLine',
-            fn($q) => $q->where('incentive_calculation_id', $this->record->id)
+            fn ($q) => $q->where('incentive_calculation_id', $this->record->id)
         )->sum('total_amount');
 
         $fixedDeductionsSum = (float) $this->record->assistantExtras->sum('fixed_deduction');

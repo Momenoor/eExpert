@@ -36,6 +36,16 @@ class TypesTable
                     ->boolean()
                     ->sortable()
                     ->toggleable(),
+                IconColumn::make('exclude_from_incentive_count')
+                    ->label(__('Exclude Count'))
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('incentive_trigger_type')
+                    ->label(__('Incentive Trigger Type'))
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => __($state))
+                    ->toggleable(),
                 TextColumn::make('matters_count')
                     ->counts('matters')
                     ->label(__('Matters')),

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\FeeType;
 use App\Models\IncentiveExtraRule;
 use App\Models\IncentiveLine;
-use App\Models\IncentiveMetaAdjustment;
 use App\Models\Matter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +19,9 @@ class IncentiveService
      */
     public function getQualifyingMatters(Carbon $start, Carbon $end, array $filters = []): Collection
     {
+        if (empty($filters['assistant_ids'])) {
+            return collect();
+        }
         // Get already imported matter/fee IDs from ANY finalized or existing calculation
         $importedFeeIds = IncentiveLine::pluck('fee_id')->filter()->toArray();
 
@@ -87,8 +89,6 @@ class IncentiveService
         return $matters->values()->filter(function (Matter $matter) use ($importedFeeIds) {
             $eligibleFees = $matter->fees()
                 ->where('type', '!=', FeeType::VAT)
-                ->where('type', '!=', FeeType::COURT_PENALITY)
-                ->where('type', '!=', FeeType::OFFICE_SHARE)
                 ->pluck('id')
                 ->toArray();
 
@@ -235,32 +235,33 @@ class IncentiveService
                     continue;
                 }
 
-                $feeId = $matter->fees()->where('type', '!=', FeeType::VAT)->first()?->id;
+                $fees = $matter->fees()->where('type', '!=', FeeType::VAT)->get();
 
-                if (empty($feeId)) {
-                    Log::warning("Skipping incentive line for matter {$matterId} because no valid fee_id was found.");
-
-                    continue;
-                }
-
-                // Double check for duplicates before inserting
-                $exists = IncentiveLine::where('fee_id', $feeId)->exists();
-                if ($exists) {
-                    Log::info("Skipping duplicate incentive line for fee_id {$feeId}.");
+                if ($fees->isEmpty()) {
+                    Log::warning("Skipping matter {$matterId}: no valid non-VAT fee found.");
 
                     continue;
                 }
 
-                IncentiveLine::create([
-                    'incentive_calculation_id' => $calculation->id,
-                    'matter_id' => $matterId,
-                    'fee_id' => $feeId,
-                    'fee_amount_excl_vat' => 0,
-                    'base_percentage' => 0,
-                    'effective_percentage' => 0,
-                    'base_amount' => 0,
-                    'net_amount' => 0,
-                ]);
+                foreach ($fees as $fee) {
+                    $exists = IncentiveLine::where('fee_id', $fee->id)->exists();
+                    if ($exists) {
+                        Log::info("Skipping duplicate incentive line for fee_id {$fee->id}.");
+
+                        continue;
+                    }
+
+                    IncentiveLine::create([
+                        'incentive_calculation_id' => $calculation->id,
+                        'matter_id' => $matterId,
+                        'fee_id' => $fee->id,
+                        'fee_amount_excl_vat' => 0,
+                        'base_percentage' => 0,
+                        'effective_percentage' => 0,
+                        'base_amount' => 0,
+                        'net_amount' => 0,
+                    ]);
+                }
             }
         });
     }
@@ -273,43 +274,41 @@ class IncentiveService
         }
 
         $percentage = 0;
+        $difficulty = $matter->difficulty ?? 'medium';
 
         if ($config->calculation_type === 'fixed') {
             $percentage = (float) $config->fixed_percentage;
-        } elseif ($matter->distributed_at instanceof Carbon && $matter->initial_report_at instanceof Carbon) {
+        } else {
             // For tiered/committee, we calculate completion days
-            // Simplified working days calculation (should ideally exclude weekends/holidays)
-            $days = $matter->distributed_at->diffInDaysFiltered(function (Carbon $date) {
-                return ! $date->isWeekend();
-            }, $matter->initial_report_at);
+            $receivedAt = $matter->received_at;
+            $initialReportAt = $matter->initial_report_at;
 
-            $tier = $config->tiers()
-                ->where('difficulty', $matter->difficulty)
-                ->where('days_from', '<=', $days)
-                ->where(function ($q) use ($days) {
-                    $q->where('days_to', '>=', $days)
-                        ->orWhereNull('days_to');
-                })
-                ->first();
+            if ($receivedAt instanceof Carbon && $initialReportAt instanceof Carbon) {
+                // Use common logic from IncentiveCalculatorService
+                $calculator = app(IncentiveCalculatorService::class);
+                $days = $calculator->workingDaysBetween($receivedAt, $initialReportAt);
 
-            $percentage = (float) ($tier?->percentage ?? 0);
+                $tier = $config->tiers()
+                    ->where('difficulty', $difficulty)
+                    ->where('days_from', '<=', $days)
+                    ->where(function ($q) use ($days) {
+                        $q->where('days_to', '>=', $days)
+                            ->orWhereNull('days_to');
+                    })
+                    ->first();
+
+                $percentage = (float) ($tier?->percentage ?? 0);
+
+                if ($config->calculation_type === 'committee') {
+                    $committeeAdj = ($matter->commissioning === 'individual') ? 2.0 : -2.0;
+                    $percentage = max(0.0, $percentage + $committeeAdj);
+                }
+            }
         }
 
         // Custom Field (MatterMeta) Percentage Adjustment
-        $adjustments = IncentiveMetaAdjustment::all();
-        $matterMetas = $matter->metas;
-        $totalAdjustment = 0;
-
-        foreach ($adjustments as $adjustment) {
-            $match = $matterMetas->first(function ($meta) use ($adjustment) {
-                return $meta->field_name === $adjustment->field_name &&
-                    (is_null($adjustment->field_value) || $meta->field_value === $adjustment->field_value);
-            });
-
-            if ($match) {
-                $totalAdjustment += $adjustment->percentage_adjustment;
-            }
-        }
+        $calculator = app(IncentiveCalculatorService::class);
+        $totalAdjustment = $calculator->calculateMetaAdjustment($matter);
 
         return $percentage + $totalAdjustment;
     }

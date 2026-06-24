@@ -20,6 +20,13 @@ class TypeForm
                     ->label(__('Incentive Configuration'))
                     ->relationship('incentiveConfig', 'name')
                     ->searchable(),
+                Select::make('incentive_trigger_type')
+                    ->label(__('Incentive Trigger Type'))
+                    ->options([
+                        'final_report_date' => __('Matter Final Reported'),
+                        'fees_collected_date' => __('Fees Collected'),
+                    ])
+                    ->required(),
                 Toggle::make('active')
                     ->label(__('Active'))
                     ->default(true)
@@ -27,6 +34,10 @@ class TypeForm
                 Toggle::make('allow_current_status_import')
                     ->label(__('Allow Current Status Import'))
                     ->helperText(__('If enabled, matters can be imported for incentives even if not final reported, as long as they have collected fees.'))
+                    ->default(false),
+                Toggle::make('exclude_from_incentive_count')
+                    ->label(__('Exclude from Incentive Count'))
+                    ->helperText(__('If enabled, matters of this type will not be counted towards the monthly total for extra incentive percentages.'))
                     ->default(false),
             ]);
     }

@@ -24,12 +24,12 @@ class ViewIncentiveCalculation extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make()->visible(fn() => $this->record->isDraft()),
+            EditAction::make()->visible(fn () => $this->record->isDraft()),
             Action::make('importMatters')
                 ->label(__('Import Qualifying Matters'))
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
-                ->visible(fn() => $this->record->isDraft())
+                ->visible(fn () => $this->record->isDraft())
                 ->mountUsing(function ($form) {
                     $form->fill([
                         'expert_ids' => [],
@@ -45,7 +45,7 @@ class ViewIncentiveCalculation extends ViewRecord
                             ->whereJsonContains('role', ['role' => 'expert', 'type' => 'certified'])
                             ->pluck('name', 'id'))
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Set $set, Get $get) => $this->updateQualifyingMatters($set, $get)),
+                        ->afterStateUpdated(fn (Set $set, Get $get) => $this->updateQualifyingMatters($set, $get)),
                     Select::make('assistant_ids')
                         ->label(__('Assistants'))
                         ->multiple()
@@ -53,13 +53,12 @@ class ViewIncentiveCalculation extends ViewRecord
                             ->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
                             ->pluck('name', 'id'))
                         ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Set $set, Get $get) => $this->updateQualifyingMatters($set, $get)),
+                        ->afterStateUpdated(fn (Set $set, Get $get) => $this->updateQualifyingMatters($set, $get)),
                     Repeater::make('temp_lines')
                         ->label('')
                         ->schema([
                             Checkbox::make('is_selected')
-                                ->hiddenLabel()
-                                ->label('Is Selected'),
+                                ->hiddenLabel(),
                             TextInput::make('reference')
                                 ->label(__('Matter'))
                                 ->disabled(),
@@ -92,7 +91,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
                 ->color('info')
-                ->visible(fn() => $this->record->isDraft())
+                ->visible(fn () => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->modalHeading(__('Run Incentive Calculation'))
                 ->modalDescription(__('This will clear and recalculate all lines for this period. Matters with initial_report_at within the period and paid fees not yet in a finalized calculation will be included.'))
@@ -105,7 +104,7 @@ class ViewIncentiveCalculation extends ViewRecord
                         $lineCount = $this->record->lines()->count();
                         Notification::make()
                             ->title(__('Calculation Complete'))
-                            ->body(__('Calculated') . ' ' . $lineCount . ' ' . __('fee lines.'))
+                            ->body(__('Calculated').' '.$lineCount.' '.__('fee lines.'))
                             ->success()
                             ->send();
                     } catch (\Exception $e) {
@@ -121,14 +120,14 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Manage Deductions'))
                 ->icon('heroicon-o-minus-circle')
                 ->color('warning')
-                ->visible(fn() => $this->record->isDraft() && $this->record->lines()->exists())
-                ->url(fn() => IncentiveCalculationResource::getUrl('deductions', ['record' => $this->record])),
+                ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
+                ->url(fn () => IncentiveCalculationResource::getUrl('deductions', ['record' => $this->record])),
 
             Action::make('finalize')
                 ->label(__('Finalize'))
                 ->icon('heroicon-o-lock-closed')
                 ->color('success')
-                ->visible(fn() => $this->record->isDraft() && $this->record->lines()->exists())
+                ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
                 ->requiresConfirmation()
                 ->modalHeading(__('Finalize Calculation'))
                 ->modalDescription(__('Once finalized, this calculation cannot be edited or recalculated. All included fees will be locked and excluded from future calculations. This action cannot be undone.'))
@@ -157,7 +156,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Print Summary'))
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->url(fn() => route('incentive.calculation.print', $this->record))
+                ->url(fn () => route('incentive.calculation.print', $this->record))
                 ->openUrlInNewTab(),
         ];
     }
@@ -175,6 +174,6 @@ class ViewIncentiveCalculation extends ViewRecord
         );
         $data = $service->calculateMattersData($matters, $this->record->period_start, $this->record->period_end);
 
-        $set('temp_lines', $data->map(fn($item) => array_merge($item, ['is_selected' => true]))->toArray());
+        $set('temp_lines', $data->map(fn ($item) => array_merge($item, ['is_selected' => true]))->toArray());
     }
 }

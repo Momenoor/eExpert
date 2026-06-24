@@ -110,7 +110,7 @@
                     <tr class="bg-primary-700 text-white">
                         <th class="px-3 py-2 text-left">{{ __('Assistant') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Completed Matters') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('Meets Min (6)') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('Meets Min (6/mo)') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Share Total') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Extra %') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('Extra Amount') }}</th>
