@@ -32,35 +32,44 @@ class IncentiveService
             })
             ->whereBetween('final_report_at', [$start->startOfDay(), $end->endOfDay()]);
 
-        // Condition B: fees_collected_date trigger
-        $feeCollectedQuery = Matter::query()
+        // Condition B: fees_registered_date trigger — triggered by the fee's
+        // own REGISTRATION date (fees.date), regardless of whether/when it
+        // was actually collected. The incentive is based on the registered
+        // fee amount, not the amount collected so far.
+        $feeRegisteredQuery = Matter::query()
             ->whereHas('type', function ($q) {
-                $q->where('incentive_trigger_type', 'fees_collected_date');
+                $q->where('incentive_trigger_type', 'fees_registered_date');
             })
             ->whereHas('fees', function ($q) use ($start, $end) {
-                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
+                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                    ->where(fn ($q2) => $q2->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
             });
 
-        // Condition C: allow_current_status_import
+        // Condition C: allow_current_status_import — the matter is still
+        // "current" (not yet finally reported), but has a non-VAT fee
+        // REGISTERED within the period (fees.date, not collection/allocation
+        // date) that hasn't had an incentive calculated on it yet. Scoped
+        // per FEE (not per matter) so a matter already imported for an
+        // earlier period's fee can still be reimported later once a new,
+        // not-yet-incentivized fee comes in.
         $currentStatusQuery = Matter::query()
             ->whereHas('type', function ($q) {
                 $q->where('allow_current_status_import', true);
             })
-            // Matter status is current (not final reported)
-            // Assuming 'status' is an attribute that can be queried or we use the underlying logic
-            // From getQualifyingMatters Condition A, final_report_at determines if it's reported.
             ->whereNull('final_report_at')
-            ->whereHas('fees', function ($q) use ($start, $end) {
-                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
-            })
-            // Matter has no existing IncentiveLine record for any of its eligible fees
-            ->whereDoesntHave('incentiveLines');
+            ->whereHas('fees', function ($q) use ($start, $end, $importedFeeIds) {
+                $q->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                    ->where(fn ($q2) => $q2->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+                if (! empty($importedFeeIds)) {
+                    $q->whereNotIn('id', $importedFeeIds);
+                }
+            });
 
         if (! empty($filters['expert_ids'])) {
             $reportDateQuery->whereHas('expertsOnly', function ($q) use ($filters) {
                 $q->whereIn('party_id', $filters['expert_ids']);
             });
-            $feeCollectedQuery->whereHas('expertsOnly', function ($q) use ($filters) {
+            $feeRegisteredQuery->whereHas('expertsOnly', function ($q) use ($filters) {
                 $q->whereIn('party_id', $filters['expert_ids']);
             });
             $currentStatusQuery->whereHas('expertsOnly', function ($q) use ($filters) {
@@ -72,7 +81,7 @@ class IncentiveService
             $reportDateQuery->whereHas('assistantsOnly', function ($q) use ($filters) {
                 $q->whereIn('party_id', $filters['assistant_ids']);
             });
-            $feeCollectedQuery->whereHas('assistantsOnly', function ($q) use ($filters) {
+            $feeRegisteredQuery->whereHas('assistantsOnly', function ($q) use ($filters) {
                 $q->whereIn('party_id', $filters['assistant_ids']);
             });
             $currentStatusQuery->whereHas('assistantsOnly', function ($q) use ($filters) {
@@ -81,28 +90,29 @@ class IncentiveService
         }
 
         $matters = $reportDateQuery->get()
-            ->concat($feeCollectedQuery->get())
+            ->concat($feeRegisteredQuery->get())
             ->concat($currentStatusQuery->get())
             ->unique('id');
 
         // Filter out matters where ALL eligible fees are already imported
         return $matters->values()->filter(function (Matter $matter) use ($importedFeeIds) {
             $eligibleFees = $matter->fees()
-                ->where('type', '!=', FeeType::VAT)
+                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
                 ->pluck('id')
                 ->toArray();
 
             if (empty($eligibleFees)) {
-                return false;
+                // A finished matter (final_report_date trigger) with NO fees
+                // at all still qualifies — it must still be importable so it
+                // counts toward the monthly achievement quota, even though
+                // it contributes nothing monetarily. Fee-driven trigger
+                // types have nothing to import without a fee.
+                return $matter->type?->incentive_trigger_type === 'final_report_date'
+                    && $matter->final_report_at !== null
+                    && ! $matter->incentiveLines()->whereNull('fee_id')->exists();
             }
 
-            // Check if there are allocations for these eligible fees within the period
-            // This is important because a matter might have multiple fees, but only some were paid in this period.
-            // If ALL fees that have allocations in this period are already imported, we should hide the matter.
-            // But wait, the trigger might be report date, not allocations.
-
-            // Let's stick to: If at least one eligible fee is NOT imported, show it.
-            // To be more precise, we should only consider fees that actually contribute to the incentive.
+            // If at least one eligible fee is NOT imported, show it.
             return ! empty(array_diff($eligibleFees, $importedFeeIds));
         });
     }
@@ -132,7 +142,7 @@ class IncentiveService
             // Get a primary fee ID to satisfy DB constraint if needed
             // We MUST ensure this primary fee hasn't been imported yet
             $primaryFee = $matter->fees()
-                ->where('type', '!=', FeeType::VAT)
+                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
                 ->whereNotIn('id', $importedFeeIds)
                 ->first();
 
@@ -142,7 +152,7 @@ class IncentiveService
 
             // Fees without VAT
             $feesAmount = $matter->fees()
-                ->where('type', '!=', FeeType::VAT)
+                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
                 ->sum('amount');
 
             // Court penalties - Sum the absolute values to deduct later
@@ -230,15 +240,54 @@ class IncentiveService
 
         DB::transaction(function () use ($calculation, $matterIds) {
             foreach ($matterIds as $matterId) {
-                $matter = Matter::find($matterId);
+                $matter = Matter::with('type')->find($matterId);
                 if (! $matter) {
                     continue;
                 }
 
-                $fees = $matter->fees()->where('type', '!=', FeeType::VAT)->get();
+                $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+
+                // Still-ongoing matters (allow_current_status_import, not yet
+                // finally reported) import fee-by-fee, scoped to fees
+                // REGISTERED (fees.date, not collection/allocation date)
+                // within this calculation's period — one line per qualifying
+                // fee. A fee registered in a later period is left for that
+                // period's own calculation to pick up.
+                $isCurrentStatusMatter = ($matter->type?->allow_current_status_import ?? false)
+                    && ! $matter->final_report_at;
+
+                if ($isCurrentStatusMatter) {
+                    $feesQuery->whereBetween('date', [
+                        Carbon::parse($calculation->period_start)->toDateString(),
+                        Carbon::parse($calculation->period_end)->toDateString(),
+                    ]);
+                }
+
+                $fees = $feesQuery->get();
 
                 if ($fees->isEmpty()) {
-                    Log::warning("Skipping matter {$matterId}: no valid non-VAT fee found.");
+                    // A finished matter (final_report_date trigger) with no
+                    // fees at all is still imported — as a single fee-less
+                    // line — purely so it counts toward the monthly
+                    // achievement quota. Fee-driven trigger types have
+                    // nothing to import without a fee.
+                    $isFinishedWithNoFee = $matter->type?->incentive_trigger_type === 'final_report_date'
+                        && $matter->final_report_at !== null;
+
+                    if ($isFinishedWithNoFee && ! $matter->incentiveLines()->whereNull('fee_id')->exists()) {
+                        IncentiveLine::create([
+                            'incentive_calculation_id' => $calculation->id,
+                            'matter_id' => $matterId,
+                            'fee_id' => null,
+                            'fee_amount_excl_vat' => 0,
+                            'base_percentage' => 0,
+                            'effective_percentage' => 0,
+                            'base_amount' => 0,
+                            'net_amount' => 0,
+                        ]);
+                    } else {
+                        Log::warning("Skipping matter {$matterId}: no valid non-VAT fee found.");
+                    }
 
                     continue;
                 }

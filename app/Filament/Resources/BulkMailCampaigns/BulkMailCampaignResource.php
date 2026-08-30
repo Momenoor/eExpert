@@ -18,6 +18,13 @@ class BulkMailCampaignResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelopeOpen;
 
+    protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Communication');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('bulk_mail.navigation_label');

@@ -12,7 +12,6 @@ use App\Filament\Resources\MatterRequests\Schemas\MatterRequestInfolist;
 use App\Filament\Resources\MatterRequests\Tables\MatterRequestsTable;
 use App\Models\MatterRequest;
 use BackedEnum;
-use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,11 +20,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class MatterRequestResource extends Resource
 {
-
     protected static ?string $model = MatterRequest::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Newspaper;
-    protected static ?int $navigationSort = 5;
+
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
@@ -74,9 +73,9 @@ class MatterRequestResource extends Resource
     {
         return [
             'index' => ListMatterRequests::route('/'),
-            //'create' => CreateMatterRequest::route('/create'),
+            // 'create' => CreateMatterRequest::route('/create'),
             'view' => ViewMatterRequest::route('/{record}'),
-            //'edit' => EditRequest::route('/{record}/edit'),
+            // 'edit' => EditRequest::route('/{record}/edit'),
         ];
     }
 

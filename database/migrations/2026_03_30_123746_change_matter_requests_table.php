@@ -11,10 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matter_requests', function (Blueprint $table) {
-            $table->longText('comment')->change()->comment('Comment for the matter request');
-            $table->longText('approved_comment')->nullable()->change()->comment('Comment for the matter request approval');
-        });
+        if (Schema::hasTable('matter_requests')) {
+            Schema::table('matter_requests', function (Blueprint $table) {
+                if (Schema::hasColumn('matter_requests', 'comment')) {
+                    $table->longText('comment')->change()->comment('Comment for the matter request');
+                } else {
+                    $table->longText('comment')->nullable()->comment('Comment for the matter request');
+                }
+                if (Schema::hasColumn('matter_requests', 'approved_comment')) {
+                    $table->longText('approved_comment')->nullable()->change()->comment('Comment for the matter request approval');
+                } else {
+                    $table->longText('approved_comment')->nullable()->comment('Comment for the matter request approval');
+                }
+            });
+        }
     }
 
     /**
@@ -22,9 +32,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matter_requests', function (Blueprint $table) {
-            $table->string('comment')->change()->comment('Comment for the matter request');
-            $table->string('approved_comment')->nullable()->change()->comment('Comment for the matter request approval');
-        });
+        if (Schema::hasTable('matter_requests')) {
+            Schema::table('matter_requests', function (Blueprint $table) {
+                if (Schema::hasColumn('matter_requests', 'comment')) {
+                    $table->string('comment')->change()->comment('Comment for the matter request');
+                }
+                if (Schema::hasColumn('matter_requests', 'approved_comment')) {
+                    $table->string('approved_comment')->nullable()->change()->comment('Comment for the matter request approval');
+                }
+            });
+        }
     }
 };

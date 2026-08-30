@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
 
 class IncentiveCalculatorService
 {
@@ -25,17 +27,24 @@ class IncentiveCalculatorService
     /** Minimum matters per 2-month period to qualify for extra % */
     private const int MINIMUM_MATTERS_PER_MONTH = 3;
 
-    /** Penalty per matter SHORT of monthly minimum (−2% per shortfall) */
+    /**
+     * Flat penalty applied to every matter in a month that falls short of
+     * the minimum — a percentage of that matter's FEE amount, not of the
+     * computed incentive share, and not multiplied by how many matters
+     * short of the minimum the assistant is.
+     */
     private const float BELOW_MINIMUM_PENALTY_PCT = 2.0;
 
     /**
-     * Committee adjustment by matter.commissioning value:
-     *   'individual' → office appointment → +2%
-     *   'committee'  → external committee → −2%
+     * A matter whose commissioning is 'committee' always gets this flat
+     * percentage — regardless of its type's own calculation_type (fixed,
+     * tiered, or committee). This replaces the computed percentage entirely,
+     * the same way percentage_override does.
      */
-    private const float COMMITTEE_OFFICE_ADJUSTMENT = +2.0;
+    private const float COMMITTEE_FIXED_PERCENTAGE = 8.0;
 
-    private const float COMMITTEE_EXTERNAL_ADJUSTMENT = -2.0;
+    /** Additional adjustment when matters.is_office_work is true. */
+    private const float OFFICE_WORK_ADJUSTMENT = +2.0;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -52,6 +61,25 @@ class IncentiveCalculatorService
         }
 
         DB::transaction(function () use ($calculation) {
+
+            // Preserve manually entered fixed deductions across recalculation.
+            $existingFixedDeductions = IncentiveAssistantExtra::where('incentive_calculation_id', $calculation->id)
+                ->get(['party_id', 'fixed_deduction', 'fixed_deduction_reason'])
+                ->keyBy('party_id');
+
+            // Preserve manually entered per-assistant percentage overrides across
+            // recalculation — keyed by matter+party since assistant lines get
+            // deleted and recreated on every run. A manual override applies to
+            // one specific assistant on a matter only, never to co-assistants
+            // sharing the same matter.
+            $existingAssistantOverrides = IncentiveAssistantLine::whereHas(
+                'incentiveLine',
+                fn ($q) => $q->where('incentive_calculation_id', $calculation->id)
+            )
+                ->whereNotNull('percentage_override')
+                ->with('incentiveLine:id,matter_id')
+                ->get(['party_id', 'percentage_override', 'incentive_line_id'])
+                ->keyBy(fn ($al) => $al->incentiveLine->matter_id.'-'.$al->party_id);
 
             // Clear previous assistant extras
             IncentiveAssistantExtra::where('incentive_calculation_id', $calculation->id)->delete();
@@ -83,45 +111,64 @@ class IncentiveCalculatorService
                 $feeAmountExclVat = (float) ($line->fee?->amount ?? 0);
 
                 // DB column: matters.difficulty = 'easy' | 'medium' | 'hard'
-                $difficulty = $matter->difficulty ?? 'medium';
-                $committeeAdj = 0.0;
+                $rawDifficulty = $matter->difficulty;
+                $difficulty = $rawDifficulty instanceof MatterDifficulty
+                    ? $rawDifficulty
+                    : (is_string($rawDifficulty) ? (MatterDifficulty::tryFrom($rawDifficulty) ?? MatterDifficulty::MEDIUM) : MatterDifficulty::MEDIUM);
+                $difficultyValue = $difficulty->value;
                 $completionDays = null;
 
                 // ── Determine base percentage ──────────────────────────────────
-                $basePercentage = match ($config->calculation_type) {
+                $rawCommissioning = $matter->commissioning;
+                $commissioning = $rawCommissioning instanceof MatterCommissiong
+                    ? $rawCommissioning
+                    : MatterCommissiong::tryFrom((string) $rawCommissioning);
+                $committeeAdj = 0.0;
 
-                    'fixed' => (float) $config->fixed_percentage,
+                if ($commissioning === MatterCommissiong::COMMITTEE) {
+                    // Committee-commissioned matters always get the flat
+                    // committee rate, regardless of the matter's type's own
+                    // calculation_type.
+                    $basePercentage = self::COMMITTEE_FIXED_PERCENTAGE;
+                    $completionDays = $this->getCompletionDays($matter);
+                } else {
+                    $basePercentage = match ($config->calculation_type) {
 
-                    'committee' => $this->committeeBasePercentage(
-                        $matter,
-                        $difficulty,
-                        $committeeAdj,  // captured by ref
-                        $completionDays // captured by ref
-                    ),
+                        'fixed' => (float) $config->fixed_percentage,
 
-                    'tiered' => $this->tieredBasePercentage($difficulty, $matter, $completionDays),
+                        'tiered', 'committee' => $this->tieredBasePercentage($difficulty, $matter, $completionDays),
 
-                    default => 0.0,
-                };
+                        default => 0.0,
+                    };
+                }
+
+                if ($matter->is_office_work ?? false) {
+                    $committeeAdj += self::OFFICE_WORK_ADJUSTMENT;
+                }
 
                 // ── Apply IncentiveMetaAdjustment additively ───────────────────
-                $metaAdjustment = $this->calculateMetaAdjustment($matter);
-                $basePercentage += $metaAdjustment;
+                $basePercentage += $this->calculateMetaAdjustment($matter);
 
                 $effectivePercentage = max(0.0, $basePercentage + $committeeAdj);
                 $baseAmount = round($feeAmountExclVat * $effectivePercentage / 100, 2);
 
                 // ── Deductions ─────────────────────────────────────────────────
-                [$totalDeductionPct, $deductions] = $this->calculateDeductions($matter, $difficulty);
+                // Deduction percentages are percentage points of the FEE (the same
+                // scale as the incentive percentage itself), not a percentage of the
+                // incentive amount — e.g. a -2% review deduction on a 9% incentive
+                // leaves 7%, not 9% × 0.98. If deductions exceed the granted
+                // percentage, the incentive for that matter is simply zero.
+                [$totalDeductionPct, $deductions] = $this->calculateDeductions($matter, $difficulty, $commissioning);
 
                 $hasCourtPenalty = collect($deductions)->contains(fn ($d) => $d['type'] === 'court_penalty');
+                $netPercentage = max(0.0, $effectivePercentage - $totalDeductionPct);
                 $netAmount = $hasCourtPenalty
                     ? 0.0
-                    : max(0.0, round($baseAmount * (1 - $totalDeductionPct / 100), 2));
+                    : round($feeAmountExclVat * $netPercentage / 100, 2);
 
                 $line->update([
                     'completion_days' => $completionDays,
-                    'difficulty' => $difficulty,
+                    'difficulty' => $difficultyValue,
                     'fee_amount_excl_vat' => $feeAmountExclVat,
                     'base_percentage' => $basePercentage,
                     'committee_adjustment' => $committeeAdj,
@@ -155,13 +202,23 @@ class IncentiveCalculatorService
 
             // ── Phase 2: split net_amount among assistants per matter ──────────
             $linesByMatter = $processedLines->groupBy(fn ($l) => $l['matter']->id);
-            $assistantTotals = []; // party_id => cumulative share (tiered only)
-            $tieredMatterIds = collect();
+            $assistantTotals = []; // party_id => cumulative share (quota-eligible matters only — the bonus/penalty basis)
+            $allAssistantPartyIds = collect(); // every assistant with any line at all (incl. excluded matters)
+            $quotaMatterIds = collect();
 
             foreach ($linesByMatter as $matterId => $matterLines) {
                 $config = $matterLines->last()['config'];
                 $matter = $matterLines->last()['matter'];
-                $isTiered = in_array($config->calculation_type, ['tiered', 'committee'], true);
+                // The monthly achievement bonus / minimum-count penalty is a
+                // day-based speed incentive for tiered work at a normal
+                // individual pace, so it never applies to: fixed-percentage
+                // matters (calculation_type = 'fixed' — e.g. liquidation,
+                // insolvency, consultancy) or committee-commissioned matters
+                // (flat committee rate) — regardless of whether the type is
+                // also explicitly flagged exclude_from_incentive_count.
+                $countsTowardQuota = $config->calculation_type !== 'fixed'
+                    && $matter->commissioning !== MatterCommissiong::COMMITTEE
+                    && ! ($matter->type?->exclude_from_incentive_count ?? false);
 
                 $assistants = MatterParty::where('matter_id', $matterId)
                     ->where('role', 'expert')
@@ -172,8 +229,8 @@ class IncentiveCalculatorService
                     continue;
                 }
 
-                if ($isTiered) {
-                    $tieredMatterIds->push($matterId);
+                if ($countsTowardQuota) {
+                    $quotaMatterIds->push($matterId);
                 }
 
                 $assistantCount = $assistants->count();
@@ -183,17 +240,43 @@ class IncentiveCalculatorService
                 $totalNetAmount = $matterLines->sum(fn ($l) => $l['line']->net_amount);
                 $totalForAssistants = round($totalNetAmount * $assistantRate / 100, 2);
 
+                // commission_percentage is a RELATIVE WEIGHT for splitting the
+                // assistant pool among co-assistants on the same matter, not
+                // an absolute fraction of it — e.g. two assistants both set
+                // to 10 split the pool 50/50 (10:10), not 10% each with 80%
+                // left unattributed. Whatever the pool ends up being (after
+                // deductions/adjustments reduce the matter's percentage) is
+                // always fully distributed in proportion to these weights.
                 $hasCustomPercentages = $assistants->contains(fn ($mp) => ! empty($mp->commission_percentage));
+                $totalCommissionWeight = $assistants->sum(fn ($mp) => (float) ($mp->commission_percentage ?? 0));
                 $firstLine = $matterLines->first()['line'];
 
                 foreach ($assistants as $mp) {
-                    $shareAmount = $hasCustomPercentages
-                        ? round($totalForAssistants * ((float) ($mp->commission_percentage ?? 0) / 100), 2)
-                        : round($totalForAssistants / $assistantCount, 2);
+                    $override = $existingAssistantOverrides->get($matterId.'-'.$mp->party_id)?->percentage_override;
+
+                    if ($override !== null) {
+                        // A manual override is this specific assistant's final
+                        // effective percentage of the fee for this matter — it
+                        // does not affect any other assistant sharing the same
+                        // matter. Deductions still apply on top, same as the
+                        // automatic calculation; a court penalty still zeroes it.
+                        $shareAmount = ($matter->has_court_penalty ?? false)
+                            ? 0.0
+                            : round($matterLines->sum(function ($l) use ($override) {
+                                $netPct = max(0.0, (float) $override - (float) $l['line']->total_deduction_pct);
+
+                                return $l['line']->fee_amount_excl_vat * $netPct / 100;
+                            }), 2);
+                    } else {
+                        $shareAmount = ($hasCustomPercentages && $totalCommissionWeight > 0)
+                            ? round($totalForAssistants * ((float) ($mp->commission_percentage ?? 0) / $totalCommissionWeight), 2)
+                            : round($totalForAssistants / $assistantCount, 2);
+                    }
 
                     IncentiveAssistantLine::create([
                         'incentive_line_id' => $firstLine->id,
                         'party_id' => $mp->party_id,
+                        'percentage_override' => $override,
                         'share_amount' => $shareAmount,
                         'extra_percentage' => 0,
                         'extra_amount' => 0,
@@ -202,11 +285,15 @@ class IncentiveCalculatorService
                         'total_amount' => $shareAmount,
                     ]);
 
-                    if ($isTiered) {
+                    $allAssistantPartyIds->push($mp->party_id);
+
+                    if ($countsTowardQuota) {
                         $assistantTotals[$mp->party_id] = ($assistantTotals[$mp->party_id] ?? 0.0) + $shareAmount;
                     }
                 }
             }
+
+            $allAssistantPartyIds = $allAssistantPartyIds->unique()->values();
 
             // ── Phase 3: extra % and minimum penalty per assistant (Calculated per Month) ────────────
             $extraRules = IncentiveExtraRule::orderBy('min_count')->get();
@@ -229,28 +316,48 @@ class IncentiveCalculatorService
                 $current->addMonth();
             }
 
-            foreach (array_keys($assistantTotals) as $partyId) {
+            foreach ($allAssistantPartyIds as $partyId) {
                 $totalExtraAmount = 0.0;
                 $totalPenaltyAmount = 0.0;
                 $totalCompletedCount = 0;
+                $preserved = $existingFixedDeductions->get($partyId);
 
                 // We need to know which matters belong to which month to calculate monthly extra/penalty
                 $assistantMatters = MatterParty::with(['matter', 'matter.type'])
                     ->where('party_id', $partyId)
                     ->where('role', 'expert')
                     ->where('type', 'assistant')
-                    ->whereIn('matter_id', $tieredMatterIds->all())
+                    ->whereIn('matter_id', $quotaMatterIds->all())
                     ->get();
 
+                // No tiered/committee matters this period — the achievement bonus and
+                // minimum-count penalty simply don't apply (e.g. an assistant who only
+                // worked fixed-rate committee/liquidation matters this calculation).
+                if ($assistantMatters->isEmpty()) {
+                    IncentiveAssistantExtra::create([
+                        'incentive_calculation_id' => $calculation->id,
+                        'party_id' => $partyId,
+                        'completed_matter_count' => 0,
+                        'meets_minimum' => true,
+                        'minimum_penalty_pct' => 0,
+                        'extra_percentage' => 0,
+                        'extra_amount' => 0,
+                        'penalty_amount' => 0,
+                        'fixed_deduction' => $preserved?->fixed_deduction ?? 0,
+                        'fixed_deduction_reason' => $preserved?->fixed_deduction_reason,
+                    ]);
+
+                    continue;
+                }
+
                 foreach ($months as $month) {
-                    $monthMatters = $assistantMatters->filter(function ($mp) use ($month) {
-                        $triggerDate = $mp->matter->received_at ?? $mp->matter->created_at;
+                    $monthMatters = $assistantMatters->filter(function ($mp) use ($month, $calculation) {
+                        $triggerDate = $this->quotaTriggerDate($mp->matter, $calculation->id);
                         if (! $triggerDate) {
                             return false;
                         }
-                        $dt = Carbon::parse($triggerDate);
 
-                        return $dt->between($month['start'], $month['end'])
+                        return $triggerDate->between($month['start'], $month['end'])
                             && ! ($mp->matter->type?->exclude_from_incentive_count ?? false);
                     });
 
@@ -259,42 +366,60 @@ class IncentiveCalculatorService
 
                     $monthMeetsMinimum = $monthCount >= self::MINIMUM_MATTERS_PER_MONTH;
 
-                    // Extra percentage applies to the share of matters in THAT month?
-                    // The requirement says "add extra percentage". Usually, extra percentage applies to the total base incentive.
-                    // If we calculate per month, we apply month's extra % to month's share?
-                    // But shared amount is already aggregated in $assistantTotals.
-
-                    // Let's calculate the share for this specific month.
-                    $monthMatterIds = $monthMatters->pluck('matter_id')->all();
-                    $monthShare = IncentiveAssistantLine::whereHas('line', function ($q) use ($calculation, $monthMatterIds) {
-                        $q->where('incentive_calculation_id', $calculation->id)
-                            ->whereIn('matter_id', $monthMatterIds);
-                    })->where('party_id', $partyId)->sum('share_amount');
-
                     // Look up extra % for this month's count
                     $matchedRule = $extraRules->first(
                         fn ($r) => $monthCount >= $r->min_count
                             && ($r->max_count === null || $monthCount <= $r->max_count)
                     );
                     $monthExtraPct = $monthMeetsMinimum ? (float) ($matchedRule?->extra_percentage ?? 0) : 0.0;
-                    $monthExtraAmount = round($monthShare * $monthExtraPct / 100, 2);
 
-                    $monthPenaltyPct = 0.0;
-                    $monthPenaltyAmount = 0.0;
-                    if (! $monthMeetsMinimum) {
-                        $shortfall = self::MINIMUM_MATTERS_PER_MONTH - $monthCount;
-                        $monthPenaltyPct = $shortfall * self::BELOW_MINIMUM_PENALTY_PCT;
-                        $monthPenaltyAmount = round($monthShare * $monthPenaltyPct / 100, 2);
+                    // PDF: a flat 2% penalty applies to every matter in a shortfall
+                    // month — it is NOT multiplied by how many matters short of the
+                    // minimum the assistant is.
+                    $monthPenaltyPct = $monthMeetsMinimum ? 0.0 : self::BELOW_MINIMUM_PENALTY_PCT;
+
+                    if ($monthExtraPct <= 0.0 && $monthPenaltyPct <= 0.0) {
+                        continue;
                     }
 
-                    $totalExtraAmount += $monthExtraAmount;
-                    $totalPenaltyAmount += $monthPenaltyAmount;
+                    // Apply this month's flat percentage directly to each of the
+                    // assistant's own matters completed that month (e.g. >6 matters
+                    // in the month → +3% on every one of that month's matters) —
+                    // not pooled and redistributed by overall weight across the
+                    // whole calculation period.
+                    $monthMatterIds = $monthMatters->pluck('matter_id')->all();
+                    $monthAssistantLines = IncentiveAssistantLine::with('incentiveLine')
+                        ->whereHas('line', function ($q) use ($calculation, $monthMatterIds) {
+                            $q->where('incentive_calculation_id', $calculation->id)
+                                ->whereIn('matter_id', $monthMatterIds);
+                        })->where('party_id', $partyId)->get();
+
+                    foreach ($monthAssistantLines as $al) {
+                        // The penalty is a percentage of the case's FEE amount, not
+                        // of the assistant's computed incentive share — e.g. 2% of a
+                        // 10,000 AED fee (200 AED), not 2% of a 900 AED share (18 AED).
+                        $feeAmount = (float) ($al->incentiveLine?->fee_amount_excl_vat ?? 0);
+                        $lineExtra = round($al->share_amount * $monthExtraPct / 100, 2);
+                        $linePenalty = round($feeAmount * $monthPenaltyPct / 100, 2);
+
+                        $al->update([
+                            'extra_percentage' => $monthExtraPct,
+                            'extra_amount' => $lineExtra,
+                            'minimum_penalty_pct' => $monthPenaltyPct,
+                            'minimum_penalty_amount' => $linePenalty,
+                            'total_amount' => max(0.0, $al->share_amount + $lineExtra - $linePenalty),
+                        ]);
+
+                        $totalExtraAmount += $lineExtra;
+                        $totalPenaltyAmount += $linePenalty;
+                    }
                 }
 
                 $totalShare = $assistantTotals[$partyId];
 
-                // For the summary record, we might store averaged or representative percentages,
-                // but the amounts are exact totals from monthly calculations.
+                // Summary record: totals are the exact sum of the per-line amounts
+                // applied above; the percentage shown here is a blended average
+                // across the whole calculation for reporting purposes only.
                 IncentiveAssistantExtra::create([
                     'incentive_calculation_id' => $calculation->id,
                     'party_id' => $partyId,
@@ -304,37 +429,9 @@ class IncentiveCalculatorService
                     'extra_percentage' => $totalShare > 0 ? round($totalExtraAmount / $totalShare * 100, 2) : 0,
                     'extra_amount' => $totalExtraAmount,
                     'penalty_amount' => $totalPenaltyAmount,
+                    'fixed_deduction' => $preserved?->fixed_deduction ?? 0,
+                    'fixed_deduction_reason' => $preserved?->fixed_deduction_reason,
                 ]);
-
-                if ($totalExtraAmount <= 0 && $totalPenaltyAmount <= 0) {
-                    continue;
-                }
-
-                $assistantLines = IncentiveAssistantLine::whereHas(
-                    'line',
-                    fn ($q) => $q->where('incentive_calculation_id', $calculation->id)
-                        ->whereIn('matter_id', $tieredMatterIds->all())
-                )->where('party_id', $partyId)->get();
-
-                if ($assistantLines->isEmpty()) {
-                    continue;
-                }
-
-                // Apply total extra/penalty proportionally across all lines for this party
-                $totalShareCheck = $assistantLines->sum('share_amount');
-                foreach ($assistantLines as $al) {
-                    $proportion = $totalShareCheck > 0 ? $al->share_amount / $totalShareCheck : 0.0;
-                    $lineExtra = round($totalExtraAmount * $proportion, 2);
-                    $linePenalty = round($totalPenaltyAmount * $proportion, 2);
-
-                    $al->update([
-                        'extra_percentage' => $totalShare > 0 ? round($totalExtraAmount / $totalShare * 100, 2) : 0,
-                        'extra_amount' => $lineExtra,
-                        'minimum_penalty_pct' => $totalShare > 0 ? round($totalPenaltyAmount / $totalShare * 100, 2) : 0,
-                        'minimum_penalty_amount' => $linePenalty,
-                        'total_amount' => max(0.0, $al->share_amount + $lineExtra - $linePenalty),
-                    ]);
-                }
             }
         });
     }
@@ -359,7 +456,7 @@ class IncentiveCalculatorService
      */
     public function getAssistantSummary(Model $calculation): Collection
     {
-        return IncentiveAssistantLine::with('party', 'incentiveLine.matter')
+        return IncentiveAssistantLine::with('party', 'incentiveLine.matter', 'incentiveLine.deductions')
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $calculation->id))
             ->get()
             ->groupBy('party_id')
@@ -383,10 +480,139 @@ class IncentiveCalculatorService
                     'minimum_penalty_pct' => $extra?->minimum_penalty_pct ?? 0,
                     'penalty_amount' => $extra?->penalty_amount ?? 0,
                     'fixed_deduction' => $extra?->fixed_deduction ?? 0,
+                    'fixed_deduction_reason' => $extra?->fixed_deduction_reason,
                     'total' => max(0.0, $lines->sum('total_amount') - ($extra?->fixed_deduction ?? 0)),
+                    'matters' => $lines->groupBy('incentiveLine.matter_id')
+                        ->map(function (Collection $matterLines) {
+                            $incentiveLine = $matterLines->first()->incentiveLine;
+                            $matter = $incentiveLine->matter;
+                            $extraPct = (float) $matterLines->first()->extra_percentage;
+                            $penaltyPct = (float) $matterLines->first()->minimum_penalty_pct;
+
+                            return [
+                                'matter_id' => $matter->id,
+                                'matter_reference' => $matter->reference,
+                                'difficulty' => $incentiveLine->difficulty,
+                                'completion_days' => $incentiveLine->completion_days,
+                                'fee_amount_excl_vat' => $incentiveLine->fee_amount_excl_vat,
+                                'base_percentage' => $incentiveLine->base_percentage,
+                                'committee_adjustment' => $incentiveLine->committee_adjustment,
+                                'percentage' => $incentiveLine->effective_percentage,
+                                'percentage_override' => $matterLines->first()->percentage_override,
+                                'base_amount' => $incentiveLine->base_amount,
+                                'total_deduction_pct' => $incentiveLine->total_deduction_pct,
+                                'deductions' => $incentiveLine->deductions,
+                                'share_amount' => $matterLines->sum('share_amount'),
+                                'extra_amount' => $matterLines->sum('extra_amount'),
+                                'extra_reason' => $this->describeExtraReason($extraPct),
+                                'penalty_amount' => $matterLines->sum('minimum_penalty_amount'),
+                                'penalty_reason' => $this->describePenaltyReason($penaltyPct),
+                                'total_amount' => $matterLines->sum('total_amount'),
+                            ];
+                        })
+                        ->values(),
                 ];
             })
             ->values();
+    }
+
+    /**
+     * Human-readable reason for an applied achievement bonus percentage,
+     * looked up from the matching IncentiveExtraRule bracket.
+     */
+    public function describeExtraReason(float $extraPct): ?string
+    {
+        if ($extraPct <= 0.0) {
+            return null;
+        }
+
+        $rule = IncentiveExtraRule::where('extra_percentage', $extraPct)->first();
+
+        if (! $rule) {
+            return __('Achievement bonus for that month').': +'.$extraPct.'%';
+        }
+
+        $range = $rule->max_count === null
+            ? __(':min or more matters that month', ['min' => $rule->min_count])
+            : __(':min–:max matters that month', ['min' => $rule->min_count, 'max' => $rule->max_count]);
+
+        return $range.' → +'.$extraPct.'%';
+    }
+
+    /**
+     * Human-readable reason for the below-minimum monthly penalty — a flat
+     * rate applied to every matter of that month regardless of how many
+     * matters short of the minimum the assistant is.
+     */
+    public function describePenaltyReason(float $penaltyPct): ?HtmlString
+    {
+        if ($penaltyPct <= 0.0) {
+            return null;
+        }
+
+        $line1 = e(__('Below the monthly minimum of :min matters', [
+            'min' => self::MINIMUM_MATTERS_PER_MONTH,
+        ]));
+
+        $line2 = e(__('flat :pct% of the case fee', [
+            'pct' => $penaltyPct,
+        ]));
+
+        return new HtmlString("{$line1}<br>{$line2}");
+    }
+
+    /**
+     * The custom incentive-period month label for a date: the cycle runs
+     * from the 26th of a month through the 25th of the next, and is
+     * labeled by the LATER calendar month (e.g. 26 Mar – 25 Apr → "April").
+     */
+    public function monthLabelForDate(mixed $date): ?string
+    {
+        if (! $date) {
+            return null;
+        }
+
+        $dt = Carbon::parse($date);
+        $cycleMonth = $dt->day >= 26 ? $dt->copy()->addMonthNoOverflow() : $dt->copy();
+
+        return $cycleMonth->locale(app()->getLocale())->translatedFormat('F');
+    }
+
+    /**
+     * Custom incentive-period month label for a matter, using the same
+     * trigger-date resolution as the monthly achievement bonus/penalty
+     * calculation (quotaTriggerDate) — kept as one shared source of truth so
+     * the displayed "month" always matches which bucket a matter was
+     * actually counted/penalized/bonused in.
+     */
+    public function matterMonthLabel(Model $matter, int $calculationId): ?string
+    {
+        return $this->monthLabelForDate($this->quotaTriggerDate($matter, $calculationId));
+    }
+
+    /**
+     * The date a matter is attributed to for the monthly achievement quota —
+     * completion-based (when the work was actually finished/collected), not
+     * assignment-based, so "monthly achievement" reflects when the case was
+     * finished: final_report_memo_date → final_report_at → fees
+     * date → the fee's own date → the matter's created_at as a last resort.
+     */
+    public function quotaTriggerDate(Model $matter, int $calculationId): ?Carbon
+    {
+        $triggerDate = $matter->final_report_memo_date ?? $matter->final_report_at;
+
+        if (! $triggerDate) {
+            $line = IncentiveLine::where('incentive_calculation_id', $calculationId)
+                ->where('matter_id', $matter->id)
+                ->with('fee')
+                ->first();
+
+            $triggerDate = $line?->fee?->date;
+        }
+
+        $triggerDate ??= $matter->created_at;
+
+        return $triggerDate ? Carbon::parse($triggerDate) : null;
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -403,41 +629,6 @@ class IncentiveCalculatorService
         if ($completionDays === null) {
             Log::warning("Matter {$matter->reference}: missing distributed_at or initial_report_at — base % = 0.");
 
-            return 0.0;
-        }
-
-        $config = $matter->type?->incentiveConfig;
-        if (! $config) {
-            return 0.0;
-        }
-
-        return $this->lookupTier($config->id, $difficulty, $completionDays);
-    }
-
-    /**
-     * Base % for committee matters (calculation_type = 'committee').
-     *
-     * Committee adjustment is determined by matters.commissioning:
-     *   'individual' = office appointment → +2%
-     *   'committee'  = external committee → −2%
-     *
-     * This is a DB-level field on the matter, not on the config
-     * (matter_type_incentive_configs has no committee_source column).
-     */
-    private function committeeBasePercentage(
-        Model $matter,
-        MatterDifficulty $difficulty,
-        float &$committeeAdj,
-        ?int &$completionDays
-    ): float {
-        // matters.commissioning: 'individual' → office, 'committee' → external
-        $committeeAdj = ($matter->commissioning === 'individual')
-            ? self::COMMITTEE_OFFICE_ADJUSTMENT
-            : self::COMMITTEE_EXTERNAL_ADJUSTMENT;
-
-        $completionDays = $this->getCompletionDays($matter);
-
-        if ($completionDays === null) {
             return 0.0;
         }
 
@@ -483,7 +674,7 @@ class IncentiveCalculatorService
         foreach ($adjustments as $adjustment) {
             $match = $matterMetas->first(
                 fn ($meta) => $meta->field_name === $adjustment->field_name
-                    && (is_null($adjustment->field_value) || $meta->field_value === $adjustment->field_value)
+                    && (is_null($adjustment->field_value) || $this->metaValuesMatch($adjustment->field_value, $meta->field_value))
             );
 
             if ($match) {
@@ -492,6 +683,28 @@ class IncentiveCalculatorService
         }
 
         return $total;
+    }
+
+    /**
+     * Compares a configured adjustment's field_value against a matter's
+     * stored meta value. Toggle/checkbox fields store '1'/'0', while an
+     * admin configuring a rule may naturally type 'true'/'false' — so
+     * boolean-like tokens are normalized before falling back to an exact
+     * string match for everything else (e.g. select option values).
+     */
+    private function metaValuesMatch(?string $configured, ?string $actual): bool
+    {
+        if ($configured === $actual) {
+            return true;
+        }
+
+        $normalize = fn (?string $v): string => match (strtolower((string) $v)) {
+            'true', '1' => 'true',
+            'false', '0' => 'false',
+            default => (string) $v,
+        };
+
+        return $normalize($configured) === $normalize($actual);
     }
 
     /**
@@ -508,7 +721,7 @@ class IncentiveCalculatorService
      *   matters.final_report_memo_date    (date)
      *   matters.final_report_at           (date)
      */
-    private function calculateDeductions(Model $matter, MatterDifficulty $difficulty): array
+    private function calculateDeductions(Model $matter, MatterDifficulty $difficulty, ?MatterCommissiong $commissioning = null): array
     {
         $deductions = [];
         $totalPct = 0.0;
@@ -536,7 +749,10 @@ class IncentiveCalculatorService
         }
 
         // ── Final report: late submission deductions ──────────────────────────
-        if ($matter->final_report_memo_date && $matter->final_report_at) {
+        // Committee-commissioned matters are on the flat committee rate, not
+        // the standard tiered completion timeline, so the completion-duration
+        // / late-final-report deduction never applies to them.
+        if ($commissioning !== MatterCommissiong::COMMITTEE && $matter->final_report_memo_date && $matter->final_report_at) {
             $finalDays = $this->workingDaysBetween(
                 Carbon::parse($matter->final_report_memo_date),
                 Carbon::parse($matter->final_report_at)
@@ -545,10 +761,34 @@ class IncentiveCalculatorService
             // 'hard' = exceptional difficulty (PDF: >5 working days = −0.5%, >10 = −1%)
             // 'easy'/'medium' = simple/normal (PDF: >2 days = −0.5%, >4 days = −1%)
             [$latePct, $lateNote] = match (true) {
-                $difficulty === MatterDifficulty::HARD && $finalDays > 10 => [1.0, "Final report {$finalDays} days late (hard, >10 days)"],
-                $difficulty === MatterDifficulty::HARD && $finalDays > 5 => [0.5, "Final report {$finalDays} days late (hard, >1 week)"],
-                $difficulty !== MatterDifficulty::HARD && $finalDays > 4 => [1.0, "Final report {$finalDays} days late (>4 days)"],
-                $difficulty !== MatterDifficulty::HARD && $finalDays > 2 => [0.5, "Final report {$finalDays} days late (>2 days)"],
+                $difficulty === MatterDifficulty::HARD && $finalDays > 10 => [
+                    1.0,
+                    __('Final report :finalDays days late :condition', [
+                        'finalDays' => $finalDays,
+                        'condition' => '('.__('Hard').', >10 '.__('days').')',
+                    ]),
+                ],
+                $difficulty === MatterDifficulty::HARD && $finalDays > 5 => [
+                    0.5,
+                    __('Final report :finalDays days late :condition', [
+                        'finalDays' => $finalDays,
+                        'condition' => '('.__('Hard').', >1 '.__('week').')',
+                    ]),
+                ],
+                $difficulty !== MatterDifficulty::HARD && $finalDays > 4 => [
+                    1.0,
+                    __('Final report :finalDays days late :condition', [
+                        'finalDays' => $finalDays,
+                        'condition' => '(>4 '.__('days').')',
+                    ]),
+                ],
+                $difficulty !== MatterDifficulty::HARD && $finalDays > 2 => [
+                    0.5,
+                    __('Final report :finalDays days late :condition', [
+                        'finalDays' => $finalDays,
+                        'condition' => '(>2 '.__('days').')',
+                    ]),
+                ],
                 default => [0.0, ''],
             };
 

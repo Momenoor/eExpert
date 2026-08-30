@@ -24,7 +24,7 @@ class TypeForm
                     ->label(__('Incentive Trigger Type'))
                     ->options([
                         'final_report_date' => __('Matter Final Reported'),
-                        'fees_collected_date' => __('Fees Collected'),
+                        'fees_registered_date' => __('Fee Registered'),
                     ])
                     ->required(),
                 Toggle::make('active')

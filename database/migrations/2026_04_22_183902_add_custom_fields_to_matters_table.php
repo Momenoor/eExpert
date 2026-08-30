@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->json('custom_fields')->nullable()->after('type_id');
-        });
+        if (Schema::hasTable('matters')) {
+            Schema::table('matters', function (Blueprint $table) {
+                if (! Schema::hasColumn('matters', 'custom_fields')) {
+                    $table->json('custom_fields')->nullable()->after('type_id');
+                }
+            });
+        }
     }
 
     /**
@@ -21,8 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->dropColumn('custom_fields');
-        });
+        if (Schema::hasTable('matters')) {
+            Schema::table('matters', function (Blueprint $table) {
+                if (Schema::hasColumn('matters', 'custom_fields')) {
+                    $table->dropColumn('custom_fields');
+                }
+            });
+        }
     }
 };

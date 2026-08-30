@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('types', function (Blueprint $table) {
             $table->string('incentive_trigger_type')->default('final_report_date')
                 ->after('active')
-                ->comment('final_report_date or fees_collected_date');
+                ->comment('final_report_date or fees_registered_date');
         });
     }
 

@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('requests', function (Blueprint $table) {
-            $table->json('extra')->nullable()->after('approved_comment');
-        });
+        if (Schema::hasTable('requests')) {
+            Schema::table('requests', function (Blueprint $table) {
+                if (! Schema::hasColumn('requests', 'extra')) {
+                    $table->json('extra')->nullable()->after('notes');
+                }
+            });
+        }
     }
 
     /**
@@ -21,8 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('requests', function (Blueprint $table) {
-            $table->dropColumn('extra');
-        });
+        if (Schema::hasTable('requests')) {
+            Schema::table('requests', function (Blueprint $table) {
+                if (Schema::hasColumn('requests', 'extra')) {
+                    $table->dropColumn('extra');
+                }
+            });
+        }
     }
 };

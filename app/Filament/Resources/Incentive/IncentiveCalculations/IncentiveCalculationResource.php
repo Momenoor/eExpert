@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Incentive\IncentiveCalculations;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Pages\CreateIncentiveCalculation;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Pages\EditIncentiveCalculation;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Pages\ListIncentiveCalculations;
-use App\Filament\Resources\Incentive\IncentiveCalculations\Pages\ManageIncentiveDeductions;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Pages\ViewIncentiveCalculation;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Schemas\IncentiveCalculationForm;
 use App\Filament\Resources\Incentive\IncentiveCalculations\Schemas\IncentiveCalculationInfolist;
@@ -20,7 +19,7 @@ class IncentiveCalculationResource extends Resource
 {
     protected static ?string $model = IncentiveCalculation::class;
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-calculator';
 
@@ -75,7 +74,6 @@ class IncentiveCalculationResource extends Resource
             'create' => CreateIncentiveCalculation::route('/create'),
             'view' => ViewIncentiveCalculation::route('/{record}'),
             'edit' => EditIncentiveCalculation::route('/{record}/edit'),
-            'deductions' => ManageIncentiveDeductions::route('/{record}/deductions'),
         ];
     }
 }

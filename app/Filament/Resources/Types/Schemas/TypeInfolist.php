@@ -44,6 +44,11 @@ class TypeInfolist
                         TextEntry::make('incentive_trigger_type')
                             ->label(__('Incentive Trigger Type'))
                             ->badge()
+                            ->formatStateUsing(fn ($state) => match ($state) {
+                                'final_report_date' => __('Matter Final Reported'),
+                                'fees_registered_date' => __('Fee Registered'),
+                                default => $state ? __($state) : '-',
+                            })
                             ->columnSpanFull(),
 
                         TextEntry::make('matters_count')

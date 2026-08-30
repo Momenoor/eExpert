@@ -31,16 +31,22 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::table('matters', function (Blueprint $table) {
-            $table->string('collection_status')->default('no_fees');
-        });
+        if (Schema::hasTable('matters')) {
+            Schema::table('matters', function (Blueprint $table) {
+                if (! Schema::hasColumn('matters', 'collection_status')) {
+                    $table->string('collection_status')->default('no_fees');
+                }
+            });
+        }
     }
 
     public function down()
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->dropColumn('collection_status');
-        });
+        if (Schema::hasTable('matters')) {
+            Schema::table('matters', function (Blueprint $table) {
+                $table->dropColumn('collection_status');
+            });
+        }
         Schema::dropIfExists('allocations');
         Schema::dropIfExists('fees');
     }

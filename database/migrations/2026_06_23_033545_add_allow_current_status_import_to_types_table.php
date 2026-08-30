@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('types', function (Blueprint $table) {
-            //
+            $table->boolean('allow_current_status_import')->default(false)->after('active');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('types', function (Blueprint $table) {
-            //
+            $table->dropColumn('allow_current_status_import');
         });
     }
 };

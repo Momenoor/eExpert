@@ -1,47 +1,79 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\BulkMailCampaign;
-use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class BulkMailCampaignPolicy
 {
     use HandlesAuthorization;
 
-    public function viewAny(User $user): bool
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('ViewAny:BulkMailCampaign');
+        return $authUser->can('ViewAny:BulkMailCampaign');
     }
 
-    public function view(User $user, BulkMailCampaign $bulkMailCampaign): bool
+    public function view(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
     {
-        return $user->can('View:BulkMailCampaign');
+        return $authUser->can('View:BulkMailCampaign');
     }
 
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('Create:BulkMailCampaign');
+        return $authUser->can('Create:BulkMailCampaign');
     }
 
-    public function update(User $user, BulkMailCampaign $bulkMailCampaign): bool
+    public function update(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
     {
-        return $user->can('Update:BulkMailCampaign');
+        return $authUser->can('Update:BulkMailCampaign');
     }
 
-    public function delete(User $user, BulkMailCampaign $bulkMailCampaign): bool
+    public function delete(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
     {
-        return $user->can('Delete:BulkMailCampaign');
+        return $authUser->can('Delete:BulkMailCampaign');
     }
 
-    public function deleteAny(User $user): bool
+    public function deleteAny(AuthUser $authUser): bool
     {
-        return $user->can('delete_any_bulk_mail_campaign');
+        return $authUser->can('DeleteAny:BulkMailCampaign') || $authUser->can('delete_any_bulk_mail_campaign');
     }
 
-    public function send(User $user, BulkMailCampaign $bulkMailCampaign): bool
+    public function restore(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
     {
-        return $user->can('send_bulk_mail_campaign');
+        return $authUser->can('Restore:BulkMailCampaign');
+    }
+
+    public function forceDelete(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
+    {
+        return $authUser->can('ForceDelete:BulkMailCampaign');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:BulkMailCampaign');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:BulkMailCampaign');
+    }
+
+    public function replicate(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
+    {
+        return $authUser->can('Replicate:BulkMailCampaign');
+    }
+
+    public function reorder(AuthUser $authUser): bool
+    {
+        return $authUser->can('Reorder:BulkMailCampaign');
+    }
+
+    public function send(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
+    {
+        return $authUser->can('Send:BulkMailCampaign') || $authUser->can('send_bulk_mail_campaign');
     }
 }

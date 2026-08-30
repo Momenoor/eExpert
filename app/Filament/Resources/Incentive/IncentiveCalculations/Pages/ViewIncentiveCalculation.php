@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\Incentive\IncentiveCalculations\Pages;
 
 use App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource;
+use App\Filament\Widgets\IncentiveSummaryTableWidget;
+use App\Models\IncentiveAssistantExtra;
+use App\Models\IncentiveLine;
 use App\Models\Party;
 use App\Services\IncentiveCalculatorService;
 use App\Services\IncentiveService;
@@ -20,6 +23,13 @@ use Filament\Schemas\Components\Utilities\Set;
 class ViewIncentiveCalculation extends ViewRecord
 {
     protected static string $resource = IncentiveCalculationResource::class;
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            IncentiveSummaryTableWidget::make(['calculationId' => $this->record->id]),
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
@@ -85,13 +95,52 @@ class ViewIncentiveCalculation extends ViewRecord
                         ->success()
                         ->send();
                     $this->refreshFormData([]);
+                    $this->dispatch('incentiveCalculationUpdated');
                 })
                 ->modalWidth('7xl'),
+
+            Action::make('importAllQualifyingMatters')
+                ->label(__('Import All Qualifying Matters'))
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('primary')
+                ->visible(fn () => $this->record->isDraft())
+                ->requiresConfirmation()
+                ->modalHeading(__('Import All Qualifying Matters'))
+                ->modalDescription(__('Imports every matter that qualifies for this period across all experts and assistants, without needing to pick a filter first.'))
+                ->action(function () {
+                    $service = app(IncentiveService::class);
+
+                    $allExpertIds = Party::query()
+                        ->whereJsonContains('role', ['role' => 'expert', 'type' => 'certified'])
+                        ->pluck('id')
+                        ->toArray();
+                    $allAssistantIds = Party::query()
+                        ->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                        ->pluck('id')
+                        ->toArray();
+
+                    $matters = $service->getQualifyingMatters(
+                        $this->record->period_start,
+                        $this->record->period_end,
+                        ['expert_ids' => $allExpertIds, 'assistant_ids' => $allAssistantIds]
+                    );
+
+                    $service->importSelectedMatters($this->record, $matters->pluck('id')->toArray());
+
+                    $this->refreshFormData([]);
+                    $this->dispatch('incentiveCalculationUpdated');
+                    Notification::make()
+                        ->title(__('Matters Imported'))
+                        ->body(__('Imported').' '.$matters->count().' '.__('matters.'))
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('calculate')
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
                 ->color('info')
-                ->visible(fn () => $this->record->isDraft())
+                ->visible(fn () => $this->record->isDraft()&& !$this->record->lines()->exists())
                 ->requiresConfirmation()
                 ->modalHeading(__('Run Incentive Calculation'))
                 ->modalDescription(__('This will clear and recalculate all lines for this period. Matters with initial_report_at within the period and paid fees not yet in a finalized calculation will be included.'))
@@ -100,6 +149,7 @@ class ViewIncentiveCalculation extends ViewRecord
                     try {
                         app(IncentiveCalculatorService::class)->calculate($this->record);
                         $this->refreshFormData([]);
+                        $this->dispatch('incentiveCalculationUpdated');
 
                         $lineCount = $this->record->lines()->count();
                         Notification::make()
@@ -116,12 +166,40 @@ class ViewIncentiveCalculation extends ViewRecord
                     }
                 }),
 
-            Action::make('manageDeductions')
-                ->label(__('Manage Deductions'))
-                ->icon('heroicon-o-minus-circle')
-                ->color('warning')
+            Action::make('recalculate')
+                ->label(__('Recalculate'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
                 ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
-                ->url(fn () => IncentiveCalculationResource::getUrl('deductions', ['record' => $this->record])),
+                ->requiresConfirmation()
+                ->action(function () {
+                    app(IncentiveCalculatorService::class)->calculate($this->record);
+                    $this->refreshFormData([]);
+                    $this->dispatch('incentiveCalculationUpdated');
+                    Notification::make()->title(__('Recalculated'))->success()->send();
+                }),
+
+            Action::make('deleteAllLines')
+                ->label(__('Delete All Lines'))
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
+                ->requiresConfirmation()
+                ->modalHeading(__('Delete All Lines'))
+                ->modalDescription(__('This permanently removes every imported matter, deduction, and assistant share from this calculation, resetting it back to empty. This action cannot be undone.'))
+                ->modalIcon('heroicon-o-trash')
+                ->modalIconColor('danger')
+                ->action(function () {
+                    IncentiveLine::where('incentive_calculation_id', $this->record->id)->delete();
+                    IncentiveAssistantExtra::where('incentive_calculation_id', $this->record->id)->delete();
+
+                    $this->refreshFormData([]);
+                    $this->dispatch('incentiveCalculationUpdated');
+                    Notification::make()
+                        ->title(__('All lines deleted'))
+                        ->success()
+                        ->send();
+                }),
 
             Action::make('finalize')
                 ->label(__('Finalize'))
@@ -137,6 +215,7 @@ class ViewIncentiveCalculation extends ViewRecord
                     try {
                         app(IncentiveCalculatorService::class)->finalize($this->record);
                         $this->refreshFormData([]);
+                        $this->dispatch('incentiveCalculationUpdated');
 
                         Notification::make()
                             ->title(__('Calculation Finalized'))

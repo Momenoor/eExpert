@@ -20,7 +20,29 @@ class LetterTemplateResource extends Resource
 {
     protected static ?string $model = LetterTemplate::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentDuplicate;
+
+    protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Communication');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Letter Template');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Letter Templates');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Letter Templates');
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

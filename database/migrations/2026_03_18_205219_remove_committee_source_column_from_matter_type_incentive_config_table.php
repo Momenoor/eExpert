@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
-            $table->dropColumn('committee_source');
-        });
+        if (Schema::hasTable('matter_type_incentive_configs') && Schema::hasColumn('matter_type_incentive_configs', 'committee_source')) {
+            Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
+                $table->dropColumn('committee_source');
+            });
+        }
     }
 
     /**
@@ -21,9 +23,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
-            $table->enum('committee_source', ['office', 'external'])->nullable()
-                ->comment('office = +2%, external = -2% from tiered base');
-        });
+        if (Schema::hasTable('matter_type_incentive_configs') && ! Schema::hasColumn('matter_type_incentive_configs', 'committee_source')) {
+            Schema::table('matter_type_incentive_configs', function (Blueprint $table) {
+                $table->enum('committee_source', ['office', 'external'])->nullable()
+                    ->comment('office = +2%, external = -2% from tiered base');
+            });
+        }
     }
 };

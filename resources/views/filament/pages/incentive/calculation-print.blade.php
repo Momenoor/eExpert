@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,7 +60,7 @@
         @endif
         <p>
             <span class="font-semibold text-gray-700">{{ __('Created By') }}:</span>
-            {{ $calculation->createdBy->name }}
+            {{ $calculation->creator->name }}
         </p>
         <p>
             <span class="font-semibold text-gray-700">{{ __('Printed') }}:</span>
@@ -151,9 +151,64 @@
                 </td>
                 <td class="px-3 py-2 text-right text-red-600">
                     {{ $row['fixed_deduction'] > 0 ? number_format($row['fixed_deduction'], 2) : '—' }}
+                    @if($row['fixed_deduction'] > 0 && $row['fixed_deduction_reason'])
+                        <div class="text-gray-400 text-[10px]">{{ $row['fixed_deduction_reason'] }}</div>
+                    @endif
                 </td>
                 <td class="px-3 py-2 text-right font-bold text-green-800">
                     AED {{ number_format($row['total'], 2) }}
+                </td>
+            </tr>
+            <tr class="{{ $loop->even ? 'bg-blue-50' : 'bg-white' }} border-b border-gray-200">
+                <td colspan="10" class="px-3 py-2">
+                    <table class="w-full text-[10px] border-collapse">
+                        <thead>
+                        <tr class="text-gray-500">
+                            <th class="px-2 py-1 text-left">{{ __('Matter') }}</th>
+                            <th class="px-2 py-1 text-left">{{ __('Difficulty') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Days') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Percentage') }}</th>
+                            <th class="px-2 py-1 text-left">{{ __('Deductions') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Share') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Extra') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Penalty') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Total') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($row['matters'] as $m)
+                            <tr class="border-t border-gray-100">
+                                <td class="px-2 py-1">{{ $m['matter_reference'] }}</td>
+                                <td class="px-2 py-1">{{ __($m['difficulty'] ?? '—') }}</td>
+                                <td class="px-2 py-1 text-right text-gray-400">{{ $m['completion_days'] ?? '—' }}</td>
+                                <td class="px-2 py-1 text-right">
+                                    {{ $m['percentage'] }}%{{ $m['percentage_override'] !== null ? ' ('.__('override').')' : '' }}
+                                </td>
+                                <td class="px-2 py-1">
+                                    @forelse($m['deductions'] as $d)
+                                        <div class="text-red-600">−{{ $d->percentage }}% ({{ __($d->type) }})</div>
+                                    @empty
+                                        —
+                                    @endforelse
+                                </td>
+                                <td class="px-2 py-1 text-right">{{ number_format($m['share_amount'], 2) }}</td>
+                                <td class="px-2 py-1 text-right text-green-700">
+                                    {{ $m['extra_amount'] > 0 ? number_format($m['extra_amount'], 2) : '—' }}
+                                    @if($m['extra_reason'])
+                                        <div class="text-gray-400">{{ $m['extra_reason'] }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-2 py-1 text-right text-red-600">
+                                    {{ $m['penalty_amount'] > 0 ? number_format($m['penalty_amount'], 2) : '—' }}
+                                    @if($m['penalty_reason'])
+                                        <div class="text-gray-400">{{ $m['penalty_reason'] }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-2 py-1 text-right font-semibold">{{ number_format($m['total_amount'], 2) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
                 </td>
             </tr>
         @endforeach

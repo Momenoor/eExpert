@@ -7,7 +7,6 @@ use App\Filament\Widgets\AssistantMatterCountTableWidget;
 use App\Filament\Widgets\AssistantMattersCountChartWidget;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Pages\Page;
-use Filament\Schemas\Schema;
 use UnitEnum;
 
 class AssistantMattersCount extends Page
@@ -15,8 +14,12 @@ class AssistantMattersCount extends Page
     use HasPageShield;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $navigationLabel = 'Assistant Matters Count';
-    protected static string|null|\UnitEnum $navigationGroup = 'Reports';
+
+    protected static string|null|UnitEnum $navigationGroup = 'Reports';
+
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationGroup(): string|UnitEnum|null
     {
@@ -30,14 +33,13 @@ class AssistantMattersCount extends Page
 
     public function getTitle(): string
     {
-        return __('Assistant Matters Count') .': ' .MatterStatus::IN_PROGRESS->getLabel();
+        return __('Assistant Matters Count').': '.MatterStatus::IN_PROGRESS->getLabel();
     }
 
     public function getColumns(): int|array
     {
         return 2;
     }
-
 
     protected function getHeaderWidgets(): array
     {
@@ -46,5 +48,4 @@ class AssistantMattersCount extends Page
             AssistantMatterCountTableWidget::class,
         ];
     }
-
 }

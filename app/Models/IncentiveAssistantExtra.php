@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-
 class IncentiveAssistantExtra extends Model
 {
     use LogsActivity;
@@ -22,6 +21,7 @@ class IncentiveAssistantExtra extends Model
         'extra_amount',
         'penalty_amount',
         'fixed_deduction',
+        'fixed_deduction_reason',
     ];
 
     protected $casts = [

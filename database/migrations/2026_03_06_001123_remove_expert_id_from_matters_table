@@ -11,10 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->dropForeign(['expert_id']);
-            $table->dropColumn('expert_id');
-        });
+        if (Schema::hasTable('matters') && Schema::hasColumn('matters', 'expert_id')) {
+            Schema::table('matters', function (Blueprint $table) {
+                if (DB::getDriverName() === 'mysql') {
+                    $table->dropForeign(['expert_id']);
+                }
+                $table->dropColumn('expert_id');
+            });
+        }
     }
 
     /**
@@ -22,9 +26,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->unsignedBigInteger('expert_id')->nullable();
-            $table->foreign('expert_id')->references('id')->on('experts')->onDelete('cascade');
-        });
+        if (Schema::hasTable('matters') && ! Schema::hasColumn('matters', 'expert_id')) {
+            Schema::table('matters', function (Blueprint $table) {
+                $table->unsignedBigInteger('expert_id')->nullable();
+                if (Schema::hasTable('experts')) {
+                    $table->foreign('expert_id')->references('id')->on('experts')->onDelete('cascade');
+                }
+            });
+        }
     }
 };

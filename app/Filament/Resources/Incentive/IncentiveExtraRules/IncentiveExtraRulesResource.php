@@ -11,7 +11,6 @@ use App\Models\IncentiveExtraRule;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class IncentiveExtraRulesResource extends Resource
@@ -38,8 +37,9 @@ class IncentiveExtraRulesResource extends Resource
         return __('Finance');
     }
 
-    protected static string|null|BackedEnum $navigationIcon  = 'heroicon-o-plus-circle';
-    protected static ?int    $navigationSort  = 4;
+    protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-plus-circle';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'extra_percentage';
 

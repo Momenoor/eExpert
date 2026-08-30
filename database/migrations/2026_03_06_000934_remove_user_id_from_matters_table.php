@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('user_id');
-        });
+        if (Schema::hasTable('matters') && Schema::hasColumn('matters', 'user_id')) {
+            Schema::table('matters', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('user_id');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matters', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-        });
+        if (Schema::hasTable('matters') && ! Schema::hasColumn('matters', 'user_id')) {
+            Schema::table('matters', function (Blueprint $table) {
+                $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            });
+        }
     }
 };

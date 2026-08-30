@@ -13,12 +13,12 @@ use App\Models\MatterTypeIncentiveConfig;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class MatterTypeIncentiveConfigResource extends Resource
 {
     protected static ?string $model = MatterTypeIncentiveConfig::class;
+
     public static function getModelLabel(): string
     {
         return __('Incentive Config');
@@ -40,7 +40,8 @@ class MatterTypeIncentiveConfigResource extends Resource
     }
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static ?int $navigationSort = 5;
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $recordTitleAttribute = 'calculation_type';
 

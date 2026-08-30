@@ -17,7 +17,7 @@ class IncentiveCalculationPrintController extends Controller
         Gate::authorize('print', $calculation);
 
         $lines = $calculation->lines()
-            ->with(['matter', 'fee.type', 'deductions', 'assistantLines.party'])
+            ->with(['matter', 'fee', 'deductions', 'assistantLines.party'])
             ->get();
 
         $assistantSummary = app(IncentiveCalculatorService::class)

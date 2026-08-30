@@ -44,7 +44,11 @@ class TypesTable
                 TextColumn::make('incentive_trigger_type')
                     ->label(__('Incentive Trigger Type'))
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => __($state))
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'final_report_date' => __('Matter Final Reported'),
+                        'fees_registered_date' => __('Fee Registered'),
+                        default => $state ? __($state) : '-',
+                    })
                     ->toggleable(),
                 TextColumn::make('matters_count')
                     ->counts('matters')

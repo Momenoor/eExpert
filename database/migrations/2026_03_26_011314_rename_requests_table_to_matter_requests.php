@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,7 +10,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::rename('requests','matter_requests');
+        if (Schema::hasTable('requests') && ! Schema::hasTable('matter_requests')) {
+            Schema::rename('requests', 'matter_requests');
+        }
     }
 
     /**
@@ -19,6 +20,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::rename('matter_requests','requests');
+        if (Schema::hasTable('matter_requests') && ! Schema::hasTable('requests')) {
+            Schema::rename('matter_requests', 'requests');
+        }
     }
 };

@@ -2,11 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Filament\Imports\BulkMailRecipientImporter;
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailRecipient;
-use App\Models\User;
-use App\Filament\Imports\BulkMailRecipientImporter;
 use Filament\Actions\Imports\Models\Import;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +16,8 @@ class FilamentImporterTest extends TestCase
 
     public function test_importer_resolves_record()
     {
-        $importer = new BulkMailRecipientImporter();
+        $import = new Import;
+        $importer = new BulkMailRecipientImporter($import, [], []);
         $record = $importer->resolveRecord();
 
         $this->assertInstanceOf(BulkMailRecipient::class, $record);
@@ -24,18 +25,24 @@ class FilamentImporterTest extends TestCase
 
     public function test_importer_sets_campaign_id()
     {
-        $campaign = new BulkMailCampaign();
+        $campaign = new BulkMailCampaign;
         $campaign->id = 999;
 
-        $recipient = new BulkMailRecipient();
-        $importer = new class($recipient, $campaign->id) extends BulkMailRecipientImporter {
-            public ?\Illuminate\Database\Eloquent\Model $record;
+        $recipient = new BulkMailRecipient;
+        $importer = new class($recipient, $campaign->id) extends BulkMailRecipientImporter
+        {
+            public ?Model $record;
+
             public array $options;
-            public function __construct($record, $campaignId) {
+
+            public function __construct($record, $campaignId)
+            {
                 $this->record = $record;
                 $this->options = ['campaign_id' => $campaignId];
             }
-            public function callBeforeSave() {
+
+            public function callBeforeSave()
+            {
                 $this->beforeSave();
             }
         };

@@ -11,10 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('matter_party', function (Blueprint $table) {
-            $table->id()->first();
-            $table->unsignedBigInteger('parent_id')->nullable()->change();
-        });
+        if (Schema::hasTable('matter_party')) {
+            if (! Schema::hasColumn('matter_party', 'id') && DB::getDriverName() !== 'sqlite') {
+                Schema::table('matter_party', function (Blueprint $table) {
+                    $table->id()->first();
+                });
+            }
+            if (Schema::hasColumn('matter_party', 'parent_id')) {
+                Schema::table('matter_party', function (Blueprint $table) {
+                    $table->unsignedBigInteger('parent_id')->nullable()->change();
+                });
+            } else {
+                Schema::table('matter_party', function (Blueprint $table) {
+                    $table->unsignedBigInteger('parent_id')->nullable();
+                });
+            }
+        }
     }
 
     /**
@@ -22,8 +34,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('matter_party', function (Blueprint $table) {
-            $table->dropColumn('id');
-        });
+        if (Schema::hasTable('matter_party')) {
+            Schema::table('matter_party', function (Blueprint $table) {
+                if (Schema::hasColumn('matter_party', 'id')) {
+                    $table->dropColumn('id');
+                }
+            });
+        }
     }
 };

@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use App\Events\FilamentActionEvent;
 use App\Listeners\SendFilamentActionNotifications;
-use Illuminate\Support\Facades\Bus;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,5 +27,7 @@ class AppServiceProvider extends ServiceProvider
             FilamentActionEvent::class,
             SendFilamentActionNotifications::class,
         );
+
+        Setting::applyMailConfig();
     }
 }

@@ -14,6 +14,7 @@ class IncentiveAssistantLine extends Model
     protected $fillable = [
         'incentive_line_id',
         'party_id',
+        'percentage_override',
         'share_amount',
         'extra_percentage',
         'extra_amount',
@@ -23,6 +24,7 @@ class IncentiveAssistantLine extends Model
     ];
 
     protected $casts = [
+        'percentage_override' => 'decimal:2',
         'share_amount' => 'decimal:2',
         'extra_percentage' => 'decimal:2',
         'extra_amount' => 'decimal:2',

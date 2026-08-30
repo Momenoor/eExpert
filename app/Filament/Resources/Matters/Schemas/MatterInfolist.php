@@ -91,6 +91,7 @@ class MatterInfolist
                     static::expertsSection(),
                     static::partiesSection(),
                     static::feesSection(),
+                    static::incentiveSection(),
                     static::attachmentsSection(),
                 ]),
             ]);
@@ -443,6 +444,59 @@ class MatterInfolist
                             ]),
                     ]),
             ]);
+    }
+
+    private static function incentiveSection(): Section
+    {
+        return Section::make(__('Incentive'))
+            ->icon('heroicon-o-calculator')
+            ->description(__('Finalized incentive calculations for this matter'))
+            ->visible(fn ($record) => $record && $record->incentiveLines()
+                ->whereHas('calculation', fn ($q) => $q->where('status', 'finalized'))
+                ->exists())
+            ->schema(function ($record) {
+                if (! $record) {
+                    return [];
+                }
+
+                $lines = $record->incentiveLines()
+                    ->whereHas('calculation', fn ($q) => $q->where('status', 'finalized'))
+                    ->with(['calculation', 'assistantLines.party'])
+                    ->get();
+
+                return $lines->map(fn ($line) => Group::make()
+                    ->columns(6)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make("incentive_{$line->id}_calc")
+                            ->label(__('Calculation'))
+                            ->state($line->calculation?->name ?? '—'),
+                        TextEntry::make("incentive_{$line->id}_difficulty")
+                            ->label(__('Difficulty'))
+                            ->badge()
+                            ->state($line->difficulty ?: '—'),
+                        TextEntry::make("incentive_{$line->id}_days")
+                            ->label(__('Days'))
+                            ->state($line->completion_days ?? '—'),
+                        TextEntry::make("incentive_{$line->id}_rate")
+                            ->label(__('Rate %'))
+                            ->state($line->effective_percentage.'%'),
+                        TextEntry::make("incentive_{$line->id}_deductions")
+                            ->label(__('Deductions'))
+                            ->color('danger')
+                            ->state($line->total_deduction_pct > 0 ? '-'.$line->total_deduction_pct.'%' : '—'),
+                        TextEntry::make("incentive_{$line->id}_net")
+                            ->label(__('Net Amount'))
+                            ->weight(FontWeight::Bold)
+                            ->state(number_format($line->net_amount, 2).' AED'),
+                        TextEntry::make("incentive_{$line->id}_assistants")
+                            ->label(__('Assistant Shares'))
+                            ->columnSpanFull()
+                            ->state($line->assistantLines->map(
+                                fn ($al) => ($al->party?->name ?? '—').': '.number_format($al->total_amount, 2).' AED'
+                            )->implode(' | ') ?: '—'),
+                    ]))->all();
+            });
     }
 
     private static function attachmentsSection(): Section
