@@ -178,4 +178,41 @@ class IncentiveSummaryTableWidgetTest extends TestCase
             ->assertSee('150.00') // each assistant's actual share
             ->assertSee('5%'); // each assistant's own percentage cut of the fee
     }
+
+    public function test_delete_matter_row_action_removes_only_that_matters_lines(): void
+    {
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+
+        $matterA = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id]);
+        $matterB = Matter::create(['number' => '2', 'year' => '2026', 'type_id' => $type->id]);
+        MatterParty::create(['matter_id' => $matterA->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+        MatterParty::create(['matter_id' => $matterB->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Delete Row Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $feeA = Fee::create(['matter_id' => $matterA->id, 'amount' => 1000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        $feeB = Fee::create(['matter_id' => $matterB->id, 'amount' => 2000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matterA->id, 'fee_id' => $feeA->id]);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matterB->id, 'fee_id' => $feeB->id]);
+        app(IncentiveCalculatorService::class)->calculate($calc);
+
+        $this->actingAs(User::factory()->create());
+
+        $rowToDelete = IncentiveAssistantLine::whereHas(
+            'incentiveLine',
+            fn ($q) => $q->where('incentive_calculation_id', $calc->id)->where('matter_id', $matterA->id)
+        )->first();
+
+        Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
+            ->callTableAction('deleteMatter', $rowToDelete)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertFalse(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterA->id)->exists());
+        $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterB->id)->exists());
+    }
 }

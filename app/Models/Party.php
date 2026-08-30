@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -30,7 +29,7 @@ class Party extends Model
         'extra',
         'parent_id',
         'user_id',
-        'old_id'
+        'old_id',
     ];
 
     protected $casts = [
@@ -58,11 +57,11 @@ class Party extends Model
 
         foreach ($roles as $item) {
             if (isset($item['role'])) {
-                if (!in_array($item['role'], $formRole['role'])) {
+                if (! in_array($item['role'], $formRole['role'])) {
                     $formRole['role'][] = $item['role'];
                 }
                 if ($item['role'] === 'expert') {
-                    if (isset($item['type']) && !in_array($item['type'], $formRole['type'])) {
+                    if (isset($item['type']) && ! in_array($item['type'], $formRole['type'])) {
                         $formRole['type'][] = $item['type'];
                     }
                     if (isset($item['field'])) {
@@ -112,17 +111,17 @@ class Party extends Model
 
     }
 
-    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(Party::class, 'parent_id');
     }
 
-    public function representatives(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function representatives(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'parent_id', 'party_id');
     }
 
-    public function matters(): Party|\Illuminate\Database\Eloquent\Relations\HasManyThrough
+    public function matters(): Party|HasManyThrough
     {
         return $this->hasManyThrough(Matter::class, MatterParty::class, 'party_id', 'id', 'id', 'matter_id');
     }
@@ -137,14 +136,19 @@ class Party extends Model
         return $this->hasMany(IncentiveAssistantExtra::class);
     }
 
+    public function leaves(): HasMany
+    {
+        return $this->hasMany(PartyLeave::class);
+    }
+
     public function isExpert(): bool
     {
         // The accessor ensures 'role' is an array with a 'role' key.
         // We check if 'expert' exists inside that subarray.
-        return isset($this->role['role']) && in_array('expert', (array)$this->role['role']);
+        return isset($this->role['role']) && in_array('expert', (array) $this->role['role']);
     }
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }

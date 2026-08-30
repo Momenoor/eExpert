@@ -374,4 +374,97 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertEquals(0, IncentiveAssistantLine::query()->count());
         $this->assertEquals(0, IncentiveAssistantExtra::where('incentive_calculation_id', $calc->id)->count());
     }
+
+    public function test_force_import_matter_bypasses_the_period_and_current_status_scoping(): void
+    {
+        // Regression: forceImportMatter must import a matter's fee even
+        // though its date falls OUTSIDE the calculation's period — the
+        // normal getQualifyingMatters()/importSelectedMatters() flow would
+        // never surface it, since it's a current-status type scoped to
+        // fees registered within the period.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create([
+            'name' => 'Bankruptcy', 'incentive_config_id' => $config->id,
+            'incentive_trigger_type' => 'final_report_date', 'allow_current_status_import' => true,
+        ]);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => null]);
+
+        // Fee registered OUTSIDE this calculation's period.
+        $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-09-15', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Force Import Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+
+        $service = new IncentiveService;
+        $imported = $service->forceImportMatter($calc, $matter->id);
+
+        $this->assertEquals(1, $imported);
+        $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $fee->id)->exists());
+    }
+
+    public function test_force_import_matter_skips_a_fee_already_imported_elsewhere(): void
+    {
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-05-01']);
+        $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-05-01', 'status' => 'unpaid']);
+
+        $calcOne = IncentiveCalculation::create([
+            'name' => 'Original Calc', 'period_start' => '2026-05-01', 'period_end' => '2026-05-31', 'status' => 'draft',
+        ]);
+        $calcTwo = IncentiveCalculation::create([
+            'name' => 'Second Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calcOne, [$matter->id]);
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calcOne->id)->count());
+
+        // Force-importing the SAME matter into a different calculation must
+        // not duplicate the already-imported fee.
+        $imported = $service->forceImportMatter($calcTwo, $matter->id);
+
+        $this->assertEquals(0, $imported);
+        $this->assertEquals(0, IncentiveLine::where('incentive_calculation_id', $calcTwo->id)->count());
+    }
+
+    public function test_removing_one_matter_leaves_other_matters_and_their_totals_intact(): void
+    {
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+
+        $matterA = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-06-10']);
+        $matterB = Matter::create(['number' => '2', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-06-10']);
+        MatterParty::create(['matter_id' => $matterA->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+        MatterParty::create(['matter_id' => $matterB->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+        Fee::create(['matter_id' => $matterA->id, 'amount' => 1000, 'date' => '2026-06-10', 'status' => 'unpaid']);
+        Fee::create(['matter_id' => $matterB->id, 'amount' => 2000, 'date' => '2026-06-10', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Remove Matter Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calc, [$matterA->id, $matterB->id]);
+
+        $calculator = new IncentiveCalculatorService;
+        $calculator->calculate($calc);
+        $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+
+        // Simulate the "Remove Matter" action: delete matter A's lines, then recalculate.
+        IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterA->id)->delete();
+        $calculator->calculate($calc);
+
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+        $this->assertFalse(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterA->id)->exists());
+        $remainingLine = IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterB->id)->first();
+        $this->assertEquals(200.0, (float) $remainingLine->net_amount); // 2000 * 10%, untouched by the removal
+    }
 }

@@ -12,6 +12,8 @@ use App\Models\IncentiveLineDeduction;
 use App\Models\IncentiveMetaAdjustment;
 use App\Models\MatterParty;
 use App\Models\MatterTypeIncentiveTier;
+use App\Models\PartyLeave;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Carbon\Constants\UnitValue;
 use Illuminate\Database\Eloquent\Model;
@@ -22,29 +24,18 @@ use Illuminate\Support\HtmlString;
 
 class IncentiveCalculatorService
 {
-    // ── PDF constants ──────────────────────────────────────────────────────────
-
-    /** Minimum matters per 2-month period to qualify for extra % */
-    private const int MINIMUM_MATTERS_PER_MONTH = 3;
-
     /**
-     * Flat penalty applied to every matter in a month that falls short of
-     * the minimum — a percentage of that matter's FEE amount, not of the
-     * computed incentive share, and not multiplied by how many matters
-     * short of the minimum the assistant is.
+     * Defaults used when a setting hasn't been configured yet — these match
+     * the PDF's original values. All are editable at runtime via the
+     * Incentive Settings admin page (App\Models\Setting).
      */
-    private const float BELOW_MINIMUM_PENALTY_PCT = 2.0;
+    private const int DEFAULT_MINIMUM_MATTERS_PER_MONTH = 3;
 
-    /**
-     * A matter whose commissioning is 'committee' always gets this flat
-     * percentage — regardless of its type's own calculation_type (fixed,
-     * tiered, or committee). This replaces the computed percentage entirely,
-     * the same way percentage_override does.
-     */
-    private const float COMMITTEE_FIXED_PERCENTAGE = 8.0;
+    private const float DEFAULT_BELOW_MINIMUM_PENALTY_PCT = 2.0;
 
-    /** Additional adjustment when matters.is_office_work is true. */
-    private const float OFFICE_WORK_ADJUSTMENT = +2.0;
+    private const float DEFAULT_COMMITTEE_FIXED_PERCENTAGE = 8.0;
+
+    private const float DEFAULT_OFFICE_WORK_ADJUSTMENT = 2.0;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -61,6 +52,15 @@ class IncentiveCalculatorService
         }
 
         DB::transaction(function () use ($calculation) {
+
+            // Rates/thresholds and deduction toggles — configurable via the
+            // Incentive Settings admin page, read fresh on every run so a
+            // change takes effect the next time this period is calculated.
+            $minimumMattersPerMonth = (int) Setting::get('incentive_minimum_matters_per_month', self::DEFAULT_MINIMUM_MATTERS_PER_MONTH);
+            $belowMinimumPenaltyPct = (float) Setting::get('incentive_below_minimum_penalty_pct', self::DEFAULT_BELOW_MINIMUM_PENALTY_PCT);
+            $committeeFixedPercentage = (float) Setting::get('incentive_committee_fixed_percentage', self::DEFAULT_COMMITTEE_FIXED_PERCENTAGE);
+            $officeWorkAdjustment = (float) Setting::get('incentive_office_work_adjustment', self::DEFAULT_OFFICE_WORK_ADJUSTMENT);
+            $enableBelowMinimumPenalty = (bool) Setting::get('incentive_enable_below_minimum_penalty', true);
 
             // Preserve manually entered fixed deductions across recalculation.
             $existingFixedDeductions = IncentiveAssistantExtra::where('incentive_calculation_id', $calculation->id)
@@ -129,7 +129,7 @@ class IncentiveCalculatorService
                     // Committee-commissioned matters always get the flat
                     // committee rate, regardless of the matter's type's own
                     // calculation_type.
-                    $basePercentage = self::COMMITTEE_FIXED_PERCENTAGE;
+                    $basePercentage = $committeeFixedPercentage;
                     $completionDays = $this->getCompletionDays($matter);
                 } else {
                     $basePercentage = match ($config->calculation_type) {
@@ -143,7 +143,7 @@ class IncentiveCalculatorService
                 }
 
                 if ($matter->is_office_work ?? false) {
-                    $committeeAdj += self::OFFICE_WORK_ADJUSTMENT;
+                    $committeeAdj += $officeWorkAdjustment;
                 }
 
                 // ── Apply IncentiveMetaAdjustment additively ───────────────────
@@ -320,6 +320,7 @@ class IncentiveCalculatorService
                 $totalExtraAmount = 0.0;
                 $totalPenaltyAmount = 0.0;
                 $totalCompletedCount = 0;
+                $totalProratedMinimum = 0;
                 $preserved = $existingFixedDeductions->get($partyId);
 
                 // We need to know which matters belong to which month to calculate monthly extra/penalty
@@ -364,19 +365,32 @@ class IncentiveCalculatorService
                     $monthCount = $monthMatters->count();
                     $totalCompletedCount += $monthCount;
 
-                    $monthMeetsMinimum = $monthCount >= self::MINIMUM_MATTERS_PER_MONTH;
+                    // Mid-month leave prorates the monthly minimum and the bonus-tier
+                    // boundaries by the fraction of that month's working days the
+                    // assistant was actually available (not on leave) — e.g. an
+                    // assistant available for half the month's working days only
+                    // needs half the usual minimum matters.
+                    $availabilityRatio = $this->monthlyAvailabilityRatio($partyId, $month);
+                    $proratedMinimum = (int) round($minimumMattersPerMonth * $availabilityRatio);
+                    $totalProratedMinimum += $proratedMinimum;
 
-                    // Look up extra % for this month's count
-                    $matchedRule = $extraRules->first(
-                        fn ($r) => $monthCount >= $r->min_count
-                            && ($r->max_count === null || $monthCount <= $r->max_count)
-                    );
+                    $monthMeetsMinimum = $monthCount >= $proratedMinimum;
+
+                    // Look up extra % for this month's count, prorating the rule's
+                    // own bracket boundaries by the same availability ratio.
+                    $matchedRule = $extraRules->first(function ($r) use ($monthCount, $availabilityRatio) {
+                        $proratedMin = (int) round($r->min_count * $availabilityRatio);
+                        $proratedMax = $r->max_count === null ? null : (int) round($r->max_count * $availabilityRatio);
+
+                        return $monthCount >= $proratedMin && ($proratedMax === null || $monthCount <= $proratedMax);
+                    });
                     $monthExtraPct = $monthMeetsMinimum ? (float) ($matchedRule?->extra_percentage ?? 0) : 0.0;
 
-                    // PDF: a flat 2% penalty applies to every matter in a shortfall
+                    // PDF: a flat penalty applies to every matter in a shortfall
                     // month — it is NOT multiplied by how many matters short of the
-                    // minimum the assistant is.
-                    $monthPenaltyPct = $monthMeetsMinimum ? 0.0 : self::BELOW_MINIMUM_PENALTY_PCT;
+                    // (prorated) minimum the assistant is. Skipped entirely when
+                    // the below-minimum-penalty toggle is off.
+                    $monthPenaltyPct = ($enableBelowMinimumPenalty && ! $monthMeetsMinimum) ? $belowMinimumPenaltyPct : 0.0;
 
                     if ($monthExtraPct <= 0.0 && $monthPenaltyPct <= 0.0) {
                         continue;
@@ -424,7 +438,7 @@ class IncentiveCalculatorService
                     'incentive_calculation_id' => $calculation->id,
                     'party_id' => $partyId,
                     'completed_matter_count' => $totalCompletedCount,
-                    'meets_minimum' => $totalCompletedCount >= (count($months) * self::MINIMUM_MATTERS_PER_MONTH), // Optional interpretation
+                    'meets_minimum' => $totalCompletedCount >= $totalProratedMinimum, // Optional interpretation
                     'minimum_penalty_pct' => $totalShare > 0 ? round($totalPenaltyAmount / $totalShare * 100, 2) : 0,
                     'extra_percentage' => $totalShare > 0 ? round($totalExtraAmount / $totalShare * 100, 2) : 0,
                     'extra_amount' => $totalExtraAmount,
@@ -557,7 +571,7 @@ class IncentiveCalculatorService
         }
 
         $line1 = e(__('Below the monthly minimum of :min matters', [
-            'min' => self::MINIMUM_MATTERS_PER_MONTH,
+            'min' => (int) Setting::get('incentive_minimum_matters_per_month', self::DEFAULT_MINIMUM_MATTERS_PER_MONTH),
         ]));
 
         $line2 = e(__('flat :pct% of the case fee', [
@@ -732,11 +746,19 @@ class IncentiveCalculatorService
         $deductions = [];
         $totalPct = 0.0;
 
+        // Each deduction rule can be switched off for the current period via
+        // the Incentive Settings admin page — all default enabled, matching
+        // the previously-hardcoded behavior.
+        $enableFirstReviewDeduction = (bool) Setting::get('incentive_enable_first_review_deduction', true);
+        $enableSubsequentReviewDeduction = (bool) Setting::get('incentive_enable_subsequent_review_deduction', true);
+        $enableLateReportDeduction = (bool) Setting::get('incentive_enable_late_report_deduction', true);
+        $enableCourtPenaltyExclusion = (bool) Setting::get('incentive_enable_court_penalty_exclusion', true);
+
         // ── Initial report: review deductions ────────────────────────────────
         $reviewCount = (int) ($matter->review_count ?? 0);
         $hasSubstantiveChanges = (bool) ($matter->has_substantive_changes ?? false);
 
-        if ($hasSubstantiveChanges && $reviewCount >= 1) {
+        if ($enableFirstReviewDeduction && $hasSubstantiveChanges && $reviewCount >= 1) {
             $deductions[] = [
                 'type' => 'review_first',
                 'percentage' => 2.0,
@@ -745,7 +767,7 @@ class IncentiveCalculatorService
             $totalPct += 2.0;
         }
 
-        if ($reviewCount >= 2) {
+        if ($enableSubsequentReviewDeduction && $reviewCount >= 2) {
             $deductions[] = [
                 'type' => 'review_subsequent',
                 'percentage' => 1.0,
@@ -758,7 +780,7 @@ class IncentiveCalculatorService
         // Committee-commissioned matters are on the flat committee rate, not
         // the standard tiered completion timeline, so the completion-duration
         // / late-final-report deduction never applies to them.
-        if ($commissioning !== MatterCommissiong::COMMITTEE && $matter->final_report_memo_date && $matter->final_report_at) {
+        if ($enableLateReportDeduction && $commissioning !== MatterCommissiong::COMMITTEE && $matter->final_report_memo_date && $matter->final_report_at) {
             $finalDays = $this->workingDaysBetween(
                 Carbon::parse($matter->final_report_memo_date),
                 Carbon::parse($matter->final_report_at)
@@ -805,7 +827,7 @@ class IncentiveCalculatorService
         }
 
         // ── Court penalty: full exclusion ─────────────────────────────────────
-        if ($matter->has_court_penalty ?? false) {
+        if ($enableCourtPenaltyExclusion && ($matter->has_court_penalty ?? false)) {
             $deductions[] = [
                 'type' => 'court_penalty',
                 'percentage' => 100.0,
@@ -818,9 +840,10 @@ class IncentiveCalculatorService
     }
 
     /**
-     * Working days from matters.distributed_at → matters.initial_report_at
+     * Working days from matters.distributed_at → matters.initial_report_at,
+     * excluding the weekend and the matter's first assistant's leave days.
      * DB column is distributed_at (not received_date as was in the old code).
-     * UAE weekend: Friday (5) and Saturday (6).
+     * UAE weekend: Saturday and Sunday.
      */
     private function getCompletionDays(Model $matter): ?int
     {
@@ -831,27 +854,121 @@ class IncentiveCalculatorService
 
         return $this->workingDaysBetween(
             Carbon::parse($matter->distributed_at),
-            Carbon::parse($matter->initial_report_at)
+            Carbon::parse($matter->initial_report_at),
+            $this->firstAssistantLeaveRanges($matter)
         );
     }
 
     /**
-     * Count working days between two dates.
-     * UAE weekend: Friday (5) and Saturday (6).
+     * Leave ranges for a matter's first-assigned assistant — used to exclude
+     * their vacation days from the completion-days calculation. A matter's
+     * completion days are shared by every assistant on it, so only the
+     * first assistant's leave is used (not a per-assistant value).
      */
-    public function workingDaysBetween(Carbon $from, Carbon $to): int
+    private function firstAssistantLeaveRanges(Model $matter): Collection
+    {
+        $firstAssistant = MatterParty::where('matter_id', $matter->id)
+            ->where('role', 'expert')
+            ->where('type', 'assistant')
+            ->orderBy('id')
+            ->first();
+
+        if (! $firstAssistant) {
+            return collect();
+        }
+
+        return PartyLeave::where('party_id', $firstAssistant->party_id)->get();
+    }
+
+    /**
+     * Count working days between two dates (exclusive of the end date —
+     * duration style), excluding the weekend and, if given, any day that
+     * falls inside one of the provided leave ranges.
+     * UAE weekend: Saturday and Sunday.
+     */
+    public function workingDaysBetween(Carbon $from, Carbon $to, ?Collection $leaveRanges = null): int
     {
         $days = 0;
         $current = $from->copy()->startOfDay();
         $end = $to->copy()->startOfDay();
 
         while ($current->lt($end)) {
-            if (! in_array($current->dayOfWeek, [UnitValue::FRIDAY, UnitValue::SATURDAY], true)) {
+            if (! $this->isWeekend($current) && ! $this->isOnLeave($current, $leaveRanges)) {
                 $days++;
             }
             $current->addDay();
         }
 
         return $days;
+    }
+
+    /**
+     * Count working days within a period, inclusive of both endpoints —
+     * used to measure the total working days available in a month bucket
+     * for proration, as opposed to workingDaysBetween's duration semantics.
+     */
+    private function countWorkingDaysInPeriod(Carbon $start, Carbon $end): int
+    {
+        $days = 0;
+        $current = $start->copy()->startOfDay();
+        $endInclusive = $end->copy()->startOfDay();
+
+        while ($current->lte($endInclusive)) {
+            if (! $this->isWeekend($current)) {
+                $days++;
+            }
+            $current->addDay();
+        }
+
+        return $days;
+    }
+
+    /**
+     * Fraction (0..1) of a month bucket's working days an assistant was
+     * actually available — i.e. not on leave. Used to prorate the monthly
+     * minimum and bonus-tier boundaries for a partial month.
+     *
+     * @param  array{start: Carbon, end: Carbon}  $month
+     */
+    private function monthlyAvailabilityRatio(int $partyId, array $month): float
+    {
+        $totalWorkingDays = $this->countWorkingDaysInPeriod($month['start'], $month['end']);
+
+        if ($totalWorkingDays <= 0) {
+            return 1.0;
+        }
+
+        $leaveRanges = PartyLeave::where('party_id', $partyId)->get();
+        $leaveWorkingDays = 0;
+        $current = $month['start']->copy()->startOfDay();
+        $endInclusive = $month['end']->copy()->startOfDay();
+
+        while ($current->lte($endInclusive)) {
+            if (! $this->isWeekend($current) && $this->isOnLeave($current, $leaveRanges)) {
+                $leaveWorkingDays++;
+            }
+            $current->addDay();
+        }
+
+        return max(0.0, min(1.0, 1.0 - ($leaveWorkingDays / $totalWorkingDays)));
+    }
+
+    /**
+     * UAE weekend: Saturday and Sunday.
+     */
+    private function isWeekend(Carbon $date): bool
+    {
+        return in_array($date->dayOfWeek, [UnitValue::SATURDAY, UnitValue::SUNDAY], true);
+    }
+
+    private function isOnLeave(Carbon $date, ?Collection $leaveRanges): bool
+    {
+        if (! $leaveRanges || $leaveRanges->isEmpty()) {
+            return false;
+        }
+
+        return $leaveRanges->contains(
+            fn (PartyLeave $leave) => $date->between($leave->start_date, $leave->end_date)
+        );
     }
 }

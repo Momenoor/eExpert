@@ -5,15 +5,15 @@
         {{ $this->form }}
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.documentElement.style.fontSize = '{{ auth()->user()?->font_size ?? 16 }}px';
-
-            window.addEventListener('font-size-updated', event => {
-                document.documentElement.style.fontSize = event.detail.size + 'px';
-            });
-        });
-    </script>
+    {{--
+        The initial font size is already applied server-side, before first
+        paint, via the HEAD_END render hook in AdminPanelProvider (setting
+        --user-font-size on :root) — applying it again here on
+        DOMContentLoaded (which fires after the page has already rendered)
+        caused a visible flash-then-resize. Live updates while dragging the
+        slider are handled by updateUserFont()'s own $this->js() call, which
+        sets the same --user-font-size CSS variable directly.
+    --}}
 </div>
 
 

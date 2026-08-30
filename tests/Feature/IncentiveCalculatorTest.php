@@ -17,6 +17,8 @@ use App\Models\MatterParty;
 use App\Models\MatterTypeIncentiveConfig;
 use App\Models\MatterTypeIncentiveTier;
 use App\Models\Party;
+use App\Models\PartyLeave;
+use App\Models\Setting;
 use App\Models\Type;
 use App\Services\IncentiveCalculatorService;
 use Carbon\Carbon;
@@ -33,6 +35,10 @@ class IncentiveCalculatorTest extends TestCase
     {
         parent::setUp();
         $this->service = new IncentiveCalculatorService;
+        // Setting's in-memory runtime cache is a static property that
+        // outlives RefreshDatabase's per-test rollback — clear it so a
+        // setting changed in one test can't leak into the next.
+        Setting::clearCache();
     }
 
     public function test_tiered_calculation_from_database_tiers(): void
@@ -818,14 +824,15 @@ class IncentiveCalculatorTest extends TestCase
             'incentive_trigger_type' => 'final_report_date',
         ]);
 
-        // Final report memo date to final report at = 6 working days (e.g. Sunday to next Sunday)
+        // Final report memo date to final report at = 6 working days, UAE
+        // weekend Sat/Sun: Mon 6/8, Tue 6/9, Wed 6/10, Thu 6/11, Fri 6/12, Mon 6/15.
         $matter = Matter::create([
             'number' => '4',
             'year' => '2026',
             'type_id' => $type->id,
             'difficulty' => MatterDifficulty::HARD,
             'final_report_memo_date' => '2026-06-07', // Sunday
-            'final_report_at' => '2026-06-15',        // Monday (6 working days in UAE: Sun, Mon, Tue, Wed, Thu, Sun)
+            'final_report_at' => '2026-06-16',        // Tuesday
         ]);
 
         $calc = IncentiveCalculation::create([
@@ -1011,5 +1018,152 @@ class IncentiveCalculatorTest extends TestCase
         $this->assertCount(0, $line->deductions);
         $this->assertEquals(8.0, (float) $line->effective_percentage); // flat committee rate, untouched
         $this->assertEquals(80.0, (float) $line->net_amount);
+    }
+
+    public function test_committee_fixed_percentage_setting_overrides_the_default(): void
+    {
+        // Regression: the committee flat rate is now a configurable Setting,
+        // not a hardcoded constant.
+        Setting::set('incentive_committee_fixed_percentage', 12.0, 'incentive');
+
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Tiered', 'calculation_type' => 'tiered', 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Tiered Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create([
+            'number' => '1', 'year' => '2026', 'type_id' => $type->id,
+            'commissioning' => MatterCommissiong::COMMITTEE,
+        ]);
+        $calc = IncentiveCalculation::create([
+            'name' => 'Setting Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        $line = IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id]);
+
+        $this->service->calculate($calc);
+        $line->refresh();
+
+        $this->assertEquals(12.0, (float) $line->base_percentage);
+        $this->assertEquals(12.0, (float) $line->effective_percentage);
+        $this->assertEquals(120.0, (float) $line->net_amount); // 1000 * 12%
+    }
+
+    public function test_disabling_first_review_deduction_setting_suppresses_only_that_deduction(): void
+    {
+        Setting::set('incentive_enable_first_review_deduction', false, 'incentive');
+
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 9', 'calculation_type' => 'fixed', 'fixed_percentage' => 9.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create([
+            'number' => '1', 'year' => '2026', 'type_id' => $type->id,
+            'review_count' => 2, 'has_substantive_changes' => true,
+        ]);
+        $calc = IncentiveCalculation::create([
+            'name' => 'Toggle Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        $line = IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id]);
+
+        $this->service->calculate($calc);
+        $line->refresh();
+
+        // review_count=2 with substantive changes would normally trigger BOTH
+        // the -2% first-review and -1% subsequent-review deductions (-3%
+        // total). With the first-review toggle off, only the -1% subsequent
+        // deduction applies.
+        $this->assertEquals(1.0, (float) $line->total_deduction_pct);
+        $this->assertCount(1, $line->deductions);
+        $this->assertEquals('review_subsequent', $line->deductions->first()->type);
+    }
+
+    public function test_leave_excludes_days_from_completion_days_calculation(): void
+    {
+        // Regression: the first assistant's leave days must be excluded from
+        // the working-day count used to look up the tier percentage.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Tiered', 'calculation_type' => 'tiered', 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Tiered Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        MatterTypeIncentiveTier::create(['config_id' => $config->id, 'difficulty' => 'medium', 'days_from' => 1, 'days_to' => 5, 'percentage' => 10.0]);
+        MatterTypeIncentiveTier::create(['config_id' => $config->id, 'difficulty' => 'medium', 'days_from' => 6, 'days_to' => 20, 'percentage' => 5.0]);
+
+        // Mon 6/1 -> Tue 6/9 = 6 working days without leave (Mon-Fri, Mon),
+        // which would land in the 6-20 tier (5%). Excluding the 1-day leave
+        // on Wed 6/3 brings the effective count down to 5, landing in the
+        // faster 1-5 tier (10%) instead.
+        $matter = Matter::create([
+            'number' => '1', 'year' => '2026', 'type_id' => $type->id,
+            'distributed_at' => '2026-06-01', 'initial_report_at' => '2026-06-09',
+        ]);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+        MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+        PartyLeave::create(['party_id' => $assistant->id, 'start_date' => '2026-06-03', 'end_date' => '2026-06-03']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Leave Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        $line = IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id]);
+
+        $this->service->calculate($calc);
+        $line->refresh();
+
+        $this->assertEquals(5, $line->completion_days); // 6 working days minus the 1 leave day
+        $this->assertEquals(10.0, (float) $line->effective_percentage); // still in the 1-5 tier
+    }
+
+    public function test_mid_month_leave_prorates_the_monthly_minimum(): void
+    {
+        // An assistant on leave for roughly half of June's working days only
+        // needs roughly half the usual minimum (3) to avoid the penalty.
+        Setting::set('incentive_minimum_matters_per_month', 4, 'incentive');
+
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Tiered', 'calculation_type' => 'tiered', 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Tiered Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+
+        // On leave for the second half of June 2026 (June has 22 working
+        // days under the Sat/Sun weekend; 2026-06-16 to 2026-06-30 covers 11
+        // of them) — roughly half availability, so the prorated minimum is
+        // round(4 * 0.5) = 2.
+        PartyLeave::create(['party_id' => $assistant->id, 'start_date' => '2026-06-16', 'end_date' => '2026-06-30']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Prorate Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+
+        // Only 2 matters completed this month — below the flat minimum of 4,
+        // but should meet the prorated minimum of ~2.
+        for ($i = 1; $i <= 2; $i++) {
+            $matter = Matter::create(['number' => "leave-$i", 'year' => '2026', 'type_id' => $type->id]);
+            MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+            $fee = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-10', 'status' => 'unpaid']);
+            IncentiveLine::create([
+                'incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id,
+            ]);
+        }
+
+        $this->service->calculate($calc);
+
+        $extra = IncentiveAssistantExtra::where('incentive_calculation_id', $calc->id)
+            ->where('party_id', $assistant->id)->first();
+
+        $this->assertEquals(2, $extra->completed_matter_count);
+        $this->assertEquals(0.0, (float) $extra->minimum_penalty_pct);
+    }
+
+    public function test_working_days_between_uses_saturday_sunday_as_the_uae_weekend(): void
+    {
+        // 2026-06-05 is a Friday, 2026-06-06 a Saturday, 2026-06-07 a Sunday.
+        // Friday must count as a working day; Saturday and Sunday must not.
+        $friday = Carbon::parse('2026-06-05');
+        $monday = Carbon::parse('2026-06-08');
+
+        // Fri, Sat, Sun, Mon (exclusive of Monday) — only Friday counts.
+        $this->assertEquals(1, $this->service->workingDaysBetween($friday, $monday));
     }
 }

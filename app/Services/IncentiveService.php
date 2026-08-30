@@ -263,56 +263,102 @@ class IncentiveService
                     ]);
                 }
 
-                $fees = $feesQuery->get();
-
-                if ($fees->isEmpty()) {
-                    // A finished matter (final_report_date trigger) with no
-                    // fees at all is still imported — as a single fee-less
-                    // line — purely so it counts toward the monthly
-                    // achievement quota. Fee-driven trigger types have
-                    // nothing to import without a fee.
-                    $isFinishedWithNoFee = $matter->type?->incentive_trigger_type === 'final_report_date'
-                        && $matter->final_report_at !== null;
-
-                    if ($isFinishedWithNoFee && ! $matter->incentiveLines()->whereNull('fee_id')->exists()) {
-                        IncentiveLine::create([
-                            'incentive_calculation_id' => $calculation->id,
-                            'matter_id' => $matterId,
-                            'fee_id' => null,
-                            'fee_amount_excl_vat' => 0,
-                            'base_percentage' => 0,
-                            'effective_percentage' => 0,
-                            'base_amount' => 0,
-                            'net_amount' => 0,
-                        ]);
-                    } else {
-                        Log::warning("Skipping matter {$matterId}: no valid non-VAT fee found.");
-                    }
-
-                    continue;
-                }
-
-                foreach ($fees as $fee) {
-                    $exists = IncentiveLine::where('fee_id', $fee->id)->exists();
-                    if ($exists) {
-                        Log::info("Skipping duplicate incentive line for fee_id {$fee->id}.");
-
-                        continue;
-                    }
-
-                    IncentiveLine::create([
-                        'incentive_calculation_id' => $calculation->id,
-                        'matter_id' => $matterId,
-                        'fee_id' => $fee->id,
-                        'fee_amount_excl_vat' => 0,
-                        'base_percentage' => 0,
-                        'effective_percentage' => 0,
-                        'base_amount' => 0,
-                        'net_amount' => 0,
-                    ]);
-                }
+                $this->importMatterFees($calculation, $matter, $feesQuery);
             }
         });
+    }
+
+    /**
+     * Force-import one specific matter into a calculation, bypassing every
+     * normal qualification check (period, trigger date, current-status
+     * allocation-period scoping) — every eligible non-VAT fee not already
+     * attached to ANY existing incentive line (in this or any other
+     * calculation, draft or finalized) is imported as its own line. For
+     * manual corrections/exceptions the automatic import doesn't cover.
+     *
+     * @return int Number of fee lines actually imported (0 if every eligible
+     *             fee on this matter was already imported elsewhere).
+     */
+    public function forceImportMatter(Model $calculation, int $matterId): int
+    {
+        if (! $calculation->isDraft()) {
+            throw new \Exception('Cannot import matters into a finalized calculation.');
+        }
+
+        $matter = Matter::with('type')->find($matterId);
+        if (! $matter) {
+            throw new \Exception("Matter #{$matterId} not found.");
+        }
+
+        return DB::transaction(function () use ($calculation, $matter) {
+            $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+
+            return $this->importMatterFees($calculation, $matter, $feesQuery);
+        });
+    }
+
+    /**
+     * Shared per-matter fee import: creates one IncentiveLine per fee
+     * matched by $feesQuery that isn't already attached to an incentive
+     * line elsewhere, falling back to a single fee-less line (counted
+     * toward the monthly quota only) when a finished matter has no
+     * eligible fees at all.
+     *
+     * @return int Number of lines created.
+     */
+    private function importMatterFees(Model $calculation, Matter $matter, $feesQuery): int
+    {
+        $fees = $feesQuery->get();
+        $imported = 0;
+
+        if ($fees->isEmpty()) {
+            // A finished matter (final_report_date trigger) with no fees at
+            // all is still imported — as a single fee-less line — purely so
+            // it counts toward the monthly achievement quota. Fee-driven
+            // trigger types have nothing to import without a fee.
+            $isFinishedWithNoFee = $matter->type?->incentive_trigger_type === 'final_report_date'
+                && $matter->final_report_at !== null;
+
+            if ($isFinishedWithNoFee && ! $matter->incentiveLines()->whereNull('fee_id')->exists()) {
+                IncentiveLine::create([
+                    'incentive_calculation_id' => $calculation->id,
+                    'matter_id' => $matter->id,
+                    'fee_id' => null,
+                    'fee_amount_excl_vat' => 0,
+                    'base_percentage' => 0,
+                    'effective_percentage' => 0,
+                    'base_amount' => 0,
+                    'net_amount' => 0,
+                ]);
+                $imported++;
+            } else {
+                Log::warning("Skipping matter {$matter->id}: no valid non-VAT fee found.");
+            }
+
+            return $imported;
+        }
+
+        foreach ($fees as $fee) {
+            if (IncentiveLine::where('fee_id', $fee->id)->exists()) {
+                Log::info("Skipping duplicate incentive line for fee_id {$fee->id}.");
+
+                continue;
+            }
+
+            IncentiveLine::create([
+                'incentive_calculation_id' => $calculation->id,
+                'matter_id' => $matter->id,
+                'fee_id' => $fee->id,
+                'fee_amount_excl_vat' => 0,
+                'base_percentage' => 0,
+                'effective_percentage' => 0,
+                'base_amount' => 0,
+                'net_amount' => 0,
+            ]);
+            $imported++;
+        }
+
+        return $imported;
     }
 
     public function calculateBasePercentage(Matter $matter): float

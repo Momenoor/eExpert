@@ -117,6 +117,7 @@ class SystemSettingsForm
                                     Select::make('mail_mailer')
                                         ->label(__('Mail Driver'))
                                         ->options([
+                                            'microsoft-graph' => 'Microsoft Graph',
                                             'smtp' => 'SMTP',
                                             'sendmail' => 'Sendmail',
                                             'log' => 'Log (Testing)',

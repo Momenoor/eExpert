@@ -6,6 +6,7 @@ use App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationR
 use App\Filament\Widgets\IncentiveSummaryTableWidget;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveLine;
+use App\Models\Matter;
 use App\Models\Party;
 use App\Services\IncentiveCalculatorService;
 use App\Services\IncentiveService;
@@ -136,6 +137,64 @@ class ViewIncentiveCalculation extends ViewRecord
                         ->send();
                 }),
 
+            Action::make('addSpecificMatter')
+                ->label(__('Add Specific Matter'))
+                ->icon('heroicon-o-document-plus')
+                ->color('gray')
+                ->visible(fn () => $this->record->isDraft())
+                ->modalHeading(__('Add Specific Matter'))
+                ->modalDescription(__('Imports this matter regardless of its period or trigger date. Any fee already included in another calculation is skipped automatically.'))
+                ->schema([
+                    Select::make('matter_id')
+                        ->label(__('Matter'))
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search) => Matter::query()
+                            ->with(['type', 'court'])
+                            ->where(function ($q) use ($search) {
+                                // Matter reference is "number/year" (e.g. 70/2026), but
+                                // match the reversed "year/number" order too since some
+                                // people naturally type it that way.
+                                $q->whereRaw("CONCAT(number, '/', year) LIKE ?", ["%{$search}%"])
+                                    ->orWhereRaw("CONCAT(year, '/', number) LIKE ?", ["%{$search}%"])
+                                    ->orWhere('number', 'like', "%{$search}%")
+                                    ->orWhere('year', 'like', "%{$search}%")
+                                    ->orWhereHas('type', fn ($tq) => $tq->where('name', 'like', "%{$search}%"))
+                                    ->orWhereHas('court', fn ($cq) => $cq->where('name', 'like', "%{$search}%"));
+                            })
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn ($m) => [$m->id => $this->matterOptionLabel($m)]))
+                        ->getOptionLabelUsing(fn ($value) => $this->matterOptionLabel(Matter::with(['type', 'court'])->find($value)))
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $imported = app(IncentiveService::class)->forceImportMatter($this->record, (int) $data['matter_id']);
+                        $this->refreshFormData([]);
+                        $this->dispatch('incentiveCalculationUpdated');
+
+                        if ($imported > 0) {
+                            Notification::make()
+                                ->title(__('Matter Added'))
+                                ->body(trans_choice(':count fee line imported.|:count fee lines imported.', $imported, ['count' => $imported]))
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title(__('Nothing to Import'))
+                                ->body(__('Every eligible fee for this matter is already included in a calculation.'))
+                                ->warning()
+                                ->send();
+                        }
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title(__('Import Failed'))
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Action::make('calculate')
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
@@ -241,5 +300,21 @@ class ViewIncentiveCalculation extends ViewRecord
         $data = $service->calculateMattersData($matters, $this->record->period_start, $this->record->period_end);
 
         $set('temp_lines', $data->map(fn ($item) => array_merge($item, ['is_selected' => true]))->toArray());
+    }
+
+    /**
+     * Matter option label for the "Add Specific Matter" select: reference,
+     * type, and court name together so matters can be told apart when
+     * searching (e.g. re-finding one just removed from this calculation).
+     */
+    protected function matterOptionLabel(?Matter $matter): ?string
+    {
+        if (! $matter) {
+            return null;
+        }
+
+        return collect([$matter->reference, $matter->type?->name, $matter->court?->name])
+            ->filter()
+            ->implode(' — ');
     }
 }

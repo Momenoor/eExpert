@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;
+use App\Models\IncentiveLine;
 use App\Services\IncentiveCalculatorService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -220,6 +221,31 @@ class IncentiveSummaryTableWidget extends TableWidget
                         'party' => $record->party_id,
                     ]))
                     ->openUrlInNewTab(),
+                Action::make('deleteMatter')
+                    ->label(fn ($record) => __('Remove :matter from Calculation', ['matter' => $record->incentiveLine?->matter?->reference ?? '—']))
+                    ->icon('heroicon-o-trash')
+                    ->iconButton()
+                    ->color('danger')
+                    ->tooltip(fn ($record) => __('Remove :matter from Calculation', ['matter' => $record->incentiveLine?->matter?->reference ?? '—']))
+                    ->disabled(fn () => ! $this->isCalculationDraft())
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record) => __('Remove :matter from Calculation', ['matter' => $record->incentiveLine?->matter?->reference ?? '—']))
+                    ->modalDescription(__('This removes this matter\'s lines, deductions, and assistant shares from this calculation only — other matters are unaffected. This action cannot be undone.'))
+                    ->modalIcon('heroicon-o-trash')
+                    ->modalIconColor('danger')
+                    ->action(function ($record) {
+                        $matterId = $record->incentiveLine?->matter_id;
+
+                        IncentiveLine::where('incentive_calculation_id', $this->calculationId)
+                            ->where('matter_id', $matterId)
+                            ->delete();
+
+                        app(IncentiveCalculatorService::class)->calculate(
+                            IncentiveCalculation::findOrFail($this->calculationId)
+                        );
+
+                        Notification::make()->title(__('Matter Removed'))->success()->send();
+                    }),
             ]);
     }
 

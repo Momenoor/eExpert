@@ -39,6 +39,16 @@ class MatterTypeIncentiveConfigResource extends Resource
         return __('Finance');
     }
 
+    /**
+     * Managed from the consolidated "Incentive Configuration" page instead —
+     * this resource's routes stay functional (linked to from there) but it
+     * no longer needs its own sidebar entry.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     protected static ?int $navigationSort = 3;

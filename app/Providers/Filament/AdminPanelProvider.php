@@ -189,10 +189,17 @@ class AdminPanelProvider extends PanelProvider
                     return $user?->font_size ?? $defaultSize;
                 });
 
+                // Tailwind's sizing scale is almost entirely rem-based (relative
+                // to the ROOT element's font-size, not body's) — the font-size
+                // must be applied to :root itself, and applied here in the
+                // server-rendered <head> so it's correct from the very first
+                // paint. A separate client-side script applying it later (e.g.
+                // on DOMContentLoaded) causes a visible flash-then-resize.
                 return "
             <style>
                 :root {
                     --user-font-size: {$fontSize}px;
+                    font-size: var(--user-font-size) !important;
                 }
                 body {
                     font-size: var(--user-font-size) !important;

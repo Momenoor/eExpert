@@ -26,6 +26,16 @@ class IncentiveMetaAdjustmentResource extends Resource
         return __('Finance');
     }
 
+    /**
+     * Managed from the consolidated "Incentive Configuration" page instead —
+     * this resource's routes stay functional (linked to from there) but it
+     * no longer needs its own sidebar entry.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getModelLabel(): string
     {
         return __('Incentive Adjustment');
