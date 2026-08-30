@@ -14,7 +14,7 @@ class IncentiveCalculationAssistantPrintController extends Controller
      */
     public function __invoke(IncentiveCalculation $calculation, Party $party)
     {
-        Gate::authorize('print', $calculation);
+        abort_unless(auth()->user()->can('Print:IncentiveCalculation'), 403);
 
         $assistantSummary = app(IncentiveCalculatorService::class)
             ->getAssistantSummary($calculation)
