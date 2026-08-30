@@ -209,6 +209,17 @@ class IncentiveSummaryTableWidget extends TableWidget
 
                         Notification::make()->title(__('Deduction saved'))->success()->send();
                     }),
+                Action::make('printAssistantReport')
+                    ->label(fn ($record) => __('Print Report for :name', ['name' => $record->party?->name ?? '—']))
+                    ->icon('heroicon-o-printer')
+                    ->iconButton()
+                    ->tooltip(fn ($record) => __('Print Report for :name', ['name' => $record->party?->name ?? '—']))
+                    ->color('gray')
+                    ->url(fn ($record) => route('incentive.calculation.print.assistant', [
+                        'calculation' => $this->calculationId,
+                        'party' => $record->party_id,
+                    ]))
+                    ->openUrlInNewTab(),
             ]);
     }
 
@@ -231,8 +242,9 @@ class IncentiveSummaryTableWidget extends TableWidget
         $feeAmount = (float) ($record->incentiveLine?->fee_amount_excl_vat ?? 0);
         if ($feeAmount > 0) {
             $ownPct = round((float) $record->share_amount / $feeAmount * 100, 2);
-            if($ownPct != $record->incentiveLine?->effective_percentage)
-            $parts[] = __('Your share').': '.$ownPct.'%';
+            if ($ownPct != $record->incentiveLine?->effective_percentage) {
+                $parts[] = __('Your share').': '.$ownPct.'%';
+            }
         }
 
         return $parts ? implode(' · ', $parts) : null;

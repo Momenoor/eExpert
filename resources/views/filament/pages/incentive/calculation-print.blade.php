@@ -179,7 +179,7 @@
                         @foreach($row['matters'] as $m)
                             <tr class="border-t border-gray-100">
                                 <td class="px-2 py-1">{{ $m['matter_reference'] }}</td>
-                                <td class="px-2 py-1">{{ __($m['difficulty'] ?? '—') }}</td>
+                                <td class="px-2 py-1">{{ $m['difficulty']?->getLabel() ?? '—' }}</td>
                                 <td class="px-2 py-1 text-right text-gray-400">{{ $m['completion_days'] ?? '—' }}</td>
                                 <td class="px-2 py-1 text-right">
                                     {{ $m['percentage'] }}%{{ $m['percentage_override'] !== null ? ' ('.__('override').')' : '' }}
@@ -258,14 +258,14 @@
                     {{ $line->matter->year }}/{{ $line->matter->number }}
                 </td>
                 <td class="px-3 py-2">
-                    @php $diffClass = match($line->difficulty) {
-                            'simple'      => 'bg-green-100 text-green-800',
-                            'normal'      => 'bg-blue-100 text-blue-800',
-                            'exceptional' => 'bg-yellow-100 text-yellow-800',
-                            default       => 'bg-gray-100 text-gray-800',
+                    @php $diffClass = match($line->matter->difficulty) {
+                            \App\Enums\MatterDifficulty::EASY   => 'bg-green-100 text-green-800',
+                            \App\Enums\MatterDifficulty::MEDIUM => 'bg-yellow-100 text-yellow-800',
+                            \App\Enums\MatterDifficulty::HARD   => 'bg-red-100 text-red-800',
+                            default => 'bg-gray-100 text-gray-800',
                         }; @endphp
                     <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ $diffClass }}">
-                            {{ __($line->difficulty ?? '—') }}
+                            {{ $line->matter->difficulty?->getLabel() ?? '—' }}
                         </span>
                 </td>
                 <td class="px-3 py-2 text-right text-gray-400">{{ $line->completion_days ?? '—' }}</td>

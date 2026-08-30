@@ -140,7 +140,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
                 ->color('info')
-                ->visible(fn () => $this->record->isDraft()&& !$this->record->lines()->exists())
+                ->visible(fn () => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->modalHeading(__('Run Incentive Calculation'))
                 ->modalDescription(__('This will clear and recalculate all lines for this period. Matters with initial_report_at within the period and paid fees not yet in a finalized calculation will be included.'))
@@ -164,19 +164,6 @@ class ViewIncentiveCalculation extends ViewRecord
                             ->danger()
                             ->send();
                     }
-                }),
-
-            Action::make('recalculate')
-                ->label(__('Recalculate'))
-                ->icon('heroicon-o-arrow-path')
-                ->color('info')
-                ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
-                ->requiresConfirmation()
-                ->action(function () {
-                    app(IncentiveCalculatorService::class)->calculate($this->record);
-                    $this->refreshFormData([]);
-                    $this->dispatch('incentiveCalculationUpdated');
-                    Notification::make()->title(__('Recalculated'))->success()->send();
                 }),
 
             Action::make('deleteAllLines')

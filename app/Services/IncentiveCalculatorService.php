@@ -456,7 +456,7 @@ class IncentiveCalculatorService
      */
     public function getAssistantSummary(Model $calculation): Collection
     {
-        return IncentiveAssistantLine::with('party', 'incentiveLine.matter', 'incentiveLine.deductions')
+        return IncentiveAssistantLine::with('party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions')
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $calculation->id))
             ->get()
             ->groupBy('party_id')
@@ -492,7 +492,13 @@ class IncentiveCalculatorService
                             return [
                                 'matter_id' => $matter->id,
                                 'matter_reference' => $matter->reference,
-                                'difficulty' => $incentiveLine->difficulty,
+                                // The matter's own difficulty is the source of truth —
+                                // incentiveLine->difficulty is a denormalized copy that
+                                // predates the current MatterDifficulty enum values.
+                                'difficulty' => $matter->difficulty,
+                                'commissioning' => $matter->commissioning,
+                                'court_name' => $matter->court?->name,
+                                'type_name' => $matter->type?->name,
                                 'completion_days' => $incentiveLine->completion_days,
                                 'fee_amount_excl_vat' => $incentiveLine->fee_amount_excl_vat,
                                 'base_percentage' => $incentiveLine->base_percentage,

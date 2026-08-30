@@ -2,6 +2,7 @@
 
 use App\Enums\BulkMailRecipientStatus;
 use App\Http\Controllers\BulkMailController;
+use App\Http\Controllers\IncentiveCalculationAssistantPrintController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Models\Attachment;
@@ -43,6 +44,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('incentive/calculations/{calculation}/print', IncentiveCalculationPrintController::class)
         ->name('incentive.calculation.print')
+        ->middleware(['auth']);
+
+    Route::get('incentive/calculations/{calculation}/print/{party}', IncentiveCalculationAssistantPrintController::class)
+        ->name('incentive.calculation.print.assistant')
         ->middleware(['auth']);
 
     Route::prefix('admin/matter/{matter}/received-date')->group(function () {
