@@ -474,6 +474,76 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
     }
 
+    public function test_recalculate_does_not_sweep_in_a_fee_registered_outside_the_calculations_period(): void
+    {
+        // Regression: a fee registered on an already-imported matter but
+        // dated OUTSIDE this calculation's period must NOT be picked up by
+        // recalculation — it belongs to whichever period's own calculation
+        // covers its date (or a deliberate "Add Specific Matter" force-import).
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create([
+            'name' => 'Bankruptcy', 'incentive_config_id' => $config->id,
+            'incentive_trigger_type' => 'final_report_date', 'allow_current_status_import' => true,
+        ]);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => null]);
+        MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+
+        $feeOne = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-01', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Period Scoped Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calc, [$matter->id]);
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+
+        // A fee registered on the SAME matter but dated in the NEXT period.
+        $feeTwo = Fee::create(['matter_id' => $matter->id, 'amount' => 500, 'date' => '2026-07-05', 'status' => 'unpaid']);
+
+        app(IncentiveCalculatorService::class)->calculate($calc);
+
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+        $this->assertFalse(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeTwo->id)->exists());
+    }
+
+    public function test_recalculate_picks_up_a_new_fee_for_a_finished_matter_regardless_of_its_date(): void
+    {
+        // A finished (final_report_date-triggered, non-current-status)
+        // matter has no per-fee period scoping on first import — every
+        // eligible fee belongs to it regardless of date. Recalculation must
+        // apply the SAME rule to a new fee added later, not the
+        // current-status matters' period scoping.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-06-10']);
+        MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+
+        $feeOne = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-10', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Finished Matter Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calc, [$matter->id]);
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+
+        // A second fee registered on the matter, dated OUTSIDE this
+        // calculation's period — still eligible, since a finished matter's
+        // fees aren't scoped to the period.
+        $feeTwo = Fee::create(['matter_id' => $matter->id, 'amount' => 300, 'date' => '2026-08-15', 'status' => 'unpaid']);
+
+        app(IncentiveCalculatorService::class)->calculate($calc);
+
+        $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+        $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeTwo->id)->exists());
+    }
+
     public function test_removing_one_matter_leaves_other_matters_and_their_totals_intact(): void
     {
         $config = MatterTypeIncentiveConfig::create([

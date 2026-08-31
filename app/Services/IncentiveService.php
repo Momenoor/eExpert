@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Enums\FeeType;
+use App\Models\Fee;
 use App\Models\IncentiveExtraRule;
 use App\Models\IncentiveLine;
 use App\Models\Matter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -245,25 +247,7 @@ class IncentiveService
                     continue;
                 }
 
-                $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
-
-                // Still-ongoing matters (allow_current_status_import, not yet
-                // finally reported) import fee-by-fee, scoped to fees
-                // REGISTERED (fees.date, not collection/allocation date)
-                // within this calculation's period — one line per qualifying
-                // fee. A fee registered in a later period is left for that
-                // period's own calculation to pick up.
-                $isCurrentStatusMatter = ($matter->type?->allow_current_status_import ?? false)
-                    && ! $matter->final_report_at;
-
-                if ($isCurrentStatusMatter) {
-                    $feesQuery->whereBetween('date', [
-                        Carbon::parse($calculation->period_start)->toDateString(),
-                        Carbon::parse($calculation->period_end)->toDateString(),
-                    ]);
-                }
-
-                $this->importMatterFees($calculation, $matter, $feesQuery);
+                $this->importMatterFees($calculation, $matter, $this->eligibleFeesQuery($matter, $calculation));
             }
         });
     }
@@ -302,9 +286,15 @@ class IncentiveService
      * one line in this calculation — so a fee registered on a matter AFTER
      * it was first imported (e.g. a late-arriving payment) is picked up on
      * the next recalculation instead of requiring a manual "Add Specific
-     * Matter" force-import. Matters with no lines yet in this calculation
-     * are untouched; only fees not already attached to ANY existing
-     * incentive line (this or another calculation) are imported.
+     * Matter" force-import. Uses eligibleFeesQuery() so the period scoping
+     * matches each matter's own type exactly as the initial import would
+     * have applied it: still-ongoing (current-status) matters only pick up
+     * fees dated within this calculation's own period, while finished
+     * (final_report_date-triggered) matters pick up any new eligible fee
+     * regardless of date, same as on first import. Matters with no lines yet
+     * in this calculation are untouched; only fees not already attached to
+     * ANY existing incentive line (this or another calculation) are
+     * imported.
      *
      * @return int Number of new fee lines imported.
      */
@@ -323,11 +313,40 @@ class IncentiveService
                 continue;
             }
 
-            $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
-            $imported += $this->importMatterFees($calculation, $matter, $feesQuery);
+            $imported += $this->importMatterFees($calculation, $matter, $this->eligibleFeesQuery($matter, $calculation));
         }
 
         return $imported;
+    }
+
+    /**
+     * Non-VAT fees query for a matter, scoped per the matter's OWN type:
+     * still-ongoing matters (allow_current_status_import, not yet finally
+     * reported) are imported fee-by-fee, scoped to fees REGISTERED
+     * (fees.date, not collection/allocation date) within this calculation's
+     * period — a fee registered in a later period is left for that period's
+     * own calculation to pick up. Finished matters (final_report_date
+     * trigger) have no such scoping: every eligible fee on the matter
+     * belongs to it regardless of date. Shared by importSelectedMatters()
+     * and syncNewFeesForCalculation() so both apply identical rules.
+     *
+     * @return HasMany<Fee, Matter>
+     */
+    private function eligibleFeesQuery(Matter $matter, Model $calculation): HasMany
+    {
+        $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+
+        $isCurrentStatusMatter = ($matter->type?->allow_current_status_import ?? false)
+            && ! $matter->final_report_at;
+
+        if ($isCurrentStatusMatter) {
+            $feesQuery->whereBetween('date', [
+                Carbon::parse($calculation->period_start)->toDateString(),
+                Carbon::parse($calculation->period_end)->toDateString(),
+            ]);
+        }
+
+        return $feesQuery;
     }
 
     /**
