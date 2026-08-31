@@ -107,9 +107,9 @@
     <table class="w-full text-xs border-collapse">
         <thead>
         <tr class="bg-blue-900 text-white">
-            <th class="px-3 py-2 text-left">{{ __('Assistant') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Assistant') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Matters') }}</th>
-            <th class="px-3 py-2 text-center">{{ __('Meets Min (6)') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Meets Min (6)') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Fees Amount') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Share Total') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Extra %') }}</th>

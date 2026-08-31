@@ -108,15 +108,15 @@
     <table class="w-full text-xs border-collapse">
         <thead>
         <tr class="bg-blue-900 text-white">
-            <th class="px-3 py-2 text-left">{{ __('Matter') }}</th>
-            <th class="px-3 py-2 text-left">{{ __('Court / Type') }}</th>
-            <th class="px-3 py-2 text-left">{{ __('Difficulty') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Matter') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Court / Type') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Difficulty') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Days') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Fee (excl. VAT)') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Base %') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Rate %') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Base Amount') }}</th>
-            <th class="px-3 py-2 text-left">{{ __('Deductions') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Deductions') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Share') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Extra') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Penalty') }}</th>
