@@ -109,7 +109,7 @@ class IncentiveSummaryTableWidget extends TableWidget
                                 }
                             });
                         }
-                        return static::applyMultiWordSearch($query, $search, ['year', 'number']);
+                        return static::applyMultiWordSearch($query, $search, ['incentiveLine.matter.year', 'incentiveLine.matter.number']);
                     })
                     ->weight('bold'),
                 TextColumn::make('difficulty')
