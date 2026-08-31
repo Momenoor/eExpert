@@ -48,6 +48,33 @@ class IncentiveSummaryTableWidget extends TableWidget
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $this->calculationId))
             ->with(['party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions']);
     }
+    private static function splitSearch(string $search): array
+    {
+        return $search
+                |> trim(...)
+                |> (fn($x) => preg_split('/[\s\/\\\\\-]+/', $x))
+                |> (fn($x) => array_filter($x, fn($token) => strlen($token) > 0))
+                |> array_values(...);
+    }
+
+    private static function applyMultiWordSearch(Builder $query, string $search, array $columns): Builder
+    {
+        $tokens = static::splitSearch($search);
+        foreach ($tokens as $token) {
+            $query->where(function (Builder $query) use ($token, $columns) {
+                foreach ($columns as $i => $column) {
+                    $method = $i === 0 ? 'where' : 'orWhere';
+                    if (str_contains($column, '.')) {
+                        [$relation, $col] = explode('.', $column, 2);
+                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn($r) => $r->where($col, 'like', "%{$token}%"));
+                    } else {
+                        $query->{$method}($column, 'like', "%{$token}%");
+                    }
+                }
+            });
+        }
+        return $query;
+    }
 
     public function table(Table $table): Table
     {
@@ -69,6 +96,21 @@ class IncentiveSummaryTableWidget extends TableWidget
                         ? route('filament.admin.resources.matters.view', $record->incentiveLine->matter_id)
                         : null)
                     ->openUrlInNewTab()
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $tokens = static::splitSearch($search);
+                        if (count($tokens) === 2 && is_numeric($tokens[0]) && is_numeric($tokens[1])) {
+                            return $query->where(function ($q) use ($tokens) {
+                                foreach ($tokens as $token) {
+                                    $q->where(function ($inner) use ($token) {
+                                        $inner->orWhere('year', $token)
+                                            ->orWhere('number', $token)
+                                            ->orWhere('number', "0" . $token);
+                                    });
+                                }
+                            });
+                        }
+                        return static::applyMultiWordSearch($query, $search, ['year', 'number']);
+                    })
                     ->weight('bold'),
                 TextColumn::make('difficulty')
                     ->label(__('Difficulty'))
