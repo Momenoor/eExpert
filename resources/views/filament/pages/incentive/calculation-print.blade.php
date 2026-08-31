@@ -166,12 +166,12 @@
                     <table class="w-full text-[10px] border-collapse">
                         <thead>
                         <tr class="text-gray-500">
-                            <th class="px-2 py-1 text-left">{{ __('Matter') }}</th>
-                            <th class="px-2 py-1 text-left">{{ __('Difficulty') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Matter') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Difficulty') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Days') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Fee (excl. VAT)') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Percentage') }}</th>
-                            <th class="px-2 py-1 text-left">{{ __('Deductions') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Deductions') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Share') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Extra') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Penalty') }}</th>
