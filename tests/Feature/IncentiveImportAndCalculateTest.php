@@ -582,6 +582,11 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertEquals(5400.0, (float) $matterSummary['fee_amount_excl_vat']); // 5000 + 400
         $this->assertEquals(540.0, (float) $matterSummary['base_amount']); // 5400 * 10%
         $this->assertEquals(540.0, (float) $matterSummary['total_amount']); // share_amount already summed correctly
+
+        // The assistant-level 'fees_amount' (used in the print report's
+        // upper Assistant Summary table) must also reflect the full 5400,
+        // not just the matter's first fee.
+        $this->assertEquals(5400.0, (float) $summary->first()['fees_amount']);
     }
 
     public function test_removing_one_matter_leaves_other_matters_and_their_totals_intact(): void

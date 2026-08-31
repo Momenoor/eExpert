@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -110,6 +110,7 @@
             <th class="px-3 py-2 text-left">{{ __('Assistant') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Matters') }}</th>
             <th class="px-3 py-2 text-center">{{ __('Meets Min (6)') }}</th>
+            <th class="px-3 py-2 text-right">{{ __('Fees Amount') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Share Total') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Extra %') }}</th>
             <th class="px-3 py-2 text-right">{{ __('Extra Amount') }}</th>
@@ -136,6 +137,7 @@
                         <span class="text-red-600 font-bold">✗</span>
                     @endif
                 </td>
+                <td class="px-3 py-2 text-right">{{ number_format($row['fees_amount'], 2) }}</td>
                 <td class="px-3 py-2 text-right">{{ number_format($row['share_total'], 2) }}</td>
                 <td class="px-3 py-2 text-right text-green-700">
                     {{ $row['extra_percentage'] > 0 ? '+' . $row['extra_percentage'] . '%' : '—' }}
@@ -160,13 +162,14 @@
                 </td>
             </tr>
             <tr class="{{ $loop->even ? 'bg-blue-50' : 'bg-white' }} border-b border-gray-200">
-                <td colspan="10" class="px-3 py-2">
+                <td colspan="11" class="px-3 py-2">
                     <table class="w-full text-[10px] border-collapse">
                         <thead>
                         <tr class="text-gray-500">
                             <th class="px-2 py-1 text-left">{{ __('Matter') }}</th>
                             <th class="px-2 py-1 text-left">{{ __('Difficulty') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Days') }}</th>
+                            <th class="px-2 py-1 text-right">{{ __('Fee (excl. VAT)') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Percentage') }}</th>
                             <th class="px-2 py-1 text-left">{{ __('Deductions') }}</th>
                             <th class="px-2 py-1 text-right">{{ __('Share') }}</th>
@@ -181,8 +184,13 @@
                                 <td class="px-2 py-1">{{ $m['matter_reference'] }}</td>
                                 <td class="px-2 py-1">{{ $m['difficulty']?->getLabel() ?? '—' }}</td>
                                 <td class="px-2 py-1 text-right text-gray-400">{{ $m['completion_days'] ?? '—' }}</td>
+                                <td class="px-2 py-1 text-right">{{ number_format($m['fee_amount_excl_vat'], 2) }}</td>
                                 <td class="px-2 py-1 text-right">
-                                    {{ $m['percentage'] }}%{{ $m['percentage_override'] !== null ? ' ('.__('override').')' : '' }}
+                                    @if($m['percentage_override'] !== null)
+                                        {{ $m['percentage_override'] }}% <span class="text-gray-400">({{ __('override') }})</span>
+                                    @else
+                                        {{ $m['percentage'] }}%
+                                    @endif
                                 </td>
                                 <td class="px-2 py-1">
                                     @forelse($m['deductions'] as $d)
@@ -216,6 +224,11 @@
         <tfoot>
         <tr class="bg-blue-100 font-bold border-t-2 border-blue-900">
             <td colspan="3" class="px-3 py-2 text-right text-blue-900">{{ __('Grand Total') }}</td>
+            {{-- Fees Amount is per-assistant (unsplit, matter-level), so it isn't
+                 summed here: a matter shared by co-assistants would be double-
+                 counted, unlike Share Total and the columns below it, which are
+                 already split per assistant. --}}
+            <td class="px-3 py-2"></td>
             <td class="px-3 py-2 text-right">AED {{ number_format($assistantSummary->sum('share_total'), 2) }}</td>
             <td class="px-3 py-2"></td>
             <td class="px-3 py-2 text-right text-green-700">

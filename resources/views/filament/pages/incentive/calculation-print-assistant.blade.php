@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -143,7 +143,11 @@
                     {{ $m['base_percentage'] }}%{{ $m['committee_adjustment'] != 0 ? ($m['committee_adjustment'] > 0 ? '+' : '').$m['committee_adjustment'].'%' : '' }}
                 </td>
                 <td class="px-3 py-2 text-right">
-                    {{ $m['percentage'] }}%{{ $m['percentage_override'] !== null ? ' ('.__('override').')' : '' }}
+                    @if($m['percentage_override'] !== null)
+                        {{ $m['percentage_override'] }}% <span class="text-gray-400">({{ __('override') }})</span>
+                    @else
+                        {{ $m['percentage'] }}%
+                    @endif
                 </td>
                 <td class="px-3 py-2 text-right text-gray-500">{{ number_format($m['base_amount'], 2) }}</td>
                 <td class="px-3 py-2">
