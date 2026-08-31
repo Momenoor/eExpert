@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\MatterCommissiong;
+use App\Enums\MatterDifficulty;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;
@@ -48,12 +50,13 @@ class IncentiveSummaryTableWidget extends TableWidget
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $this->calculationId))
             ->with(['party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions']);
     }
+
     private static function splitSearch(string $search): array
     {
         return $search
                 |> trim(...)
-                |> (fn($x) => preg_split('/[\s\/\\\\\-]+/', $x))
-                |> (fn($x) => array_filter($x, fn($token) => strlen($token) > 0))
+                |> (fn ($x) => preg_split('/[\s\/\\\\\-]+/', $x))
+                |> (fn ($x) => array_filter($x, fn ($token) => strlen($token) > 0))
                 |> array_values(...);
     }
 
@@ -65,15 +68,41 @@ class IncentiveSummaryTableWidget extends TableWidget
                 foreach ($columns as $i => $column) {
                     $method = $i === 0 ? 'where' : 'orWhere';
                     if (str_contains($column, '.')) {
-                        [$relation, $col] = explode('.', $column, 2);
-                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn($r) => $r->where($col, 'like', "%{$token}%"));
+                        // Split on the LAST dot so a multi-level relation path
+                        // (e.g. incentiveLine.matter.type.name) is passed to
+                        // whereHas as one nested relation string — Eloquent's
+                        // whereHas natively traverses dotted relation chains
+                        // of any depth, it's only the final segment that's a
+                        // real column to filter on.
+                        $lastDot = strrpos($column, '.');
+                        $relation = substr($column, 0, $lastDot);
+                        $col = substr($column, $lastDot + 1);
+                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn ($r) => $r->where($col, 'like', "%{$token}%"));
                     } else {
                         $query->{$method}($column, 'like', "%{$token}%");
                     }
                 }
             });
         }
+
         return $query;
+    }
+
+    /**
+     * Raw enum values (e.g. 'hard') whose translated label OR raw value
+     * matches the search term — used to let a difficulty/commissioning
+     * search work regardless of app locale (e.g. typing "صعب" finds HARD).
+     *
+     * @param  class-string<MatterDifficulty|MatterCommissiong>  $enumClass
+     * @return array<string>
+     */
+    private static function matchingEnumValues(string $enumClass, string $search): array
+    {
+        return collect($enumClass::cases())
+            ->filter(fn ($case) => str_contains($case->getLabel() ?? '', $search)
+                || str_contains(strtolower($case->value), strtolower($search)))
+            ->map(fn ($case) => $case->value)
+            ->all();
     }
 
     public function table(Table $table): Table
@@ -99,16 +128,20 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->searchable(query: function (Builder $query, string $search) {
                         $tokens = static::splitSearch($search);
                         if (count($tokens) === 2 && is_numeric($tokens[0]) && is_numeric($tokens[1])) {
-                            return $query->where(function ($q) use ($tokens) {
+                            // Base model here is IncentiveAssistantLine, which has
+                            // no year/number columns of its own — both tokens
+                            // must be matched against the related matter.
+                            return $query->whereHas('incentiveLine.matter', function ($mq) use ($tokens) {
                                 foreach ($tokens as $token) {
-                                    $q->where(function ($inner) use ($token) {
+                                    $mq->where(function ($inner) use ($token) {
                                         $inner->orWhere('year', $token)
                                             ->orWhere('number', $token)
-                                            ->orWhere('number', "0" . $token);
+                                            ->orWhere('number', '0'.$token);
                                     });
                                 }
                             });
                         }
+
                         return static::applyMultiWordSearch($query, $search, ['incentiveLine.matter.year', 'incentiveLine.matter.number']);
                     })
                     ->weight('bold'),
@@ -120,7 +153,29 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ])->filter()->values()->all())
                     ->badge()
                     ->listWithLineBreaks()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $difficultyValues = static::matchingEnumValues(MatterDifficulty::class, $search);
+                        $commissioningValues = static::matchingEnumValues(MatterCommissiong::class, $search);
+
+                        if (empty($difficultyValues) && empty($commissioningValues)) {
+                            // No matching enum case for this term — this column
+                            // contributes nothing, other searchable columns
+                            // still get their own chance via the global search.
+                            return $query->whereRaw('1 = 0');
+                        }
+
+                        return $query->whereHas('incentiveLine.matter', function ($mq) use ($difficultyValues, $commissioningValues) {
+                            $mq->where(function ($inner) use ($difficultyValues, $commissioningValues) {
+                                if (! empty($difficultyValues)) {
+                                    $inner->orWhereIn('difficulty', $difficultyValues);
+                                }
+                                if (! empty($commissioningValues)) {
+                                    $inner->orWhereIn('commissioning', $commissioningValues);
+                                }
+                            });
+                        });
+                    }),
                 TextColumn::make('case_info')
                     ->label(__('Court / Type'))
                     ->getStateUsing(fn ($record) => collect([
@@ -129,7 +184,14 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ])->filter()->values()->all())
                     ->badge()
                     ->listWithLineBreaks()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->searchable(query: fn (Builder $query, string $search) => static::applyMultiWordSearch(
+                        $query, $search, ['incentiveLine.matter.type.name', 'incentiveLine.matter.court.name']
+                    )),
+                TextColumn::make('party.name')
+                    ->label(__('Assistant'))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('month_label')
                     ->label(__('Month'))
                     ->getStateUsing(fn ($record) => $record->incentiveLine?->matter
@@ -138,17 +200,21 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->placeholder('—'),
                 TextColumn::make('incentiveLine.completion_days')
                     ->label(__('Days'))
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->searchable(),
                 TextColumn::make('incentiveLine.fee_amount_excl_vat')
                     ->label(__('Fee'))
-                    ->money('AED'),
+                    ->money('AED')
+                    ->searchable(),
                 TextColumn::make('incentiveLine.effective_percentage')
                     ->label(__('Rate %'))
                     ->suffix('%')
-                    ->description(fn ($record) => $this->describeAssistantRate($record)),
+                    ->description(fn ($record) => $this->describeAssistantRate($record))
+                    ->searchable(),
                 TextColumn::make('incentiveLine.base_amount')
                     ->label(__('Base Amount'))
-                    ->money('AED'),
+                    ->money('AED')
+                    ->searchable(),
                 TextColumn::make('incentiveLine.total_deduction_pct')
                     ->label(__('Deductions'))
                     ->suffix('%')
@@ -158,25 +224,29 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->description(fn ($record) => $this->describeDeductions($record)),
                 TextColumn::make('share_amount')
                     ->label(__('Share'))
-                    ->money('AED'),
+                    ->money('AED')
+                    ->searchable(),
                 TextColumn::make('extra_amount')
                     ->label(__('Extra'))
                     ->money('AED')
                     ->placeholder('—')
                     ->color('success')
                     ->description(fn ($record) => app(IncentiveCalculatorService::class)
-                        ->describeExtraReason((float) $record->extra_percentage)),
+                        ->describeExtraReason((float) $record->extra_percentage))
+                    ->searchable(),
                 TextColumn::make('minimum_penalty_amount')
                     ->label(__('Penalty'))
                     ->money('AED')
                     ->placeholder('—')
                     ->color('danger')
                     ->description(fn ($record) => app(IncentiveCalculatorService::class)
-                        ->describePenaltyReason((float) $record->minimum_penalty_pct)),
+                        ->describePenaltyReason((float) $record->minimum_penalty_pct))
+                    ->searchable(),
                 TextColumn::make('total_amount')
                     ->label(__('Total'))
                     ->money('AED')
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->searchable(),
             ])
             ->recordActions([
                 Action::make('editPercentage')
