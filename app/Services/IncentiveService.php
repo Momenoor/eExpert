@@ -298,6 +298,39 @@ class IncentiveService
     }
 
     /**
+     * Import any newly eligible fees for matters that already have at least
+     * one line in this calculation — so a fee registered on a matter AFTER
+     * it was first imported (e.g. a late-arriving payment) is picked up on
+     * the next recalculation instead of requiring a manual "Add Specific
+     * Matter" force-import. Matters with no lines yet in this calculation
+     * are untouched; only fees not already attached to ANY existing
+     * incentive line (this or another calculation) are imported.
+     *
+     * @return int Number of new fee lines imported.
+     */
+    public function syncNewFeesForCalculation(Model $calculation): int
+    {
+        $matterIds = IncentiveLine::where('incentive_calculation_id', $calculation->id)
+            ->whereNotNull('matter_id')
+            ->distinct()
+            ->pluck('matter_id');
+
+        $imported = 0;
+
+        foreach ($matterIds as $matterId) {
+            $matter = Matter::with('type')->find($matterId);
+            if (! $matter) {
+                continue;
+            }
+
+            $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+            $imported += $this->importMatterFees($calculation, $matter, $feesQuery);
+        }
+
+        return $imported;
+    }
+
+    /**
      * Shared per-matter fee import: creates one IncentiveLine per fee
      * matched by $feesQuery that isn't already attached to an incentive
      * line elsewhere, falling back to a single fee-less line (counted

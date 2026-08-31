@@ -34,7 +34,7 @@ class IncentiveCalculatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new IncentiveCalculatorService;
+        $this->service = app(IncentiveCalculatorService::class);
         // Setting's in-memory runtime cache is a static property that
         // outlives RefreshDatabase's per-test rollback — clear it so a
         // setting changed in one test can't leak into the next.

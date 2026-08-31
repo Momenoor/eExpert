@@ -37,6 +37,8 @@ class IncentiveCalculatorService
 
     private const float DEFAULT_OFFICE_WORK_ADJUSTMENT = 2.0;
 
+    public function __construct(private readonly IncentiveService $incentiveService) {}
+
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /**
@@ -52,6 +54,11 @@ class IncentiveCalculatorService
         }
 
         DB::transaction(function () use ($calculation) {
+
+            // Pick up any fee registered on a matter already in this
+            // calculation since the last run (e.g. a late-arriving fee) so
+            // recalculation stays current without a manual force-import.
+            $this->incentiveService->syncNewFeesForCalculation($calculation);
 
             // Rates/thresholds and deduction toggles — configurable via the
             // Incentive Settings admin page, read fresh on every run so a

@@ -83,7 +83,7 @@ class IncentiveImportAndCalculateTest extends TestCase
             'name' => 'Registered Date Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
         ]);
         $service->importSelectedMatters($calc, [$matter->id]);
-        (new IncentiveCalculatorService)->calculate($calc);
+        app(IncentiveCalculatorService::class)->calculate($calc);
 
         // The full registered fee amount (1000) is used, not the 400
         // collected so far: 1000 * 10% = 100.
@@ -122,7 +122,7 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertNotNull($line);
         $this->assertNull($line->fee_id);
 
-        (new IncentiveCalculatorService)->calculate($calc);
+        app(IncentiveCalculatorService::class)->calculate($calc);
 
         $extra = IncentiveAssistantExtra::where('incentive_calculation_id', $calc->id)->where('party_id', $assistant->id)->first();
         $this->assertEquals(1, $extra->completed_matter_count);
@@ -162,7 +162,7 @@ class IncentiveImportAndCalculateTest extends TestCase
 
         // "Run Calculation" must only recompute existing lines — never add or
         // remove rows, and never touch matterB just because it also qualifies.
-        $calculator = new IncentiveCalculatorService;
+        $calculator = app(IncentiveCalculatorService::class);
         $calculator->calculate($calc);
         $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
 
@@ -350,7 +350,7 @@ class IncentiveImportAndCalculateTest extends TestCase
         ]);
 
         (new IncentiveService)->importSelectedMatters($calc, [$matter->id]);
-        (new IncentiveCalculatorService)->calculate($calc);
+        app(IncentiveCalculatorService::class)->calculate($calc);
 
         // Sanity check: the calc has a line, a deduction (review_count=1 with
         // substantive changes triggers one), and an assistant line/extra.
@@ -433,6 +433,47 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertEquals(0, IncentiveLine::where('incentive_calculation_id', $calcTwo->id)->count());
     }
 
+    public function test_recalculate_automatically_picks_up_a_fee_registered_after_the_matter_was_imported(): void
+    {
+        // Regression: a fee registered on a matter AFTER it was already
+        // imported into a calculation (e.g. a late-arriving payment) must be
+        // picked up automatically the next time "Run Calculation" executes —
+        // not require a manual "Add Specific Matter" force-import.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create([
+            'name' => 'Bankruptcy', 'incentive_config_id' => $config->id,
+            'incentive_trigger_type' => 'final_report_date', 'allow_current_status_import' => true,
+        ]);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => null]);
+        MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+
+        $feeOne = Fee::create(['matter_id' => $matter->id, 'amount' => 1000, 'date' => '2026-06-01', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Late Fee Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calc, [$matter->id]);
+        $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+
+        // A second fee is registered on the SAME matter after it was imported.
+        $feeTwo = Fee::create(['matter_id' => $matter->id, 'amount' => 500, 'date' => '2026-06-15', 'status' => 'unpaid']);
+
+        // "Run Calculation" must pick it up on its own — no manual re-import.
+        app(IncentiveCalculatorService::class)->calculate($calc);
+
+        $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+        $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeOne->id)->exists());
+        $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeTwo->id)->exists());
+
+        // Idempotent: recalculating again must not duplicate the line.
+        app(IncentiveCalculatorService::class)->calculate($calc);
+        $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+    }
+
     public function test_removing_one_matter_leaves_other_matters_and_their_totals_intact(): void
     {
         $config = MatterTypeIncentiveConfig::create([
@@ -454,7 +495,7 @@ class IncentiveImportAndCalculateTest extends TestCase
         $service = new IncentiveService;
         $service->importSelectedMatters($calc, [$matterA->id, $matterB->id]);
 
-        $calculator = new IncentiveCalculatorService;
+        $calculator = app(IncentiveCalculatorService::class);
         $calculator->calculate($calc);
         $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
 
