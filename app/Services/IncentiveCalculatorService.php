@@ -477,11 +477,24 @@ class IncentiveCalculatorService
      */
     public function getAssistantSummary(Model $calculation): Collection
     {
+        // Per-matter fee/base totals across ALL of a matter's incentive
+        // lines — a matter with more than one fee gets one IncentiveLine per
+        // fee, but only ONE IncentiveAssistantLine per assistant (attached
+        // to the matter's FIRST line), so reading fee_amount_excl_vat /
+        // base_amount off that single incentiveLine below would only ever
+        // reflect the first fee while share/total amounts already sum every
+        // fee.
+        $matterFeeTotals = IncentiveLine::where('incentive_calculation_id', $calculation->id)
+            ->selectRaw('matter_id, SUM(fee_amount_excl_vat) as total_fee_amount, SUM(base_amount) as total_base_amount')
+            ->groupBy('matter_id')
+            ->get()
+            ->keyBy('matter_id');
+
         return IncentiveAssistantLine::with('party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions')
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $calculation->id))
             ->get()
             ->groupBy('party_id')
-            ->map(function (Collection $lines, int|string $partyId) use ($calculation) {
+            ->map(function (Collection $lines, int|string $partyId) use ($calculation, $matterFeeTotals) {
                 $extra = IncentiveAssistantExtra::where('incentive_calculation_id', $calculation->id)
                     ->where('party_id', $partyId)
                     ->first();
@@ -504,9 +517,10 @@ class IncentiveCalculatorService
                     'fixed_deduction_reason' => $extra?->fixed_deduction_reason,
                     'total' => max(0.0, $lines->sum('total_amount') - ($extra?->fixed_deduction ?? 0)),
                     'matters' => $lines->groupBy('incentiveLine.matter_id')
-                        ->map(function (Collection $matterLines) {
+                        ->map(function (Collection $matterLines) use ($matterFeeTotals) {
                             $incentiveLine = $matterLines->first()->incentiveLine;
                             $matter = $incentiveLine->matter;
+                            $feeTotals = $matterFeeTotals->get($matter->id);
                             $extraPct = (float) $matterLines->first()->extra_percentage;
                             $penaltyPct = (float) $matterLines->first()->minimum_penalty_pct;
 
@@ -521,12 +535,12 @@ class IncentiveCalculatorService
                                 'court_name' => $matter->court?->name,
                                 'type_name' => $matter->type?->name,
                                 'completion_days' => $incentiveLine->completion_days,
-                                'fee_amount_excl_vat' => $incentiveLine->fee_amount_excl_vat,
+                                'fee_amount_excl_vat' => $feeTotals?->total_fee_amount ?? $incentiveLine->fee_amount_excl_vat,
                                 'base_percentage' => $incentiveLine->base_percentage,
                                 'committee_adjustment' => $incentiveLine->committee_adjustment,
                                 'percentage' => $incentiveLine->effective_percentage,
                                 'percentage_override' => $matterLines->first()->percentage_override,
-                                'base_amount' => $incentiveLine->base_amount,
+                                'base_amount' => $feeTotals?->total_base_amount ?? $incentiveLine->base_amount,
                                 'total_deduction_pct' => $incentiveLine->total_deduction_pct,
                                 'deductions' => $incentiveLine->deductions,
                                 'share_amount' => $matterLines->sum('share_amount'),

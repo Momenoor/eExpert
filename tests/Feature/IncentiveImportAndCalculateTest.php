@@ -544,6 +544,46 @@ class IncentiveImportAndCalculateTest extends TestCase
         $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeTwo->id)->exists());
     }
 
+    public function test_assistant_summary_aggregates_fee_and_base_amount_across_all_of_a_matters_fee_lines(): void
+    {
+        // Regression: a matter with more than one fee gets one IncentiveLine
+        // per fee, but only ONE IncentiveAssistantLine per assistant
+        // (attached to the matter's first line). getAssistantSummary()'s
+        // per-matter 'fee_amount_excl_vat' and 'base_amount' must reflect
+        // the SUM across every fee line, not just the first one — matching
+        // 'share_amount'/'total_amount', which were already summed.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create([
+            'name' => 'Bankruptcy', 'incentive_config_id' => $config->id,
+            'incentive_trigger_type' => 'final_report_date', 'allow_current_status_import' => true,
+        ]);
+        $assistant = Party::create(['name' => 'Assistant', 'role' => ['role' => ['expert'], 'type' => ['assistant']]]);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => null]);
+        MatterParty::create(['matter_id' => $matter->id, 'party_id' => $assistant->id, 'role' => 'expert', 'type' => 'assistant']);
+
+        Fee::create(['matter_id' => $matter->id, 'amount' => 5000, 'date' => '2026-06-01', 'status' => 'unpaid']);
+        Fee::create(['matter_id' => $matter->id, 'amount' => 400, 'date' => '2026-06-15', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Multi Fee Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service = new IncentiveService;
+        $service->importSelectedMatters($calc, [$matter->id]);
+        $this->assertEquals(2, IncentiveLine::where('incentive_calculation_id', $calc->id)->count());
+
+        $calculator = app(IncentiveCalculatorService::class);
+        $calculator->calculate($calc);
+
+        $summary = $calculator->getAssistantSummary($calc);
+        $matterSummary = $summary->first()['matters']->first();
+
+        $this->assertEquals(5400.0, (float) $matterSummary['fee_amount_excl_vat']); // 5000 + 400
+        $this->assertEquals(540.0, (float) $matterSummary['base_amount']); // 5400 * 10%
+        $this->assertEquals(540.0, (float) $matterSummary['total_amount']); // share_amount already summed correctly
+    }
+
     public function test_removing_one_matter_leaves_other_matters_and_their_totals_intact(): void
     {
         $config = MatterTypeIncentiveConfig::create([

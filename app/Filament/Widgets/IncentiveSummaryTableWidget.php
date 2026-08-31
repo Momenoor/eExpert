@@ -18,6 +18,7 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 
@@ -26,6 +27,26 @@ class IncentiveSummaryTableWidget extends TableWidget
     protected int|string|array $columnSpan = 'full';
 
     public ?int $calculationId = null;
+
+    private ?Collection $matterFeeTotalsCache = null;
+
+    /**
+     * Per-matter fee/base totals across ALL of a matter's incentive lines —
+     * a matter with more than one fee gets one IncentiveLine per fee, but
+     * only ONE IncentiveAssistantLine per assistant (attached to the
+     * matter's FIRST line), so reading incentiveLine.fee_amount_excl_vat /
+     * base_amount directly on a record only ever shows the first fee while
+     * Share/Total already reflect every fee. Memoized for the life of this
+     * table render since every row needs it.
+     */
+    private function matterFeeTotals(): Collection
+    {
+        return $this->matterFeeTotalsCache ??= IncentiveLine::where('incentive_calculation_id', $this->calculationId)
+            ->selectRaw('matter_id, SUM(fee_amount_excl_vat) as total_fee_amount, SUM(base_amount) as total_base_amount')
+            ->groupBy('matter_id')
+            ->get()
+            ->keyBy('matter_id');
+    }
 
     /**
      * Widgets are independent Livewire components — they don't automatically
@@ -204,6 +225,8 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->searchable(),
                 TextColumn::make('incentiveLine.fee_amount_excl_vat')
                     ->label(__('Fee'))
+                    ->getStateUsing(fn ($record) => $this->matterFeeTotals()->get($record->incentiveLine?->matter_id)?->total_fee_amount
+                        ?? $record->incentiveLine?->fee_amount_excl_vat)
                     ->money('AED')
                     ->searchable(),
                 TextColumn::make('incentiveLine.effective_percentage')
@@ -213,6 +236,8 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->searchable(),
                 TextColumn::make('incentiveLine.base_amount')
                     ->label(__('Base Amount'))
+                    ->getStateUsing(fn ($record) => $this->matterFeeTotals()->get($record->incentiveLine?->matter_id)?->total_base_amount
+                        ?? $record->incentiveLine?->base_amount)
                     ->money('AED')
                     ->searchable(),
                 TextColumn::make('incentiveLine.total_deduction_pct')
@@ -377,7 +402,8 @@ class IncentiveSummaryTableWidget extends TableWidget
             $parts[] = __('override');
         }
 
-        $feeAmount = (float) ($record->incentiveLine?->fee_amount_excl_vat ?? 0);
+        $feeAmount = (float) ($this->matterFeeTotals()->get($record->incentiveLine?->matter_id)?->total_fee_amount
+            ?? $record->incentiveLine?->fee_amount_excl_vat ?? 0);
         if ($feeAmount > 0) {
             $ownPct = round((float) $record->share_amount / $feeAmount * 100, 2);
             if ($ownPct != $record->incentiveLine?->effective_percentage) {
