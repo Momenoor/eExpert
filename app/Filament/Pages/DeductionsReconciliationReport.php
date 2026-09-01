@@ -65,20 +65,19 @@ class DeductionsReconciliationReport extends Page implements HasTable
     protected function getTableQuery(): Builder
     {
         $deductions = FeeType::deductionTypeValues();
-        $excluded = FeeType::excludedFromIncentiveValues();
 
         $deductionPlaceholders = implode(',', array_fill(0, count($deductions), '?'));
-        $excludedPlaceholders = implode(',', array_fill(0, count($excluded), '?'));
 
         return Matter::query()
             ->with(['court', 'type'])
             ->whereHas('fees', fn ($q) => $q->whereIn('type', $deductions))
             ->select('matters.*')
+            // Every fee line, signed — the same set the allocations below span.
+            // Comparing revenue-only billing against all-line collections made a
+            // paid VAT line read as an unexplained variance.
             ->selectRaw(
                 '(SELECT COALESCE(SUM(f.amount), 0) FROM fees f
-                    WHERE f.matter_id = matters.id
-                      AND (f.type IS NULL OR f.type NOT IN ('.$excludedPlaceholders.'))) as revenue_billed',
-                $excluded
+                    WHERE f.matter_id = matters.id) as revenue_billed'
             )
             ->selectRaw(
                 '(SELECT COALESCE(SUM(ABS(f.amount)), 0) FROM fees f
@@ -126,7 +125,7 @@ class DeductionsReconciliationReport extends Page implements HasTable
                     ->wrap(),
 
                 TextColumn::make('revenue_billed')
-                    ->label(__('Revenue Billed'))
+                    ->label(__('Net Billed'))
                     ->money('AED')
                     ->alignEnd()
                     ->sortable()

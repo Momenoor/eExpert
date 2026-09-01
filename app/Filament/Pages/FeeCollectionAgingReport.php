@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\FeeType;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
 use App\Models\Matter;
@@ -38,12 +37,17 @@ use UnitEnum;
  * as over-collected and the deduction line as uncollected. Netting at matter
  * level makes those cancel, which is what actually happened:
  *
- *   owed        = the matter's revenue fees (VAT and deduction types excluded)
- *   received    = NET allocations across ALL of the matter's fee lines
- *   outstanding = owed - received
+ *   net billed  = SUM of every fee on the matter, signed — VAT adds, deduction
+ *                 lines subtract
+ *   received    = SUM of every allocation across those same fee lines
+ *   outstanding = net billed - received
  *
- * A matter is aged from its oldest revenue fee, i.e. when the office first
- * became owed money on it.
+ * Both sides must span the same fee lines. Counting only revenue fees as owed
+ * while counting all allocations as received made every paid VAT or office-share
+ * line look like over-collection of exactly its own amount.
+ *
+ * A matter is aged from its oldest fee, i.e. when the office first became owed
+ * money on it.
  */
 class FeeCollectionAgingReport extends Page implements HasTable
 {
@@ -75,15 +79,19 @@ class FeeCollectionAgingReport extends Page implements HasTable
 
     protected function getTableQuery(): Builder
     {
-        $excluded = FeeType::excludedFromIncentiveValues();
-
-        // What the client was billed, and when we first billed it.
+        // Billed and received must cover the SAME set of fee lines, or the two
+        // sides cannot be compared. An earlier version counted only revenue
+        // fees as owed while counting allocations from every line as received,
+        // so a paid VAT line — or a settled office share — surfaced as
+        // over-collection equal to its own amount, on 55 matters.
+        //
+        // Both sides now span every fee on the matter and keep their signs, so
+        // VAT adds to what is owed and deduction lines subtract from it, and a
+        // fully settled matter lands on exactly zero.
         $owed = DB::table('fees')
             ->selectRaw('matter_id, SUM(amount) as owed, MIN(date) as first_billed')
-            ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', $excluded))
             ->groupBy('matter_id');
 
-        // What came in, netted across every line so deductions cancel.
         $received = DB::table('allocations')
             ->join('fees', 'fees.id', '=', 'allocations.fee_id')
             ->selectRaw('fees.matter_id as matter_id, SUM(allocations.amount) as received')
@@ -149,7 +157,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
                     ->sortable(),
 
                 TextColumn::make('owed_amount')
-                    ->label(__('Billed'))
+                    ->label(__('Net Billed'))
                     ->money('AED')
                     ->alignEnd()
                     ->sortable()

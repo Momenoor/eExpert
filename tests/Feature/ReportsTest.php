@@ -55,12 +55,11 @@ class ReportsTest extends TestCase
         $this->assertEquals(45, (int) $row->days_outstanding);
     }
 
-    public function test_aging_nets_a_commission_matter_to_zero_outstanding(): void
+    public function test_aging_settles_a_commission_matter_to_zero(): void
     {
-        // The historical pattern: the client's gross payment lands on the
-        // revenue fee and the office-share line carries the offsetting
-        // negative. Per fee the revenue line looks over-collected; per matter
-        // it is exactly settled, which is what this report must show.
+        // A commission matter recorded correctly: each line collected to exactly
+        // its own amount. Net billed is 3000 - 750 = 2250 and net received is
+        // 3000 - 750 = 2250, so the matter is settled.
         $matter = Matter::factory()->create();
 
         $expertFee = Fee::factory()->for($matter)->create([
@@ -74,26 +73,43 @@ class ReportsTest extends TestCase
             'date' => now()->subDays(10),
         ]);
 
-        Allocation::factory()->for($expertFee)->create(['amount' => 3750]);
+        Allocation::factory()->for($expertFee)->create(['amount' => 3000]);
         Allocation::factory()->for($officeShare)->create(['amount' => -750]);
 
         $row = $this->tableQuery(new FeeCollectionAgingReport)->firstWhere('id', $matter->id);
 
-        // Billed excludes the deduction line; received is netted across both.
-        $this->assertEquals(3000.0, (float) $row->owed_amount);
-        $this->assertEquals(3000.0, (float) $row->received_amount);
+        $this->assertEquals(2250.0, (float) $row->owed_amount);
+        $this->assertEquals(2250.0, (float) $row->received_amount);
         $this->assertEquals(0.0, (float) $row->outstanding_amount);
     }
 
-    public function test_aging_excludes_vat_from_what_is_owed(): void
+    public function test_a_paid_vat_line_is_not_reported_as_over_collection(): void
     {
+        // Regression: billed counted revenue fees only while received counted
+        // allocations from every line, so a fully paid VAT line surfaced as
+        // over-collection of exactly the VAT amount — on 55 production matters.
         $matter = Matter::factory()->create();
-        Fee::factory()->for($matter)->create(['type' => FeeType::EXPERT_FEE, 'amount' => 1000, 'date' => now()->subDay()]);
-        Fee::factory()->for($matter)->create(['type' => FeeType::VAT, 'amount' => 50, 'date' => now()->subDay()]);
+
+        $expertFee = Fee::factory()->for($matter)->create([
+            'type' => FeeType::EXPERT_FEE,
+            'amount' => 1000,
+            'date' => now()->subDay(),
+        ]);
+        $vat = Fee::factory()->for($matter)->create([
+            'type' => FeeType::VAT,
+            'amount' => 50,
+            'date' => now()->subDay(),
+        ]);
+
+        Allocation::factory()->for($expertFee)->create(['amount' => 1000]);
+        Allocation::factory()->for($vat)->create(['amount' => 50]);
 
         $row = $this->tableQuery(new FeeCollectionAgingReport)->firstWhere('id', $matter->id);
 
-        $this->assertEquals(1000.0, (float) $row->owed_amount);
+        // VAT counts on BOTH sides, so the matter is settled, not over-collected.
+        $this->assertEquals(1050.0, (float) $row->owed_amount);
+        $this->assertEquals(1050.0, (float) $row->received_amount);
+        $this->assertEquals(0.0, (float) $row->outstanding_amount);
     }
 
     // ── Overdue Matters ──────────────────────────────────────────────────────
