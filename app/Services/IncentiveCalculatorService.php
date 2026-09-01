@@ -517,22 +517,36 @@ class IncentiveCalculatorService
             ->get()
             ->keyBy('matter_id');
 
-        return IncentiveAssistantLine::with('party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions')
+        $assistantLines = IncentiveAssistantLine::with('party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions')
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $calculation->id))
-            ->get()
+            ->get();
+
+        // How many assistants shared each matter. Counted across the whole set
+        // before grouping by party, since a party's own rows cannot see who
+        // else worked the matter.
+        $assistantCountByMatter = $assistantLines
+            ->groupBy('incentiveLine.matter_id')
+            ->map(fn (Collection $lines) => $lines->pluck('party_id')->unique()->count());
+
+        return $assistantLines
             ->groupBy('party_id')
-            ->map(function (Collection $lines, int|string $partyId) use ($calculation, $matterFeeTotals) {
+            ->map(function (Collection $lines, int|string $partyId) use ($calculation, $matterFeeTotals, $assistantCountByMatter) {
                 $extra = IncentiveAssistantExtra::where('incentive_calculation_id', $calculation->id)
                     ->where('party_id', $partyId)
                     ->first();
 
                 $matters = $lines->groupBy('incentiveLine.matter_id')
-                    ->map(function (Collection $matterLines) use ($matterFeeTotals) {
+                    ->map(function (Collection $matterLines) use ($matterFeeTotals, $assistantCountByMatter) {
                         $incentiveLine = $matterLines->first()->incentiveLine;
                         $matter = $incentiveLine->matter;
                         $feeTotals = $matterFeeTotals->get($matter->id);
                         $extraPct = (float) $matterLines->first()->extra_percentage;
                         $penaltyPct = (float) $matterLines->first()->minimum_penalty_pct;
+
+                        // Resolved once: the per-matter total when the matter has
+                        // several fee lines, otherwise this line's own amount.
+                        $feeAmount = $feeTotals?->total_fee_amount ?? $incentiveLine->fee_amount_excl_vat;
+                        $shareAmount = (float) $matterLines->sum('share_amount');
 
                         return [
                             'matter_id' => $matter->id,
@@ -545,7 +559,7 @@ class IncentiveCalculatorService
                             'court_name' => $matter->court?->name,
                             'type_name' => $matter->type?->name,
                             'completion_days' => $incentiveLine->completion_days,
-                            'fee_amount_excl_vat' => $feeTotals?->total_fee_amount ?? $incentiveLine->fee_amount_excl_vat,
+                            'fee_amount_excl_vat' => $feeAmount,
                             'base_percentage' => $incentiveLine->base_percentage,
                             'committee_adjustment' => $incentiveLine->committee_adjustment,
                             'percentage' => $incentiveLine->effective_percentage,
@@ -553,7 +567,19 @@ class IncentiveCalculatorService
                             'base_amount' => $feeTotals?->total_base_amount ?? $incentiveLine->base_amount,
                             'total_deduction_pct' => $incentiveLine->total_deduction_pct,
                             'deductions' => $incentiveLine->deductions,
-                            'share_amount' => $matterLines->sum('share_amount'),
+                            // The Rate column shows the MATTER's percentage, which
+                            // is identical on every co-assistant's row because it
+                            // belongs to the case, not the person. When the pool is
+                            // split — equally, or by commission_percentage weights —
+                            // the amount beside it is a fraction of what that rate
+                            // implies, and nothing on the printed statement said so.
+                            // These two make the split visible, matching what the
+                            // on-screen summary already shows.
+                            'assistant_count' => $assistantCountByMatter->get($matter->id, 1),
+                            'own_percentage' => (float) $feeAmount > 0
+                                ? round($shareAmount / (float) $feeAmount * 100, 2)
+                                : null,
+                            'share_amount' => $shareAmount,
                             'extra_amount' => $matterLines->sum('extra_amount'),
                             'extra_reason' => $this->describeExtraReason($extraPct),
                             'penalty_amount' => $matterLines->sum('minimum_penalty_amount'),

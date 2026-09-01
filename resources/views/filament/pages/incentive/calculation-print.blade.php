@@ -191,6 +191,21 @@
                                     @else
                                         {{ $m['percentage'] }}%
                                     @endif
+
+                                    {{-- The rate above belongs to the MATTER and reads
+                                         the same on every co-assistant's row. When the
+                                         pool is split, this assistant's actual cut is a
+                                         fraction of it. --}}
+                                    @if($m['assistant_count'] > 1)
+                                        <div class="text-gray-400">
+                                            {{ __('Split between :count assistants', ['count' => $m['assistant_count']]) }}
+                                        </div>
+                                    @endif
+                                    @if($m['own_percentage'] !== null && $m['own_percentage'] != ($m['percentage_override'] ?? $m['percentage']))
+                                        <div class="text-gray-400">
+                                            {{ __('Share') }}: {{ $m['own_percentage'] }}%
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-2 py-1">
                                     @forelse($m['deductions'] as $d)

@@ -148,6 +148,21 @@
                     @else
                         {{ $m['percentage'] }}%
                     @endif
+
+                    {{-- The rate above is the MATTER's, identical for every
+                         assistant on it. Where the pool is shared, say so and give
+                         this assistant's real cut — the same two facts the on-screen
+                         summary shows. --}}
+                    @if($m['assistant_count'] > 1)
+                        <div class="text-gray-400">
+                            {{ __('Split between :count assistants', ['count' => $m['assistant_count']]) }}
+                        </div>
+                    @endif
+                    @if($m['own_percentage'] !== null && $m['own_percentage'] != ($m['percentage_override'] ?? $m['percentage']))
+                        <div class="text-gray-400">
+                            {{ __('Your share') }}: {{ $m['own_percentage'] }}%
+                        </div>
+                    @endif
                 </td>
                 <td class="px-3 py-2 text-right text-gray-500">{{ number_format($m['base_amount'], 2) }}</td>
                 <td class="px-3 py-2">
