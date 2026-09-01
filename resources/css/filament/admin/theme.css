@@ -60,3 +60,75 @@ html {
         display: none;
     }
 }
+
+/*
+ * Scrolling system announcement.
+ *
+ * Replaces <marquee>, which is obsolete, cannot be paused, ignores
+ * prefers-reduced-motion, and always scrolls right-to-left regardless of page
+ * direction — the wrong way round for this panel's Arabic default.
+ *
+ * The track holds two copies of the message; sliding it by exactly one copy
+ * plus one gap puts the second copy where the first started, so the loop has no
+ * visible seam.
+ */
+.fi-announcement {
+    overflow: hidden;
+    width: 100%;
+    /* The slide is a negative translate, i.e. a direction-independent
+       movement, so the track is laid out LTR to keep an Arabic announcement
+       travelling the same way as an English one. */
+    direction: ltr;
+}
+
+.fi-announcement-track {
+    display: flex;
+    width: max-content;
+    gap: 4rem;
+    will-change: transform;
+    animation: fi-announcement-scroll 30s linear infinite;
+}
+
+.fi-announcement-item {
+    flex: none;
+    white-space: nowrap;
+    /* Restored for the text itself so Arabic still shapes and orders
+       correctly inside each copy. */
+    direction: rtl;
+    unicode-bidi: plaintext;
+}
+
+/* A moving line is hard to read; hovering or tabbing into it stops the scroll. */
+.fi-announcement:hover .fi-announcement-track,
+.fi-announcement:focus-within .fi-announcement-track {
+    animation-play-state: paused;
+}
+
+@keyframes fi-announcement-scroll {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        /* The track is two copies plus one 4rem gap, so 50% of it is one copy
+           plus 2rem. Adding the other 2rem slides a full copy-and-gap, landing
+           the second copy exactly where the first began. */
+        transform: translateX(calc(-50% - 2rem));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-announcement-track {
+        animation: none;
+        width: 100%;
+    }
+
+    .fi-announcement-item {
+        white-space: normal;
+    }
+
+    /* One static, wrapping copy for anyone who asked for less motion. */
+    .fi-announcement-item[aria-hidden='true'] {
+        display: none;
+    }
+}
