@@ -51,8 +51,18 @@ class CollectionsAgingWidget extends ChartWidget
         foreach ($buckets as $range) {
             [$from, $to] = $range;
 
+            // Collected is joined in as a pre-grouped subquery, NOT a correlated
+            // subquery inside the SUM(): a correlation referencing fees.id from
+            // within an aggregate resolves against an arbitrary row, which made
+            // an earlier version of this widget report the gross total as
+            // outstanding instead of the actual balance.
+            $collected = DB::table('allocations')
+                ->selectRaw('fee_id, SUM(amount) as collected')
+                ->groupBy('fee_id');
+
             $query = DB::table('fees')
                 ->join('matters', 'matters.id', '=', 'fees.matter_id')
+                ->leftJoinSub($collected, 'paid', 'paid.fee_id', '=', 'fees.id')
                 ->whereNull('matters.deleted_at')
                 ->whereNotNull('fees.date')
                 ->where(function ($q) {
@@ -65,13 +75,15 @@ class CollectionsAgingWidget extends ChartWidget
                 $query->whereDate('fees.date', '>=', now()->subDays($to)->toDateString());
             }
 
-            // Outstanding = registered amount minus whatever has been allocated.
             $total = (float) $query
-                ->selectRaw('COALESCE(SUM(fees.amount) - COALESCE((
-                    SELECT SUM(a.amount) FROM allocations a WHERE a.fee_id = fees.id
-                ), 0), 0) as outstanding')
+                ->selectRaw('COALESCE(SUM(fees.amount) - SUM(COALESCE(paid.collected, 0)), 0) as outstanding')
                 ->value('outstanding');
 
+            // Clamped at zero: a bucket can be net over-collected (production
+            // currently has ~400 fees whose allocations exceed the fee, because
+            // the gross payment is allocated to the expert fee while the office
+            // share is recorded separately). A negative bar would read as
+            // nonsense here, so the bucket floors at nothing outstanding.
             $outstanding[] = round(max(0, $total), 2);
         }
 
