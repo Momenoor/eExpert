@@ -23,16 +23,9 @@
 --}}
 <div class="mt-2.5">
     <x-filament::callout color="warning" icon="heroicon-o-megaphone">
-        {{-- The callout has no default slot in v5; `footer` is the one body slot
-             that is not wrapped in a <p>, which a block-level scroller cannot
-             legally sit inside. Passing the text through `description` or
-             `controls` as an HtmlString would render it unescaped. --}}
-        <x-slot name="footer">
-            <div class="fi-announcement">
-                <div class="fi-announcement-track">
-                    <span class="fi-announcement-item">{{ $announcement }}</span>
-                    <span class="fi-announcement-item" aria-hidden="true">{{ $announcement }}</span>
-                </div>
+        <x-slot name="controls">
+            <div style="width:200% !important">
+                <marquee loop="0" scrollamount="5" direction="left" direction="right">{{ $announcement }}</marquee>
             </div>
         </x-slot>
     </x-filament::callout>
