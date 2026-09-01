@@ -13,6 +13,7 @@ use App\Services\IncentiveService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -69,6 +70,12 @@ class ViewIncentiveCalculation extends ViewRecord
                     Repeater::make('temp_lines')
                         ->label('')
                         ->schema([
+                            // Without this the action's ->pluck('matter_id') returned
+                            // an array of nulls and the import silently did nothing:
+                            // a repeater only dehydrates the fields it declares, and
+                            // every other field here is ->disabled() (also not
+                            // dehydrated), so only is_selected survived.
+                            Hidden::make('matter_id'),
                             Checkbox::make('is_selected')
                                 ->hiddenLabel(),
                             TextInput::make('reference')
@@ -86,10 +93,21 @@ class ViewIncentiveCalculation extends ViewRecord
                         ->reorderable(false),
                 ])
                 ->action(function (array $data) {
-                    $selectedMatterIds = collect($data['temp_lines'])
+                    $selectedMatterIds = collect($data['temp_lines'] ?? [])
                         ->where('is_selected', true)
                         ->pluck('matter_id')
-                        ->toArray();
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    if ($selectedMatterIds === []) {
+                        Notification::make()
+                            ->title(__('No matters selected'))
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
 
                     app(IncentiveService::class)->importSelectedMatters($this->record, $selectedMatterIds);
                     Notification::make()

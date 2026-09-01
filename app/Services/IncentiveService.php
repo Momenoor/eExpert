@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\FeeType;
 use App\Models\Fee;
-use App\Models\IncentiveExtraRule;
 use App\Models\IncentiveLine;
 use App\Models\Matter;
 use Carbon\Carbon;
@@ -129,17 +128,6 @@ class IncentiveService
         // Get already imported fee IDs to skip them in calculations
         $importedFeeIds = IncentiveLine::pluck('fee_id')->filter()->toArray();
 
-        // We need to group by assistant to calculate the additional_percentage bonus
-        $assistantMatterCounts = [];
-
-        foreach ($matters as $matter) {
-            $assistants = $matter->assistantsOnly;
-            foreach ($assistants as $assistant) {
-                $assistantId = $assistant->party_id;
-                $assistantMatterCounts[$assistantId] = ($assistantMatterCounts[$assistantId] ?? 0) + 1;
-            }
-        }
-
         foreach ($matters as $matter) {
             // Get a primary fee ID to satisfy DB constraint if needed
             // We MUST ensure this primary fee hasn't been imported yet
@@ -185,32 +173,18 @@ class IncentiveService
             // And now "exclude office share also from fees".
             $netCollectedAmount = max(0, $collectedFeesAmount - $courtPenalties - $officeShare - $commissionDeduction);
 
-            // Standard baseline incentive percentage
-            $basePercentage = $this->calculateBasePercentage($matter);
-
-            // Calculate additional percentage based on assistant's matter count
-            // Note: In a real scenario, this might be more complex if multiple assistants are on one matter.
-            // For now, we'll take the max bonus among assistants on this matter or average?
-            // The requirement says "assigned to the employee/team".
-            $additionalPercentage = 0;
-            $assistants = $matter->assistantsOnly;
-            if ($assistants->isNotEmpty()) {
-                $maxBonus = 0;
-                foreach ($assistants as $assistant) {
-                    $count = $assistantMatterCounts[$assistant->party_id] ?? 0;
-                    $bonus = IncentiveExtraRule::getPercentageForCount($count);
-                    if ($bonus > $maxBonus) {
-                        $maxBonus = $bonus;
-                    }
-                }
-                $additionalPercentage = $maxBonus;
-            }
-
-            $totalPercentage = $basePercentage + $additionalPercentage;
-
-            // Total incentive = net_collected_amount * total_percentage / 100
-            $totalIncentive = ($netCollectedAmount * $totalPercentage) / 100;
-
+            // No percentage/incentive estimate is produced here on purpose.
+            //
+            // This method only feeds the "Import Qualifying Matters" preview,
+            // which displays reference, court, assistants, fees, collected and
+            // net basis — nothing else. It used to also call a second,
+            // divergent base-percentage implementation that measured from
+            // received_at; migration 2026_03_27_092937 renamed the original
+            // column to distributed_at and created a NEW, always-null
+            // received_at, so that path returned 0% for every matter and the
+            // preview's figures never matched what IncentiveCalculatorService
+            // actually produces on import. IncentiveCalculatorService is the
+            // single source of truth for percentages.
             $calculatedData->push([
                 'matter_id' => $matter->id,
                 'fee_id' => $primaryFee?->id, // Use the primary fee ID found above
@@ -225,9 +199,6 @@ class IncentiveService
                 'net_collected_amount' => $netCollectedAmount,
                 'court_penalties' => $courtPenalties,
                 'external_commission_pct' => $externalCommissionPct,
-                'calculation_percent' => $basePercentage,
-                'additional_percentage' => $additionalPercentage,
-                'total_incentive' => $totalIncentive,
             ]);
         }
 
@@ -411,52 +382,5 @@ class IncentiveService
         }
 
         return $imported;
-    }
-
-    public function calculateBasePercentage(Matter $matter): float
-    {
-        $config = $matter->type?->incentiveConfig;
-        if (! $config) {
-            return 0;
-        }
-
-        $percentage = 0;
-        $difficulty = $matter->difficulty ?? 'medium';
-
-        if ($config->calculation_type === 'fixed') {
-            $percentage = (float) $config->fixed_percentage;
-        } else {
-            // For tiered/committee, we calculate completion days
-            $receivedAt = $matter->received_at;
-            $initialReportAt = $matter->initial_report_at;
-
-            if ($receivedAt instanceof Carbon && $initialReportAt instanceof Carbon) {
-                // Use common logic from IncentiveCalculatorService
-                $calculator = app(IncentiveCalculatorService::class);
-                $days = $calculator->workingDaysBetween($receivedAt, $initialReportAt);
-
-                $tier = $config->tiers()
-                    ->where('difficulty', $difficulty)
-                    ->where('days_from', '<=', $days)
-                    ->where(function ($q) use ($days) {
-                        $q->where('days_to', '>=', $days)
-                            ->orWhereNull('days_to');
-                    })
-                    ->first();
-
-                $percentage = (float) ($tier?->percentage ?? 0);
-
-                if ($config->calculation_type === 'committee') {
-                    $committeeAdj = ($matter->commissioning === 'individual') ? 2.0 : -2.0;
-                    $percentage = max(0.0, $percentage + $committeeAdj);
-                }
-            }
-        }
-
-        // Custom Field (MatterMeta) Percentage Adjustment
-        $calculator = app(IncentiveCalculatorService::class);
-        $totalAdjustment = $calculator->calculateMetaAdjustment($matter);
-
-        return $percentage + $totalAdjustment;
     }
 }

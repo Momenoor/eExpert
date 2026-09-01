@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Matters\Tables;
 
 use App\Enums\MatterCollectionStatus;
+use App\Filament\Concerns\HasMultiWordSearch;
 use App\Models\Party;
 use App\Models\Type;
 use Carbon\Carbon;
@@ -27,34 +28,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class MattersTable
 {
-    private static function splitSearch(string $search): array
-    {
-        return $search
-                |> trim(...)
-                |> (fn ($x) => preg_split('/[\s\/\\\\\-]+/', $x))
-                |> (fn ($x) => array_filter($x, fn ($token) => strlen($token) > 0))
-                |> array_values(...);
-    }
-
-    private static function applyMultiWordSearch(Builder $query, string $search, array $columns): Builder
-    {
-        $tokens = static::splitSearch($search);
-        foreach ($tokens as $token) {
-            $query->where(function (Builder $query) use ($token, $columns) {
-                foreach ($columns as $i => $column) {
-                    $method = $i === 0 ? 'where' : 'orWhere';
-                    if (str_contains($column, '.')) {
-                        [$relation, $col] = explode('.', $column, 2);
-                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn ($r) => $r->where($col, 'like', "%{$token}%"));
-                    } else {
-                        $query->{$method}($column, 'like', "%{$token}%");
-                    }
-                }
-            });
-        }
-
-        return $query;
-    }
+    use HasMultiWordSearch;
 
     public static function configure(Table $table): Table
     {

@@ -238,4 +238,44 @@ class MatterRequestTest extends TestCase
         $this->assertEquals(RequestStatus::APPROVED, $request->fresh()->status);
         $this->assertEquals('2026-05-01', $matter->fresh()->distributed_at->toDateString());
     }
+
+    public function test_auto_confirm_command_applies_the_proposed_date_and_leaves_recent_requests_alone(): void
+    {
+        // Regression: the scheduled command used a mass update() that flipped the
+        // status columns only, so the auto-approval never applied the proposed
+        // date to the matter and never notified anyone -- it did strictly less
+        // than a manual approval. It now routes through the request service.
+        $staleMatter = $this->makeMatter(['number' => '1', 'distributed_at' => '2026-01-01']);
+        $freshMatter = $this->makeMatter(['number' => '2', 'distributed_at' => '2026-01-01']);
+        $requester = User::factory()->create();
+
+        $stale = MatterRequest::create([
+            'matter_id' => $staleMatter->id,
+            'request_by' => $requester->id,
+            'type' => RequestType::CHANGE_DISTRIBUTED_DATE,
+            'status' => 'pending',
+            'comment' => 'stale',
+            'extra' => ['proposed_distributed_at' => '2026-05-01'],
+        ]);
+        $stale->forceFill(['created_at' => now()->subDays(3)])->saveQuietly();
+
+        $recent = MatterRequest::create([
+            'matter_id' => $freshMatter->id,
+            'request_by' => $requester->id,
+            'type' => RequestType::CHANGE_DISTRIBUTED_DATE,
+            'status' => 'pending',
+            'comment' => 'recent',
+            'extra' => ['proposed_distributed_at' => '2026-06-01'],
+        ]);
+
+        $this->artisan('matter:confirm-receiving')->assertSuccessful();
+
+        // Stale request auto-approved AND its proposed date applied.
+        $this->assertEquals(RequestStatus::APPROVED, $stale->fresh()->status);
+        $this->assertEquals('2026-05-01', $staleMatter->fresh()->distributed_at->toDateString());
+
+        // A request raised today is left for the assistant to answer.
+        $this->assertEquals(RequestStatus::PENDING, $recent->fresh()->status);
+        $this->assertEquals('2026-01-01', $freshMatter->fresh()->distributed_at->toDateString());
+    }
 }
