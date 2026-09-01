@@ -4,18 +4,26 @@ namespace App\Filament\Widgets;
 
 use App\Enums\FeeType;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Outstanding fees bucketed by how long they have been owed.
+ * Outstanding balances bucketed by how long they have been owed.
  *
  * Nothing in the system computed aging before this — collection_status only
- * says paid / partial / unpaid, never "how overdue". Buckets run from the fee's
- * REGISTRATION date (fees.date), which is the date the office became owed the
- * money, not when any part of it happened to be collected.
+ * says paid / partial / unpaid, never "how overdue".
  *
- * VAT and deduction-type fees are excluded: VAT is a pass-through tax and the
- * deduction types reduce revenue rather than representing money owed to us.
+ * Computed per MATTER, not per fee. On a commission matter the client's gross
+ * payment is allocated to the revenue fee while the office-share line carries
+ * the offsetting negative, so a per-fee view shows the revenue line as
+ * over-collected and the deduction line as uncollected. Netting at matter level
+ * makes those cancel, which is what actually happened:
+ *
+ *   owed     = the matter's revenue fees (what the client was billed)
+ *   received = NET allocations across all of the matter's fee lines
+ *
+ * Each matter is aged by its oldest revenue fee, since that is when the office
+ * first became owed money on it.
  */
 class CollectionsAgingWidget extends ChartWidget
 {
@@ -32,66 +40,59 @@ class CollectionsAgingWidget extends ChartWidget
     {
         $user = auth()->user();
 
-        return $user?->can('CollectFee:Matter')
-            || $user?->can('ViewAny:IncentiveCalculation')
-            || false;
+        return ($user?->can('CollectFee:Matter') ?? false)
+            || ($user?->can('ViewAny:IncentiveCalculation') ?? false);
     }
 
     protected function getData(): array
     {
-        $buckets = [
-            '0-30' => [0, 30],
-            '31-60' => [31, 60],
-            '61-90' => [61, 90],
-            '90+' => [91, null],
-        ];
+        $excluded = FeeType::excludedFromIncentiveValues();
 
-        $outstanding = [];
+        // Owed and first-billed date, per matter, from revenue fees only.
+        $owed = DB::table('fees')
+            ->selectRaw('matter_id, SUM(amount) as owed, MIN(date) as first_billed')
+            ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', $excluded))
+            ->whereNotNull('date')
+            ->groupBy('matter_id');
 
-        foreach ($buckets as $range) {
-            [$from, $to] = $range;
+        // Received, per matter, netted across every fee line including deductions.
+        $received = DB::table('allocations')
+            ->join('fees', 'fees.id', '=', 'allocations.fee_id')
+            ->selectRaw('fees.matter_id as matter_id, SUM(allocations.amount) as received')
+            ->groupBy('fees.matter_id');
 
-            // Collected is joined in as a pre-grouped subquery, NOT a correlated
-            // subquery inside the SUM(): a correlation referencing fees.id from
-            // within an aggregate resolves against an arbitrary row, which made
-            // an earlier version of this widget report the gross total as
-            // outstanding instead of the actual balance.
-            $collected = DB::table('allocations')
-                ->selectRaw('fee_id, SUM(amount) as collected')
-                ->groupBy('fee_id');
+        $rows = DB::query()
+            ->fromSub($owed, 'owed')
+            ->join('matters', 'matters.id', '=', 'owed.matter_id')
+            ->leftJoinSub($received, 'paid', 'paid.matter_id', '=', 'owed.matter_id')
+            ->whereNull('matters.deleted_at')
+            ->selectRaw('owed.first_billed, (owed.owed - COALESCE(paid.received, 0)) as outstanding')
+            ->havingRaw('outstanding > 0.005')
+            ->get();
 
-            $query = DB::table('fees')
-                ->join('matters', 'matters.id', '=', 'fees.matter_id')
-                ->leftJoinSub($collected, 'paid', 'paid.fee_id', '=', 'fees.id')
-                ->whereNull('matters.deleted_at')
-                ->whereNotNull('fees.date')
-                ->where(function ($q) {
-                    $q->whereNull('fees.type')
-                        ->orWhereNotIn('fees.type', FeeType::excludedFromIncentiveValues());
-                })
-                ->whereDate('fees.date', '<=', now()->subDays($from)->toDateString());
+        $buckets = [0.0, 0.0, 0.0, 0.0];
 
-            if ($to !== null) {
-                $query->whereDate('fees.date', '>=', now()->subDays($to)->toDateString());
-            }
+        foreach ($rows as $row) {
+            // Billed date -> today, in that order: Carbon returns b - a, so the
+            // reverse yields a negative age and drops everything into 0-30.
+            $days = Carbon::parse($row->first_billed)->startOfDay()
+                ->diffInDays(now()->startOfDay());
 
-            $total = (float) $query
-                ->selectRaw('COALESCE(SUM(fees.amount) - SUM(COALESCE(paid.collected, 0)), 0) as outstanding')
-                ->value('outstanding');
+            $index = match (true) {
+                $days <= 30 => 0,
+                $days <= 60 => 1,
+                $days <= 90 => 2,
+                default => 3,
+            };
 
-            // Clamped at zero: a bucket can be net over-collected (production
-            // currently has ~400 fees whose allocations exceed the fee, because
-            // the gross payment is allocated to the expert fee while the office
-            // share is recorded separately). A negative bar would read as
-            // nonsense here, so the bucket floors at nothing outstanding.
-            $outstanding[] = round(max(0, $total), 2);
+            $buckets[$index] += (float) $row->outstanding;
         }
 
         return [
             'datasets' => [
                 [
                     'label' => __('Outstanding (AED)'),
-                    'data' => $outstanding,
+                    'data' => array_map(fn (float $v) => round($v, 2), $buckets),
                     'backgroundColor' => [
                         'rgba(16, 185, 129, 0.65)',
                         'rgba(245, 158, 11, 0.65)',

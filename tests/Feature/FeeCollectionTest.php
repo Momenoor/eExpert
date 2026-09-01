@@ -87,6 +87,85 @@ class FeeCollectionTest extends TestCase
         $this->assertTrue((bool) $matter->fresh()->has_court_penalty);
     }
 
+    public function test_a_revenue_fee_holding_the_gross_on_a_commission_matter_is_paid_not_overpaid(): void
+    {
+        // The commission pattern: the client's gross payment lands on the
+        // revenue fee while the office-share line carries the offsetting
+        // negative. ~405 production fees look like this. Before the offset
+        // allowance they all read as overpaid the moment updateStatus() ran.
+        $matter = Matter::factory()->create();
+
+        $expertFee = Fee::factory()->for($matter)->create([
+            'type' => FeeType::EXPERT_FEE,
+            'amount' => 3000,
+        ]);
+        Fee::factory()->for($matter)->create([
+            'type' => FeeType::OFFICE_SHARE,
+            'amount' => 750,
+        ]);
+
+        Allocation::factory()->for($expertFee)->create(['amount' => 3750]);
+
+        $expertFee->refresh()->updateStatus();
+
+        $this->assertEquals(FeeStatus::PAID, $expertFee->fresh()->status);
+    }
+
+    public function test_a_fully_settled_deduction_fee_is_paid_not_unpaid(): void
+    {
+        // Deduction fees are stored negative and paid down negatively, so the
+        // ladder has to compare magnitudes — a -750 office share settled by a
+        // -750 allocation previously reported UNPAID.
+        $matter = Matter::factory()->create();
+
+        $officeShare = Fee::factory()->for($matter)->create([
+            'type' => FeeType::OFFICE_SHARE,
+            'amount' => 750,
+        ]);
+
+        Allocation::factory()->for($officeShare)->create(['amount' => -750]);
+
+        $officeShare->refresh()->updateStatus();
+
+        $this->assertEquals(FeeStatus::PAID, $officeShare->fresh()->status);
+    }
+
+    public function test_a_genuine_overpayment_beyond_the_offset_is_still_overpaid(): void
+    {
+        // The allowance must not swallow real over-collection: 3,000 fee with a
+        // 750 office share tolerates up to 3,750, so 4,500 is still overpaid.
+        $matter = Matter::factory()->create();
+
+        $expertFee = Fee::factory()->for($matter)->create([
+            'type' => FeeType::EXPERT_FEE,
+            'amount' => 3000,
+        ]);
+        Fee::factory()->for($matter)->create([
+            'type' => FeeType::OFFICE_SHARE,
+            'amount' => 750,
+        ]);
+
+        Allocation::factory()->for($expertFee)->create(['amount' => 4500]);
+
+        $expertFee->refresh()->updateStatus();
+
+        $this->assertEquals(FeeStatus::OVERPAID, $expertFee->fresh()->status);
+    }
+
+    public function test_an_allocation_against_a_deduction_fee_is_stored_negative(): void
+    {
+        $matter = Matter::factory()->create();
+        $officeShare = Fee::factory()->for($matter)->create([
+            'type' => FeeType::OFFICE_SHARE,
+            'amount' => 750,
+        ]);
+
+        // Recorded positive by a caller that does not flip the sign itself.
+        $allocation = Allocation::factory()->for($officeShare)->create(['amount' => 750]);
+
+        $this->assertEquals(-750.0, (float) $allocation->fresh()->amount);
+    }
+
     public function test_deleting_a_fee_removes_its_allocations(): void
     {
         $matter = Matter::factory()->create();

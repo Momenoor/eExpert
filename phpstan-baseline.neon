@@ -487,19 +487,7 @@ parameters:
 			path: app/Mail/RequestActionNotificationMail.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$matter_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Models/Allocation.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateCollectionStatus\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/Models/Allocation.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateStatus\(\)\.$#'
 			identifier: method.notFound
 			count: 2
 			path: app/Models/Allocation.php
