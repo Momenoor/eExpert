@@ -11,7 +11,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class MatterStatsWidget extends StatsOverviewWidget
 {
-    protected int|string|array $columnSpan = 2;
+    // 'full', not a fixed 2: that number was correct only back when the
+    // dashboard's own grid was 2 columns wide. This widget lays its own 4
+    // stat cards out internally (getColumns() below), so it needs the whole
+    // row regardless of how many columns the dashboard grid has, or its 4
+    // cards get squeezed into whatever fraction a fixed span leaves it.
+    protected int|string|array $columnSpan = 'full';
 
     public static function canView(): bool
     {

@@ -18,6 +18,23 @@ class AdminDashboard extends Dashboard
 {
     use HasTour;
 
+    /**
+     * Up to 4 across on a wide screen, degrading to 2 then 1 on narrower
+     * ones — Filament's default of a flat 2 left every one-column widget
+     * (Collections Aging, Matters Per Year, the two calendars) pairing up
+     * only two at a time, so the page was mostly a single column of stacked
+     * cards. 'full'-span widgets (Attention Needed, Matter Stats, Upcoming
+     * Sessions) always take their own row regardless of this count.
+     */
+    public function getColumns(): int|array
+    {
+        return [
+            'default' => 1,
+            'md' => 2,
+            'xl' => 4,
+        ];
+    }
+
     public function getWidgets(): array
     {
         // Ordered as: what needs attention now, then the numbers, then the
