@@ -81,6 +81,9 @@ class Fee extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Matter, $this>
+     */
     public function matter(): BelongsTo
     {
         return $this->belongsTo(Matter::class);

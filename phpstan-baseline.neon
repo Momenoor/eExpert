@@ -145,12 +145,6 @@ parameters:
 			path: app/Filament/Resources/Incentive/MatterTypeIncentiveConfigs/RelationManagers/IncentiveConfigRelationManager.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
 			identifier: property.notFound
 			count: 1
@@ -167,12 +161,6 @@ parameters:
 			identifier: staticClassAccess.privateMethod
 			count: 1
 			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Resources/Matters/MatterResource.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:withTrashed\(\)\.$#'
@@ -499,18 +487,6 @@ parameters:
 			path: app/Models/BulkMailCampaign.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:fees\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Models/Fee.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateCollectionStatus\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/Models/Fee.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
 			identifier: property.notFound
 			count: 2
@@ -779,12 +755,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Services/Requests/RequestServiceFactory.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/WhatsAppService.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$display_name\.$#'

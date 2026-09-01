@@ -64,7 +64,12 @@ class User extends Authenticatable implements FilamentUser
         'notify_by_whatsapp' => 'boolean',
     ];
 
-    public function party(): User|HasOne
+    /**
+     * The Party record this user acts as (assistant, expert, etc.).
+     *
+     * @return HasOne<Party, $this>
+     */
+    public function party(): HasOne
     {
         return $this->hasOne(Party::class);
     }
