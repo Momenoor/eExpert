@@ -378,6 +378,113 @@ class ReportFiltersTest extends TestCase
         $this->assertSame(['2021-03'], array_map('strval', $periods));
     }
 
+    public function test_monthly_report_returns_one_row_per_month(): void
+    {
+        // Three matters in the same month, each also carrying report dates in
+        // that month, so all three union branches contribute the same period.
+        foreach ([1, 2, 3] as $day) {
+            Matter::factory()->create([
+                'year' => '2023',
+                'distributed_at' => "2023-05-0{$day}",
+                'initial_report_at' => "2023-05-1{$day}",
+                'final_report_at' => "2023-05-2{$day}",
+            ]);
+        }
+
+        $periods = Livewire::test(MattersMonthlyReport::class)
+            ->filterTable('year', '2023')
+            ->instance()->getFilteredTableQuery()->pluck('period')->all();
+
+        $this->assertSame(['2023-05'], array_map('strval', $periods));
+    }
+
+    /**
+     * Every filter on the monthly report, applied one at a time.
+     *
+     * The report builds its own query from $this->tableFilters rather than
+     * through Filament's filter pipeline, so a filter can only be proven to
+     * work — or even to compile — by driving the component.
+     */
+    public function test_every_monthly_report_filter_applies_without_error(): void
+    {
+        $court = Court::factory()->create();
+        $type = Type::factory()->create();
+
+        $matter = Matter::factory()->create([
+            'year' => '2023',
+            'distributed_at' => '2023-05-02',
+            'court_id' => $court->id,
+            'type_id' => $type->id,
+        ]);
+        $assistant = $this->assistantOn($matter);
+
+        Matter::factory()->create([
+            'year' => '2023',
+            'distributed_at' => '2023-09-02',
+        ]);
+
+        $cases = [
+            'year' => '2023',
+            'assistant' => $assistant->id,
+            'court' => $court->id,
+            'type' => $type->id,
+            // A matter with no fees settles to NO_FEES; the model recomputes it.
+            'collection_status' => ['no_fees'],
+            'distributed_at' => ['received_from' => '2023-01-01', 'received_until' => '2023-06-30'],
+        ];
+
+        foreach ($cases as $filter => $value) {
+            $rows = Livewire::test(MattersMonthlyReport::class)
+                ->filterTable('year', '2023')
+                ->filterTable($filter, $value)
+                ->instance()->getFilteredTableQuery()->get();
+
+            $this->assertNotEmpty($rows, "the {$filter} filter returned nothing");
+            $this->assertSame(
+                $rows->pluck('period')->unique()->count(),
+                $rows->count(),
+                "the {$filter} filter produced duplicate month rows",
+            );
+        }
+    }
+
+    public function test_my_matters_shows_no_age_for_a_closed_matter(): void
+    {
+        $user = User::factory()->create();
+        $party = Party::factory()->assistant()->create(['user_id' => $user->id]);
+        $this->actingAs($user);
+
+        $open = Matter::factory()->create([
+            'distributed_at' => now()->subDays(40),
+            'final_report_at' => null,
+        ]);
+        $closed = Matter::factory()->create([
+            'distributed_at' => now()->subDays(400),
+            'initial_report_at' => now()->subDays(380),
+            'final_report_at' => now()->subDays(370),
+        ]);
+
+        foreach ([$open, $closed] as $matter) {
+            MatterParty::create([
+                'matter_id' => $matter->id,
+                'party_id' => $party->id,
+                'role' => 'expert',
+                'type' => 'assistant',
+            ]);
+        }
+
+        $component = Livewire::test(MyMattersReport::class)
+            ->filterTable('open_only', false);
+
+        $column = $component->instance()->getTable()->getColumn('days_open');
+
+        $this->assertSame(40, $column->record($open->fresh())->getState());
+        $this->assertNull(
+            $column->record($closed->fresh())->getState(),
+            'a matter with a final report is not open, so it has no age',
+        );
+    }
+
     // ── Indicators ───────────────────────────────────────────────────────────
 
     public function test_an_inactive_filter_shows_no_indicator(): void

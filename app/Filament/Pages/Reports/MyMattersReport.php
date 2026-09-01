@@ -130,8 +130,17 @@ class MyMattersReport extends Page implements HasTable
 
                 TextColumn::make('days_open')
                     ->label(__('Days Open'))
+                    // Only a matter that is still open has an age. The SQL
+                    // counts from the assignment date to today regardless, so a
+                    // matter closed two years ago kept climbing and sat there
+                    // permanently red.
+                    ->state(fn (Matter $record) => $record->final_report_at === null
+                        ? (int) $record->days_open
+                        : null)
+                    ->placeholder('—')
                     ->badge()
                     ->color(fn ($state) => match (true) {
+                        $state === null => 'gray',
                         (int) $state > 90 => 'danger',
                         (int) $state > 60 => 'warning',
                         default => 'success',
