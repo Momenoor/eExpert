@@ -6,6 +6,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
@@ -75,17 +76,23 @@ class SystemSettingsForm
                                         ->required()
                                         ->default('ar'),
 
-                                    Select::make('app_timezone')
-                                        ->label(__('Default Timezone'))
-                                        ->options([
-                                            'Asia/Muscat' => 'Asia/Muscat (UTC+4)',
-                                            'Asia/Dubai' => 'Asia/Dubai (UTC+4)',
-                                            'Asia/Riyadh' => 'Asia/Riyadh (UTC+3)',
-                                            'UTC' => 'UTC',
-                                        ])
-                                        ->searchable()
-                                        ->required()
-                                        ->default('Asia/Muscat'),
+                                    // Read-only, not a Select: this used to let an
+                                    // admin "choose" a timezone that was saved to
+                                    // Settings and then never read by anything —
+                                    // every actual date/time in the app (Eloquent
+                                    // casts, Carbon::now(), the Outlook sync) runs
+                                    // on config('app.timezone'), which PHP fixes
+                                    // once per request from the server's own
+                                    // APP_TIMEZONE and cannot be changed at
+                                    // runtime from a database value. Showing the
+                                    // real value here — instead of a dropdown that
+                                    // silently did nothing — is what lets someone
+                                    // confirm Bluehost's .env actually matches
+                                    // this server's.
+                                    TextEntry::make('app_timezone_display')
+                                        ->label(__('Effective Timezone'))
+                                        ->state(config('app.timezone'))
+                                        ->helperText(__('Set on the server via the APP_TIMEZONE environment variable, not here. Every environment running this application must set it to the same value, or dates will disagree between them.')),
 
                                     TextInput::make('currency_code')
                                         ->label(__('Default Currency'))

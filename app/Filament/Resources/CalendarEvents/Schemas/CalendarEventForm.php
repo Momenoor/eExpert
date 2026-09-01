@@ -94,7 +94,7 @@ class CalendarEventForm
                     ->label(__('Start At'))
                     ->seconds(false)
                     ->required()
-                    ->timezone('Asia/Muscat')
+                    ->timezone(config('app.timezone'))
                     ->minutesStep(15)
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (Set $set, ?string $state) => $set('end_datetime', $state ? Carbon::parse($state)->addHour()->format('Y-m-d H:i:s') : null)
@@ -104,7 +104,7 @@ class CalendarEventForm
                     ->label(__('End At'))
                     ->seconds(false)
                     ->minutesStep(15)
-                    ->timezone('Asia/Muscat')
+                    ->timezone(config('app.timezone'))
                     ->afterOrEqual('start_datetime')
                     ->required(),
 

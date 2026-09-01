@@ -70,12 +70,12 @@ class CalendarEventsTable
                     ->visible(fn ($record) => $record?->type === 'single'),
                 TextColumn::make('start_datetime')
                     ->label(__('Start At'))
-                    ->timezone('Asia/Muscat')
+                    ->timezone(config('app.timezone'))
                     ->dateTime('d M Y H:i')
                     ->sortable(),
                 TextColumn::make('end_datetime')
                     ->label(__('End At'))
-                    ->timezone('Asia/Muscat')
+                    ->timezone(config('app.timezone'))
                     ->dateTime('d M Y H:i')
                     ->sortable(),
                 IconColumn::make('synced_to_outlook')

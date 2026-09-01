@@ -66,7 +66,7 @@ class VacationCalendarWidget extends FullCalendarWidget
                 'right' => 'dayGridMonth,listMonth',
             ],
             'initialView' => 'dayGridMonth',
-            'timeZone' => 'Asia/Muscat',
+            'timeZone' => config('app.timezone'),
         ];
     }
 

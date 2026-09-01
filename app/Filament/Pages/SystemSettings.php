@@ -66,7 +66,8 @@ class SystemSettings extends Page
 
             'app_name' => Setting::get('app_name', config('app.name', 'JPA Emirates')),
             'company_name' => Setting::get('company_name', 'JPA Auditing & Accounting'),
-            'app_timezone' => Setting::get('app_timezone', 'Asia/Muscat'),
+            // app_timezone_display is a Placeholder — it reads config('app.timezone')
+            // directly in the schema and carries no state of its own.
             'app_locale' => Setting::get('app_locale', 'ar'),
             'currency_code' => Setting::get('currency_code', 'AED'),
             'records_per_page' => Setting::get('records_per_page', 25),
@@ -158,7 +159,6 @@ class SystemSettings extends Page
 
             'app_name' => 'general',
             'company_name' => 'general',
-            'app_timezone' => 'general',
             'app_locale' => 'general',
             'currency_code' => 'general',
             'records_per_page' => 'general',

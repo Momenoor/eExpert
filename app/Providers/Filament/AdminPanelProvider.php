@@ -101,7 +101,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentUsersPlugin::make(),
                 FilamentShieldPlugin::make(),
                 FilamentFullCalendarPlugin::make()
-                    ->timezone('Asia/Muscat')
+                    ->timezone(config('app.timezone'))
                     ->editable()
                     ->selectable(),
                 ActivityLogPlugin::make()
@@ -145,7 +145,7 @@ class AdminPanelProvider extends PanelProvider
         app(FilamentUserServices::class)->register([
             ActivitiesRelationManager::class,
         ]);
-        FilamentTimezone::set('Asia/Muscat');
+        FilamentTimezone::set(config('app.timezone'));
         FileUpload::configureUsing(fn (FileUpload $component) => $component->maxSize(1024 * 1024 * 50));
 
         FilamentView::registerRenderHook(

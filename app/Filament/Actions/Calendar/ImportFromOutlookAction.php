@@ -45,8 +45,14 @@ class ImportFromOutlookAction extends Action
                         $matterIds = $this->findMatterIdsFromText($event['subject']);
                         $CalendarEvent = CalendarEvent::create([
                             'title' => $event['subject'],
-                            'start_datetime' => Carbon::parse($event['start']['dateTime'])->timezone('Asia/Dubai'),
-                            'end_datetime' => Carbon::parse($event['end']['dateTime'])->timezone('Asia/Dubai'),
+                            // Graph's dateTime is a wall-clock string that means
+                            // nothing without its paired timeZone (UTC, by
+                            // default, since no Prefer header is sent) — parsing
+                            // it alone, as this used to, reads a UTC time as if
+                            // it were already local and lands every imported
+                            // event four hours early.
+                            'start_datetime' => $outlookService->graphDateTimeToApp($event['start']),
+                            'end_datetime' => $outlookService->graphDateTimeToApp($event['end']),
                             'outlook_event_id' => $event['id'],
                             'imported_from_outlook' => true,
                             'synced_to_outlook' => true,

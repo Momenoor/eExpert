@@ -19,13 +19,28 @@ class Sql
      */
     public static function daysSince(string $column): string
     {
-        // Date-only on both sides, matching MySQL's DATEDIFF: julianday('now')
-        // carries the time of day, so a span of exactly 100 days truncates to 99
-        // for most of the day.
+        // Today comes from Carbon, not from the database's own NOW() / CURDATE()
+        // / date('now') — those run in whatever timezone the DATABASE SERVER
+        // itself defaults to, which is a different setting from the app's
+        // config('app.timezone') and can silently disagree with it. SQLite's
+        // date functions are always UTC; MySQL's CURDATE() follows its own
+        // session `time_zone`, which on a host like Bluehost is whatever the
+        // shared server happens to be set to unless pinned to match Laravel.
+        // Muscat is UTC+4, so for roughly four hours after local midnight the
+        // app's "today" is already a calendar day ahead of a UTC-clocked
+        // database's "today" — every aging bucket and "days open" figure read
+        // one full day short for that whole window. Anchoring to Carbon's
+        // date, which IS bound to config('app.timezone'), makes every database
+        // engine agree with the app regardless of the engine's own clock.
+        //
+        // This is a computed literal, not user input, so it is safe to
+        // interpolate directly — there is nothing here to bind.
+        $today = now()->toDateString();
+
         return match (DB::connection()->getDriverName()) {
-            'sqlite' => "CAST(julianday(date('now')) - julianday(date({$column})) AS INTEGER)",
-            'pgsql' => "(CURRENT_DATE - {$column}::date)",
-            default => "DATEDIFF(CURDATE(), {$column})",
+            'sqlite' => "CAST(julianday('{$today}') - julianday(date({$column})) AS INTEGER)",
+            'pgsql' => "('{$today}'::date - {$column}::date)",
+            default => "DATEDIFF('{$today}', {$column})",
         };
     }
 

@@ -58,13 +58,19 @@ class CreateBulkCalendarEventAction extends Action
                     ->required()
                     ->columns(2)
                     ->live(),
+                // config('app.timezone'), not a hardcoded zone: this
+                // picker previously said 'Asia/Dubai' while the single-event
+                // form said 'Asia/Muscat'. Both share the same fixed UTC+4
+                // offset today, so the mismatch produced no visible bug, but
+                // it meant the app's notion of "local time" was defined in
+                // two places that could drift.
                 DateTimePicker::make('start_datetime')
                     ->label(__('Session Date & Time'))
                     ->required()
-                    ->timezone('Asia/Dubai'),
+                    ->timezone(config('app.timezone')),
                 DateTimePicker::make('end_datetime')
                     ->label(__('End Date & Time'))
-                    ->timezone('Asia/Dubai'),
+                    ->timezone(config('app.timezone')),
                 TextInput::make('location')
                     ->label(__('Location')),
                 Placeholder::make('generated_title')
