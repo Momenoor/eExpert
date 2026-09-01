@@ -87,7 +87,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
-			count: 5
+			count: 3
 			path: app/Filament/Resources/CalendarEvents/Schemas/CalendarEventForm.php
 
 		-
@@ -99,7 +99,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
 
 		-
@@ -397,12 +397,6 @@ parameters:
 			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Widgets/AssistantMattersCountChartWidget.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$number\.$#'
 			identifier: property.notFound
 			count: 1
@@ -472,12 +466,6 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Mail/NewMatterNotificationMail.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 2
 			path: app/Mail/NewRequestNotificationMail.php
 
 		-
@@ -489,7 +477,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: app/Mail/RequestActionNotificationMail.php
 
 		-
@@ -757,21 +745,9 @@ parameters:
 			path: app/Services/IncentiveCalculatorService.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$allow_current_status_import\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/IncentiveService.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Services/IncentiveService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$incentive_trigger_type\.$#'
-			identifier: property.notFound
-			count: 2
 			path: app/Services/IncentiveService.php
 
 		-
@@ -791,12 +767,6 @@ parameters:
 			identifier: method.notFound
 			count: 2
 			path: app/Services/IncentiveService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$party\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Services/NewMatterNotification.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assistantsOnly\.$#'

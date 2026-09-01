@@ -14,6 +14,14 @@ use Livewire\Attributes\On;
 
 class AssistantMatterCountTableWidget extends TableWidget
 {
+    /**
+     * Per-assistant workload.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:Matter') ?? false;
+    }
+
     public ?int $selectedPartyId = null; // Store the ID
 
     public ?string $selectedAssistantName = null; // Still keep the name for the UI heading

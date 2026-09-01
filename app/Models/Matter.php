@@ -171,6 +171,9 @@ class Matter extends Model
             ->where('role', 'expert');
     }
 
+    /**
+     * @return HasMany<MatterParty, $this>
+     */
     public function assistantsOnly(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'matter_id')
@@ -317,6 +320,9 @@ class Matter extends Model
         }
     }
 
+    /**
+     * @return BelongsTo<Type, $this>
+     */
     public function type(): BelongsTo
     {
         return $this->belongsTo(Type::class);

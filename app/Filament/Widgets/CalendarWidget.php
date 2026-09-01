@@ -12,6 +12,14 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
+    /**
+     * Calendar entries can name matters and parties.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:CalendarEvent') ?? false;
+    }
+
     public Model|string|null $model = CalendarEvent::class;
 
     protected int|string|array $columnSpan = 1;

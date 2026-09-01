@@ -77,6 +77,9 @@ class MatterParty extends Model
     /**
      * The party this row points to.
      */
+    /**
+     * @return BelongsTo<Party, $this>
+     */
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class, 'party_id');

@@ -8,6 +8,14 @@ use Filament\Widgets\ChartWidget;
 
 class AssistantMattersCountChartWidget extends ChartWidget
 {
+    /**
+     * Per-assistant workload.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:Matter') ?? false;
+    }
+
     protected ?string $heading = 'Assistant Matters Count Chart';
 
     //    protected ?string $pollingInterval = null;

@@ -2,9 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\AttentionNeededWidget;
 use App\Filament\Widgets\CalendarWidget;
+use App\Filament\Widgets\CollectionsAgingWidget;
 use App\Filament\Widgets\MattersPerYearWidget;
 use App\Filament\Widgets\MatterStatsWidget;
+use App\Filament\Widgets\UpcomingSessionsWidget;
 use App\Filament\Widgets\VacationCalendarWidget;
 use Filament\Pages\Dashboard;
 use JibayMcs\FilamentTour\Tour\HasTour;
@@ -17,14 +20,18 @@ class AdminDashboard extends Dashboard
 
     public function getWidgets(): array
     {
+        // Ordered as: what needs attention now, then the numbers, then the
+        // calendars. Each widget declares its own canView(), so a user only ever
+        // sees the ones their permissions allow.
         return [
+            AttentionNeededWidget::class,
             MatterStatsWidget::class,
+            UpcomingSessionsWidget::class,
+            CollectionsAgingWidget::class,
             MattersPerYearWidget::class,
             CalendarWidget::class,
             VacationCalendarWidget::class,
-
         ];
-
     }
 
     /**

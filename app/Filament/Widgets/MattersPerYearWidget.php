@@ -9,6 +9,14 @@ use Flowframe\Trend\TrendValue;
 
 class MattersPerYearWidget extends ChartWidget
 {
+    /**
+     * Matter volume is operational data.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:Matter') ?? false;
+    }
+
     protected int|string|array $columnSpan = 1;
 
     public function getHeading(): string

@@ -8,6 +8,14 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class VacationCalendarWidget extends FullCalendarWidget
 {
+    /**
+     * Who is on leave is staff data.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:PartyLeave') ?? false;
+    }
+
     public Model|string|null $model = PartyLeave::class;
 
     protected int|string|array $columnSpan = 1;

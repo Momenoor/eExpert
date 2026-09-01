@@ -26,6 +26,14 @@ use Livewire\Attributes\On;
 
 class IncentiveSummaryTableWidget extends TableWidget
 {
+    /**
+     * This widget shows payroll figures for every assistant.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('View:IncentiveCalculation') ?? false;
+    }
+
     use HasMultiWordSearch;
 
     protected int|string|array $columnSpan = 'full';
