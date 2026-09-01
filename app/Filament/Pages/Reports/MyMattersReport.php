@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;

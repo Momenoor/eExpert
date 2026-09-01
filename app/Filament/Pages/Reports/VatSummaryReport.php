@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Filament\Resources\Matters\MatterResource;
@@ -57,6 +57,11 @@ class VatSummaryReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('VAT Summary');
+    }
+
+    public function getTablePluralModelLabel(): string
+    {
+        return __('fees');
     }
 
     protected function getTableQuery(): Builder

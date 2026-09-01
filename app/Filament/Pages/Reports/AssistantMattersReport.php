@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Filament\Exports\AssistantMattersExporter;
 use App\Filament\Resources\Matters\MatterResource;
-use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\Party;
 use App\Models\Type;

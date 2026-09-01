@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Filament\Exports\AssistantMatterFeesExporter;

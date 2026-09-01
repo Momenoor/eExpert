@@ -3,16 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\FeeType;
-use App\Filament\Pages\AssistantPerformanceReport;
-use App\Filament\Pages\CourtWorkloadReport;
-use App\Filament\Pages\DeductionsReconciliationReport;
-use App\Filament\Pages\FeeCollectionAgingReport;
-use App\Filament\Pages\MatterQualityReport;
-use App\Filament\Pages\MattersMonthlyReport;
-use App\Filament\Pages\MyMattersReport;
-use App\Filament\Pages\OverdueMattersReport;
-use App\Filament\Pages\TypeProfitabilityReport;
-use App\Filament\Pages\VatSummaryReport;
+use App\Filament\Pages\Reports\AssistantPerformanceReport;
+use App\Filament\Pages\Reports\CourtWorkloadReport;
+use App\Filament\Pages\Reports\DeductionsReconciliationReport;
+use App\Filament\Pages\Reports\FeeCollectionAgingReport;
+use App\Filament\Pages\Reports\MatterQualityReport;
+use App\Filament\Pages\Reports\MattersMonthlyReport;
+use App\Filament\Pages\Reports\MyMattersReport;
+use App\Filament\Pages\Reports\OverdueMattersReport;
+use App\Filament\Pages\Reports\TypeProfitabilityReport;
+use App\Filament\Pages\Reports\VatSummaryReport;
 use App\Models\Allocation;
 use App\Models\Court;
 use App\Models\Fee;

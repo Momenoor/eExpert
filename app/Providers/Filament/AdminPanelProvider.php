@@ -53,7 +53,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login(CustomLogin::class)
-            ->sidebarWidth('15rem')
+            ->sidebarWidth('17rem')
             ->colors([
                 'primary' => Color::Blue,
             ])
@@ -156,7 +156,6 @@ class AdminPanelProvider extends PanelProvider
                 }
 
                 $announcement = Setting::get('system_announcement');
-
                 if (empty($announcement)) {
                     return view('blank');
                 }

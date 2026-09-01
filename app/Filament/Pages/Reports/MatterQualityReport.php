@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\MatterDifficulty;
 use App\Filament\Resources\Matters\MatterResource;
@@ -65,6 +65,10 @@ class MatterQualityReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('Quality & Rework');
+    }
+    public function getTablePluralModelLabel(): string
+    {
+        return __('matters');
     }
 
     /**

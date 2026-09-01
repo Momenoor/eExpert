@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\MatterStatus;
 use App\Filament\Widgets\AssistantMatterCountTableWidget;

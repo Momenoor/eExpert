@@ -242,7 +242,9 @@ class MatterInfolist
                             ->visible(fn ($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
                         TextEntry::make('approved_at')
                             ->label(__('Date'))
+                            ->icon('heroicon-o-calendar')
                             ->dateTime()
+                            ->since()
                             ->visible(fn ($record) => $record->status !== RequestStatus::PENDING && $record->status !== RequestStatus::DISPUTED),
                         TextEntry::make('approved_comment')
                             ->label(__('Reviewer Comment'))

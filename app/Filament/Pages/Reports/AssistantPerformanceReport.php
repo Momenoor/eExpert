@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Models\Party;
@@ -56,6 +56,11 @@ class AssistantPerformanceReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('Assistant Performance');
+    }
+
+    public function getTablePluralModelLabel(): string
+    {
+        return __('assistants');
     }
 
     protected function getTableQuery(): Builder

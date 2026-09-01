@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Models\Type;
@@ -53,6 +53,11 @@ class TypeProfitabilityReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('Profitability by Matter Type');
+    }
+
+    public function getTablePluralModelLabel(): string
+    {
+        return __('types');
     }
 
     protected function getTableQuery(): Builder

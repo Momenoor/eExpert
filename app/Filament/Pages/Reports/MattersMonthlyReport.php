@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\MatterCollectionStatus;
 use App\Filament\Exports\MatterExporter;

@@ -40,8 +40,8 @@ class MatterRequestsTable
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->label(__('Created'))
-                    ->since()
                     ->dateTime()
+                    ->since()
                     ->sortable(),
                 TextColumn::make('approvedBy.display_name')
                     ->numeric()
@@ -49,8 +49,8 @@ class MatterRequestsTable
                     ->sortable(),
                 TextColumn::make('approved_at')
                     ->label(__('Handled At'))
-                    ->since()
                     ->dateTime()
+                    ->since()
                     ->sortable(),
                 TextColumn::make('approved_comment')
                     ->label(__('Handling Note'))

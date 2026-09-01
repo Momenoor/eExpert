@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
@@ -75,6 +75,11 @@ class FeeCollectionAgingReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('Fee Collection & Aging');
+    }
+
+    public function getTablePluralModelLabel(): string
+    {
+        return __('fees');
     }
 
     protected function getTableQuery(): Builder

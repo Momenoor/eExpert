@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Models\Court;
@@ -50,6 +50,10 @@ class CourtWorkloadReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('Court Workload');
+    }
+    public function getTablePluralModelLabel(): string
+    {
+        return __('courts');
     }
 
     protected function getTableQuery(): Builder
