@@ -469,38 +469,59 @@ class MatterInfolist
                     ->with(['calculation', 'assistantLines.party'])
                     ->get();
 
-                return $lines->map(fn ($line) => Group::make()
-                    ->columns(6)
-                    ->columnSpanFull()
-                    ->schema([
-                        TextEntry::make("incentive_{$line->id}_calc")
-                            ->label(__('Calculation'))
-                            ->state($line->calculation?->name ?? '—'),
-                        TextEntry::make("incentive_{$line->id}_difficulty")
-                            ->label(__('Difficulty'))
-                            ->badge()
-                            ->state($line->difficulty ?: '—'),
-                        TextEntry::make("incentive_{$line->id}_days")
-                            ->label(__('Days'))
-                            ->state($line->completion_days ?? '—'),
-                        TextEntry::make("incentive_{$line->id}_rate")
-                            ->label(__('Rate %'))
-                            ->state($line->effective_percentage.'%'),
-                        TextEntry::make("incentive_{$line->id}_deductions")
-                            ->label(__('Deductions'))
-                            ->color('danger')
-                            ->state($line->total_deduction_pct > 0 ? '-'.$line->total_deduction_pct.'%' : '—'),
-                        TextEntry::make("incentive_{$line->id}_net")
-                            ->label(__('Net Amount'))
-                            ->weight(FontWeight::Bold)
-                            ->state(number_format($line->net_amount, 2).' AED'),
-                        TextEntry::make("incentive_{$line->id}_assistants")
-                            ->label(__('Assistant Shares'))
-                            ->columnSpanFull()
-                            ->state($line->assistantLines->map(
-                                fn ($al) => ($al->party?->name ?? '—').': '.number_format($al->total_amount, 2).' AED'
-                            )->implode(' | ') ?: '—'),
-                    ]))->all();
+                return $lines->map(function ($line) {
+                    // These two figures are DIFFERENT stages of the same
+                    // calculation, not the same number twice: "Incentive Base"
+                    // is the office's own fee × rate − deductions, before any
+                    // per-assistant rate is applied; "Paid to Assistants" is
+                    // what actually gets disbursed, including that rate (which
+                    // is not stored per line — only looked up from the type's
+                    // current configuration, which can be edited at any time
+                    // and drift from whatever was in force when an older,
+                    // already-finalized calculation ran) plus any monthly
+                    // bonus or shortfall penalty. Showing them side by side
+                    // with no explanation, as "Net Amount" next to "Assistant
+                    // Shares", read as the same figure reported twice and
+                    // disagreeing — it is two figures that were never meant to
+                    // match.
+                    $totalPaid = $line->assistantLines->sum('total_amount');
+
+                    return Group::make()
+                        ->columns(6)
+                        ->columnSpanFull()
+                        ->schema([
+                            TextEntry::make("incentive_{$line->id}_calc")
+                                ->label(__('Calculation'))
+                                ->state($line->calculation?->name ?? '—'),
+                            TextEntry::make("incentive_{$line->id}_difficulty")
+                                ->label(__('Difficulty'))
+                                ->badge()
+                                ->state($line->difficulty ?: '—'),
+                            TextEntry::make("incentive_{$line->id}_days")
+                                ->label(__('Days'))
+                                ->state($line->completion_days ?? '—'),
+                            TextEntry::make("incentive_{$line->id}_rate")
+                                ->label(__('Rate %'))
+                                ->state($line->effective_percentage.'%'),
+                            TextEntry::make("incentive_{$line->id}_deductions")
+                                ->label(__('Deductions'))
+                                ->color('danger')
+                                ->state($line->total_deduction_pct > 0 ? '-'.$line->total_deduction_pct.'%' : '—'),
+                            TextEntry::make("incentive_{$line->id}_net")
+                                ->label(__('Incentive Base'))
+                                ->helperText(__('The fee at this rate, before the assistant rate is applied — not the amount paid out.'))
+                                ->state(number_format($line->net_amount, 2).' AED'),
+                            TextEntry::make("incentive_{$line->id}_assistants")
+                                ->label(__('Paid to Assistants'))
+                                ->columnSpanFull()
+                                ->weight(FontWeight::Bold)
+                                ->helperText(__('Includes each assistant\'s rate on the incentive base above, plus any monthly bonus or shortfall penalty — so it will not equal the base.'))
+                                ->state($line->assistantLines->isEmpty() ? '—' : $line->assistantLines->map(
+                                    fn ($al) => ($al->party?->name ?? '—').': '.number_format($al->total_amount, 2).' AED'
+                                    .($al->percentage_override !== null ? ' ('.__('override').')' : '')
+                                )->implode(' | ').' — '.__('Total').': '.number_format($totalPaid, 2).' AED'),
+                        ]);
+                })->all();
             });
     }
 
