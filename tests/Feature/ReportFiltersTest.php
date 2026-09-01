@@ -398,6 +398,26 @@ class ReportFiltersTest extends TestCase
         $this->assertSame(['2023-05'], array_map('strval', $periods));
     }
 
+    public function test_monthly_report_gives_every_month_a_distinct_row_key(): void
+    {
+        // Livewire keys table rows by the record's primary key. Eloquent casts
+        // `id` to int, so a period string of '2023-05' arrived as 2023 and every
+        // month in a year shared one key — Livewire reused a single row's DOM
+        // for all of them and the report showed the same month repeated, with a
+        // duplicate-key error on the client.
+        foreach (['2023-01-10', '2023-05-10', '2023-09-10'] as $date) {
+            Matter::factory()->create(['year' => '2023', 'distributed_at' => $date]);
+        }
+
+        $rows = Livewire::test(MattersMonthlyReport::class)
+            ->filterTable('year', '2023')
+            ->instance()->getFilteredSortedTableQuery()->get();
+
+        $this->assertCount(3, $rows);
+        $this->assertSame([202309, 202305, 202301], $rows->pluck('id')->map('intval')->all());
+        $this->assertSame(3, $rows->pluck('id')->unique()->count());
+    }
+
     /**
      * Every filter on the monthly report, applied one at a time.
      *

@@ -134,8 +134,10 @@ class MyMattersReport extends Page implements HasTable
                     // counts from the assignment date to today regardless, so a
                     // matter closed two years ago kept climbing and sat there
                     // permanently red.
+                    // getAttribute, not ->days_open: the age is a select alias
+                    // added by getTableQuery(), not a column on the model.
                     ->state(fn (Matter $record) => $record->final_report_at === null
-                        ? (int) $record->days_open
+                        ? (int) $record->getAttribute('days_open')
                         : null)
                     ->placeholder('—')
                     ->badge()

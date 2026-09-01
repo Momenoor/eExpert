@@ -263,13 +263,20 @@ class MattersMonthlyReport extends Page implements HasTable
         // 4. Build master query out of DB::query() to avoid model traits appending extra SQL logic
         $mainQuery = DB::query()
             ->fromSub($months, 'months')
-            // The period doubles as the row key. Filament always appends the
-            // model's qualified key as a sort tiebreaker unless an order on a
-            // column named `id` is already present, and this derived table has
-            // no `matters.id` to append — which made the whole page fail with
-            // "Unknown column 'matters.id' in 'order clause'".
+            // Each row needs an `id`: Filament appends the model's qualified key
+            // as a sort tiebreaker unless an order on a column called `id` is
+            // already present, and this derived table has no `matters.id` to
+            // append — without one the page failed outright with "Unknown column
+            // 'matters.id' in 'order clause'".
+            //
+            // It has to be the period as an INTEGER, not the period string.
+            // Eloquent casts `id` to int, so '2026-08' arrived as 2026 and every
+            // month in a year shared one key; Livewire keys table rows by that
+            // value, reused a single row's DOM for all of them, and the report
+            // showed the same month repeated down the page. 202608 sorts the
+            // same way the period does and is unique per month.
             ->select('months.period')
-            ->selectRaw('months.period as id')
+            ->selectRaw(Sql::periodKey('months.period').' as id')
             ->selectSub($newMattersSub, 'total_matters')
             ->selectSub($initialReportsSub, 'initial_reports')
             ->selectSub($finalReportsSub, 'final_reports')

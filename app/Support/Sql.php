@@ -54,6 +54,23 @@ class Sql
     }
 
     /**
+     * A `YYYY-MM` period rendered as a sortable integer, e.g. 202608.
+     *
+     * Reports that group by month need a row key, and the period string cannot
+     * be it: Eloquent casts a model's `id` to int, so '2026-08' arrives as 2026
+     * and every month in the same year collapses onto one key.
+     */
+    public static function periodKey(string $column): string
+    {
+        $type = match (DB::connection()->getDriverName()) {
+            'sqlite', 'pgsql' => 'INTEGER',
+            default => 'UNSIGNED',
+        };
+
+        return "CAST(REPLACE({$column}, '-', '') AS {$type})";
+    }
+
+    /**
      * Does a JSON array-of-objects column hold an element matching every pair?
      *
      * `parties.role` stores `[{"role":"expert","type":"assistant","field":null}]`,
