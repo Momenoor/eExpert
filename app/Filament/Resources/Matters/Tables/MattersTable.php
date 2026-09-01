@@ -71,11 +71,14 @@ class MattersTable
                     ->getStateUsing(fn ($record) => $record->year.'/'.$record->number)
                     ->weight(FontWeight::Bold)
                     ->description(fn ($record) => $record->status->getLabel())
-                    ->html()
-                    ->prefix(fn ($record) => $record->parent_id ? (app()->getLocale() === 'en' ? '↳ ' : ' ↲') : '')
                     ->color(fn ($record) => $record->parent_id ? 'primary' : null)
+                    // ps-6 (padding-inline-start), not pl-6: this indents child
+                    // matters under their parent, and the panel's default locale
+                    // is Arabic, where a physical `pl` indents the wrong side.
+                    // The logical property also removes the need for the old
+                    // locale-branching arrow prefix ('↳' vs '↲').
                     ->extraAttributes(fn ($record) => $record->parent_id
-                        ? ['class' => 'pl-6 opacity-90']
+                        ? ['class' => 'ps-6 opacity-90']
                         : []
                     )
                     ->searchable(query: function (Builder $query, string $search) {
@@ -127,32 +130,22 @@ class MattersTable
                 // ── Parties — hidden for child rows ────────────────────────────
                 TextColumn::make('indexedParties')
                     ->label(__('Parties'))
-                    ->listWithLineBreaks()
                     ->getStateUsing(fn ($record) => $record->indexedParties
-                        ->map(function ($mp) {
-                            $type = $mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : '';
-                            $color = match ($mp->type) {
+                        ->map(fn ($mp) => [
+                            'label' => __($mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : ''),
+                            'index' => $mp->role_index,
+                            'name' => $mp->party?->name ?? '—',
+                            'color' => match ($mp->type) {
                                 'plaintiff' => 'success',
                                 'defendant' => 'danger',
                                 'implicate-litigant' => 'warning',
                                 default => 'gray',
-                            };
-
-                            return sprintf(
-                                '<span class="inline-flex items-center gap-1 text-xs">'
-                                .'<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
-                                .'<span class="type-label">%s</span> #%d'
-                                .'</span>'
-                                .'%s'
-                                .'</span>',
-                                $color, __($type), $mp->role_index, e($mp->party?->name ?? '—')
-                            );
-                        })
-                        ->toArray()
+                            },
+                        ])
+                        ->all()
                     )
-                    ->html()
+                    ->view('filament.tables.columns.party-badges')
                     ->grow()
-                    ->color(fn ($record) => $record->parent_id ? 'gray' : null)
                     ->searchable(query: function (Builder $query, string $search) {
                         $tokens = static::splitSearch($search);
                         foreach ($tokens as $token) {
@@ -169,31 +162,22 @@ class MattersTable
                 // ── Experts ────────────────────────────────────────────────────
                 TextColumn::make('indexedExperts')
                     ->label(__('Experts'))
-                    ->listWithLineBreaks()
                     ->getStateUsing(fn ($record) => $record->indexedExperts
-                        ->map(function ($mp) {
-                            $type = $mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : '';
-                            $color = match ($mp->type) {
+                        ->map(fn ($mp) => [
+                            'label' => __($mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : ''),
+                            'index' => $mp->role_index,
+                            'name' => $mp->party?->name ?? '—',
+                            'color' => match ($mp->type) {
                                 'certified' => 'primary',
                                 'assistant' => 'success',
                                 'external' => 'warning',
                                 'external-assistant' => 'danger',
                                 default => 'gray',
-                            };
-
-                            return sprintf(
-                                '<span class="inline-flex items-center gap-1 text-xs">'
-                                .'<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
-                                .'<span class="type-label">%s</span> #%d'
-                                .'</span>'
-                                .'%s'
-                                .'</span>',
-                                $color, __($type), $mp->role_index, e($mp->party?->name ?? '—')
-                            );
-                        })
-                        ->toArray()
+                            },
+                        ])
+                        ->all()
                     )
-                    ->html()
+                    ->view('filament.tables.columns.party-badges')
                     ->searchable(query: function (Builder $query, string $search) {
                         $tokens = static::splitSearch($search);
                         foreach ($tokens as $token) {

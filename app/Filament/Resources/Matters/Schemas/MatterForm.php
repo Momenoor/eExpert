@@ -494,7 +494,7 @@ class MatterForm
                                                     ->label(__('Including VAT'))
                                                     ->live()
                                                     ->inline(false)
-                                                    ->extraAttributes(['style' => 'margin: 0 1rem;'])
+                                                    ->extraAttributes(['class' => 'mx-4'])
                                                     ->disabled(fn (Get $get) => $get('type') === 'vat')
                                                     ->afterStateUpdated(function (bool $state, Set $set, Get $get) {
                                                         $amount = (float) $get('amount');

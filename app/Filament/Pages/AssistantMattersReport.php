@@ -68,7 +68,7 @@ class AssistantMattersReport extends Page implements HasTable
         return $table
             ->query($this->getTableQuery())
             ->striped()
-            ->extraAttributes(['class' => '[&_td]:py-1 [&_th]:py-1 [&_table]:text-xs'])
+            ->extraAttributes(['class' => 'custom-compact-table [&_table]:text-xs'])
             ->defaultPaginationPageOption(25)
             ->columns([
 

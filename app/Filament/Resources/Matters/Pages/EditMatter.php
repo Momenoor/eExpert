@@ -38,8 +38,7 @@ class EditMatter extends EditRecord
                 ->fillForm(fn (array $arguments) => [
                     'matter_id' => $arguments['matter_id'] ?? $this->record->id,
                     'start_datetime' => $arguments['start_datetime'] ?? $this->pendingSessionDate,
-                ])
-                ->extraAttributes([]),
+                ]),
             ViewAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make()

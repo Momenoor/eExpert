@@ -35,7 +35,7 @@ class CreateMatter extends CreateRecord
                     'matter_id' => $arguments['matter_id'] ?? null,
                     'start_datetime' => $arguments['start_datetime'] ?? $this->pendingSessionDate,
                 ])
-                ->extraAttributes(['style' => 'display: none;']),
+                ->extraAttributes(['class' => 'hidden']),
         ];
     }
 }
