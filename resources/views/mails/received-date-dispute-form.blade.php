@@ -40,7 +40,7 @@
     </div>
 
     <form method="POST"
-          action="{{ route('matter.received.dispute.submit', ['matter' => $matter->id,'matterRequest'=> $matterRequest]) }}"
+          action="{{ $submitUrl }}"
           class="space-y-5">
         @csrf
         <div>

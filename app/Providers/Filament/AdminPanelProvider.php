@@ -163,7 +163,7 @@ class AdminPanelProvider extends PanelProvider
                 $announcement = Setting::get('system_announcement');
 
                 if (empty($announcement)) {
-                    return view('');
+                    return view('blank');
                 }
 
                 $escaped = e($announcement);

@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class MatterRequestResource extends Resource
@@ -59,6 +60,32 @@ class MatterRequestResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * Mirror MatterResource's row-level scoping. A request row surfaces its
+     * matter's reference, the requester's comment and the reviewer's notes, so
+     * a user who may only see their own matters must only see those matters'
+     * requests. Without this the list exposed every matter in the office.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()->with(['matter', 'requestBy', 'approvedBy']);
+
+        $user = auth()->user();
+
+        if (! $user->can('ViewAny:Matter') && $user->can('ViewOwn:Matter')) {
+            if (! $user->party) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            $query->whereHas(
+                'matter.matterParties',
+                fn (Builder $q) => $q->where('party_id', $user->party->id)
+            );
+        }
+
+        return $query;
     }
 
     public static function getPages(): array

@@ -115,7 +115,7 @@ class MattersTable
                     ->badge()
                     ->description(fn ($record) => collect([
                         $record->difficulty?->getLabel(),
-                        $record->commissioning->getLabel(),
+                        $record->commissioning?->getLabel(),
                     ])->filter()->join(' · '))
                     ->searchable(query: fn (Builder $query, string $search) => static::applyMultiWordSearch($query, $search, ['level', 'difficulty', 'commissioning'])
                     )

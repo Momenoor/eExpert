@@ -50,20 +50,26 @@ Route::middleware('auth')->group(function () {
         ->name('incentive.calculation.print.assistant')
         ->middleware(['auth']);
 
-    Route::prefix('admin/matter/{matter}/received-date')->group(function () {
+});
 
-        // Accept link from email (GET — no auth required)
+/*
+ * Assistant confirms or disputes the assigning date from an email link.
+ *
+ * These are deliberately OUTSIDE the auth group: the recipient clicks from their
+ * inbox and is usually not logged in. They were previously nested inside it,
+ * contradicting their own comments, so every emailed link bounced to the login
+ * screen. The signature IS the authentication here, which is why the POST is
+ * signed too — without it, anyone could flip any request to DISPUTED by ID.
+ */
+Route::prefix('admin/matter/{matter}/received-date')
+    ->middleware('signed')
+    ->group(function () {
         Route::get('accept/{matterRequest}', [MatterReceivedNotificationController::class, 'accept'])
-            ->name('matter.received.accept')
-            ->middleware('signed');
+            ->name('matter.received.accept');
 
-        // Dispute link from email — shows form (GET — no auth required)
         Route::get('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeForm'])
-            ->name('matter.received.dispute')
-            ->middleware('signed');
+            ->name('matter.received.dispute');
 
-        // Dispute form submission (POST — no auth required)
         Route::post('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeSubmit'])
             ->name('matter.received.dispute.submit');
     });
-});
