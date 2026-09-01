@@ -14,6 +14,15 @@ use Illuminate\Database\Eloquent\Builder;
 
 class IncentiveExtraRulesOverviewWidget extends TableWidget
 {
+    /**
+     * These widgets expose incentive configuration, which is payroll data.
+     * Without this they rendered for anyone who could reach the page.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:IncentiveExtraRule') ?? false;
+    }
+
     protected int|string|array $columnSpan = 'full';
 
     protected function getTableQuery(): Builder

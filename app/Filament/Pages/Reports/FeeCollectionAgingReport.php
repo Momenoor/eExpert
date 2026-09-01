@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
-use App\Enums\FeeType;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
 use App\Models\Matter;
@@ -38,12 +37,17 @@ use UnitEnum;
  * as over-collected and the deduction line as uncollected. Netting at matter
  * level makes those cancel, which is what actually happened:
  *
- *   owed        = the matter's revenue fees (VAT and deduction types excluded)
- *   received    = NET allocations across ALL of the matter's fee lines
- *   outstanding = owed - received
+ *   net billed  = SUM of every fee on the matter, signed — VAT adds, deduction
+ *                 lines subtract
+ *   received    = SUM of every allocation across those same fee lines
+ *   outstanding = net billed - received
  *
- * A matter is aged from its oldest revenue fee, i.e. when the office first
- * became owed money on it.
+ * Both sides must span the same fee lines. Counting only revenue fees as owed
+ * while counting all allocations as received made every paid VAT or office-share
+ * line look like over-collection of exactly its own amount.
+ *
+ * A matter is aged from its oldest fee, i.e. when the office first became owed
+ * money on it.
  */
 class FeeCollectionAgingReport extends Page implements HasTable
 {
@@ -73,17 +77,26 @@ class FeeCollectionAgingReport extends Page implements HasTable
         return __('Fee Collection & Aging');
     }
 
+    public function getTablePluralModelLabel(): string
+    {
+        return __('fees');
+    }
+
     protected function getTableQuery(): Builder
     {
-        $excluded = FeeType::excludedFromIncentiveValues();
-
-        // What the client was billed, and when we first billed it.
+        // Billed and received must cover the SAME set of fee lines, or the two
+        // sides cannot be compared. An earlier version counted only revenue
+        // fees as owed while counting allocations from every line as received,
+        // so a paid VAT line — or a settled office share — surfaced as
+        // over-collection equal to its own amount, on 55 matters.
+        //
+        // Both sides now span every fee on the matter and keep their signs, so
+        // VAT adds to what is owed and deduction lines subtract from it, and a
+        // fully settled matter lands on exactly zero.
         $owed = DB::table('fees')
             ->selectRaw('matter_id, SUM(amount) as owed, MIN(date) as first_billed')
-            ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', $excluded))
             ->groupBy('matter_id');
 
-        // What came in, netted across every line so deductions cancel.
         $received = DB::table('allocations')
             ->join('fees', 'fees.id', '=', 'allocations.fee_id')
             ->selectRaw('fees.matter_id as matter_id, SUM(allocations.amount) as received')
@@ -104,7 +117,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('outstanding_amount', 'desc')
             ->emptyStateHeading(__('Nothing outstanding'))
             ->emptyStateDescription(__('No matter matches these filters with a balance owing.'))
@@ -149,7 +162,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
                     ->sortable(),
 
                 TextColumn::make('owed_amount')
-                    ->label(__('Billed'))
+                    ->label(__('Net Billed'))
                     ->money('AED')
                     ->alignEnd()
                     ->sortable()
@@ -172,11 +185,19 @@ class FeeCollectionAgingReport extends Page implements HasTable
                     ->summarize(Sum::make()->label(__('Total'))->money('AED')),
             ])
             ->filters([
+                // WHERE, not HAVING. Filament runs a filter's query closure
+                // inside a nested where group, and Laravel copies only the
+                // wheres out of such a group — a having written here is
+                // dropped from the SQL entirely, so the filter compiles, raises
+                // no error and changes nothing. The joined subqueries expose
+                // `billed` and `paid` as real columns, so a plain WHERE on the
+                // underlying expression does the job.
                 Filter::make('outstanding_only')
                     ->label(__('Outstanding only'))
                     ->default()
-                    ->query(fn (Builder $query) => $query->havingRaw('outstanding_amount > 0.005'))
-                    ->indicateUsing(fn (array $data) => __('Outstanding only')),
+                    ->query(fn (Builder $query) => $query->whereRaw(
+                        '(billed.owed - COALESCE(paid.received, 0)) > 0.005'
+                    )),
 
                 SelectFilter::make('aging_bucket')
                     ->label(__('Age'))
@@ -187,11 +208,13 @@ class FeeCollectionAgingReport extends Page implements HasTable
                         '90+' => __('90+ days'),
                     ])
                     ->query(function (Builder $query, array $data) {
+                        $age = Sql::daysSince('billed.first_billed');
+
                         return match ($data['value'] ?? null) {
-                            '0-30' => $query->havingRaw('days_outstanding <= 30'),
-                            '31-60' => $query->havingRaw('days_outstanding BETWEEN 31 AND 60'),
-                            '61-90' => $query->havingRaw('days_outstanding BETWEEN 61 AND 90'),
-                            '90+' => $query->havingRaw('days_outstanding > 90'),
+                            '0-30' => $query->whereRaw($age.' <= 30'),
+                            '31-60' => $query->whereRaw($age.' BETWEEN 31 AND 60'),
+                            '61-90' => $query->whereRaw($age.' BETWEEN 61 AND 90'),
+                            '90+' => $query->whereRaw($age.' > 90'),
                             default => $query,
                         };
                     }),
@@ -210,7 +233,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
 
                 SelectFilter::make('assistant')
                     ->label(__('Assistant'))
-                    ->options(fn () => Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                    ->options(fn () => Party::withRole('expert', 'assistant')
                         ->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
@@ -231,8 +254,8 @@ class FeeCollectionAgingReport extends Page implements HasTable
                         ])->columns(2),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['billed_from'] ?? null, fn ($q, $v) => $q->havingRaw('first_billed >= ?', [$v]))
-                        ->when($data['billed_until'] ?? null, fn ($q, $v) => $q->havingRaw('first_billed <= ?', [$v]))
+                        ->when($data['billed_from'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '>=', $v))
+                        ->when($data['billed_until'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '<=', $v))
                     ),
             ])
             ->filtersFormWidth(Width::ExtraLarge)

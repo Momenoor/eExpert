@@ -53,7 +53,14 @@ class Fee extends Model
             if (! $fee->date) {
                 $fee->date = now();
             }
-            if ($fee->type?->isNegative() && $fee->amount > 0) {
+            // Normalise the sign only while the amount is actually being set.
+            // Firing on every save meant an unrelated write — recalculating a
+            // status, for instance — silently negated a legacy positive
+            // deduction fee and left its allocations pointing the other way,
+            // so the pair no longer cancelled. Existing rows are corrected
+            // deliberately, together with their allocations, from the Fee Data
+            // Maintenance page.
+            if ($fee->type?->isNegative() && $fee->amount > 0 && ($fee->isDirty('amount') || ! $fee->exists)) {
                 $fee->amount = -abs($fee->amount);
             }
             if ($fee->type === FeeType::COURT_PENALITY) {

@@ -28,4 +28,58 @@ class Sql
             default => "DATEDIFF(CURDATE(), {$column})",
         };
     }
+
+    /**
+     * Whole days from one date column to another, as a sortable SQL expression.
+     */
+    public static function daysBetween(string $from, string $to): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "CAST(julianday(date({$to})) - julianday(date({$from})) AS INTEGER)",
+            'pgsql' => "({$to}::date - {$from}::date)",
+            default => "DATEDIFF({$to}, {$from})",
+        };
+    }
+
+    /**
+     * A date column rendered as `YYYY-MM`, for grouping by month.
+     */
+    public static function yearMonth(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', {$column})",
+            'pgsql' => "to_char({$column}, 'YYYY-MM')",
+            default => "DATE_FORMAT({$column}, '%Y-%m')",
+        };
+    }
+
+    /**
+     * Does a JSON array-of-objects column hold an element matching every pair?
+     *
+     * `parties.role` stores `[{"role":"expert","type":"assistant","field":null}]`,
+     * and the app asks "is this party an assistant expert?" in twenty places via
+     * `whereJsonContains('role', ['role' => ..., 'type' => ...])`. That compiles
+     * to JSON_CONTAINS on MySQL and works, but SQLite's grammar renders the same
+     * call as a comparison against the element's whole JSON text, which never
+     * matches and in practice throws — so every page built on it was impossible
+     * to test.
+     *
+     * @param  array<string, string>  $pairs  JSON keys to required values
+     * @return array{0: string, 1: list<string>} the SQL fragment and its bindings
+     */
+    public static function jsonArrayHas(string $column, array $pairs): array
+    {
+        $bindings = array_values($pairs);
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $conditions = implode(' AND ', array_map(
+                fn (string $key): string => "json_extract(json_each.value, '$.{$key}') = ?",
+                array_keys($pairs),
+            ));
+
+            return ["EXISTS (SELECT 1 FROM json_each({$column}) WHERE {$conditions})", $bindings];
+        }
+
+        return ["JSON_CONTAINS({$column}, ?)", [json_encode($pairs)]];
+    }
 }

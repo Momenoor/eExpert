@@ -2,7 +2,6 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\FeeType;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +18,16 @@ use Illuminate\Support\Facades\DB;
  * over-collected and the deduction line as uncollected. Netting at matter level
  * makes those cancel, which is what actually happened:
  *
- *   owed     = the matter's revenue fees (what the client was billed)
- *   received = NET allocations across all of the matter's fee lines
+ *   owed     = SUM of every fee on the matter, signed — VAT adds, deduction
+ *              lines subtract
+ *   received = SUM of every allocation across those same fee lines
  *
- * Each matter is aged by its oldest revenue fee, since that is when the office
- * first became owed money on it.
+ * Both sides must span the same fee lines. Counting only revenue fees as owed
+ * while counting all allocations as received made every paid VAT or office-share
+ * line look like over-collection of exactly its own amount.
+ *
+ * Each matter is aged by its oldest fee, since that is when the office first
+ * became owed money on it.
  */
 class CollectionsAgingWidget extends ChartWidget
 {
@@ -46,12 +50,12 @@ class CollectionsAgingWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $excluded = FeeType::excludedFromIncentiveValues();
-
-        // Owed and first-billed date, per matter, from revenue fees only.
+        // Both sides span EVERY fee line on the matter, signed. Counting only
+        // revenue fees as owed while counting all allocations as received made
+        // each paid VAT or office-share line read as over-collection of exactly
+        // its own amount.
         $owed = DB::table('fees')
             ->selectRaw('matter_id, SUM(amount) as owed, MIN(date) as first_billed')
-            ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', $excluded))
             ->whereNotNull('date')
             ->groupBy('matter_id');
 

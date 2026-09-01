@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Sql;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -111,6 +113,31 @@ class Party extends Model
             }
         });
 
+    }
+
+    /**
+     * Parties holding a given role, optionally narrowed to an expert type.
+     *
+     * `role` is a JSON array of objects, and every report asked about it with
+     * `whereJsonContains('role', ['role' => ..., 'type' => ...])`. That is
+     * MySQL-only in practice — SQLite renders the same call as a comparison
+     * against each element's whole JSON text — which is why none of those pages
+     * could be covered by a test. Sql::jsonArrayHas() states the same question
+     * in whichever dialect is connected.
+     *
+     * @param  Builder<Party>  $query
+     */
+    public function scopeWithRole(Builder $query, string $role, ?string $type = null): void
+    {
+        $pairs = ['role' => $role];
+
+        if ($type !== null) {
+            $pairs['type'] = $type;
+        }
+
+        [$sql, $bindings] = Sql::jsonArrayHas('parties.role', $pairs);
+
+        $query->whereRaw($sql, $bindings);
     }
 
     public function parent(): BelongsTo

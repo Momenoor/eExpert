@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Filament\Resources\Matters\MatterResource;
@@ -62,41 +62,71 @@ class DeductionsReconciliationReport extends Page implements HasTable
         return __('Deductions Reconciliation');
     }
 
+    public function getTablePluralModelLabel(): string
+    {
+        return __('matters');
+    }
+
+    /**
+     * Net billed on the matter: every fee line, signed.
+     *
+     * Kept as a shared expression because the filters have to repeat it. They
+     * cannot filter on the `revenue_billed` alias: Filament runs a filter's
+     * query closure inside a nested where group, and Laravel copies only the
+     * wheres out of such a group, so a HAVING written there is dropped from the
+     * SQL entirely — no error, no effect.
+     */
+    private function billedSql(): string
+    {
+        return '(SELECT COALESCE(SUM(f.amount), 0) FROM fees f
+                    WHERE f.matter_id = matters.id)';
+    }
+
+    /** Everything collected across those same fee lines. */
+    private function receivedSql(): string
+    {
+        return '(SELECT COALESCE(SUM(a.amount), 0) FROM allocations a
+                    JOIN fees f ON f.id = a.fee_id
+                    WHERE f.matter_id = matters.id)';
+    }
+
+    /** Deduction fees recorded positive: the legacy sign problem. */
+    private function wrongSignedSql(string $placeholders): string
+    {
+        return '(SELECT COUNT(*) FROM fees f
+                    WHERE f.matter_id = matters.id
+                      AND f.type IN ('.$placeholders.')
+                      AND f.amount > 0)';
+    }
+
+    private function deductionPlaceholders(): string
+    {
+        return implode(',', array_fill(0, count(FeeType::deductionTypeValues()), '?'));
+    }
+
     protected function getTableQuery(): Builder
     {
         $deductions = FeeType::deductionTypeValues();
-        $excluded = FeeType::excludedFromIncentiveValues();
 
-        $deductionPlaceholders = implode(',', array_fill(0, count($deductions), '?'));
-        $excludedPlaceholders = implode(',', array_fill(0, count($excluded), '?'));
+        $deductionPlaceholders = $this->deductionPlaceholders();
 
         return Matter::query()
             ->with(['court', 'type'])
             ->whereHas('fees', fn ($q) => $q->whereIn('type', $deductions))
             ->select('matters.*')
-            ->selectRaw(
-                '(SELECT COALESCE(SUM(f.amount), 0) FROM fees f
-                    WHERE f.matter_id = matters.id
-                      AND (f.type IS NULL OR f.type NOT IN ('.$excludedPlaceholders.'))) as revenue_billed',
-                $excluded
-            )
+            // Every fee line, signed — the same set the allocations below span.
+            // Comparing revenue-only billing against all-line collections made a
+            // paid VAT line read as an unexplained variance.
+            ->selectRaw($this->billedSql().' as revenue_billed')
             ->selectRaw(
                 '(SELECT COALESCE(SUM(ABS(f.amount)), 0) FROM fees f
                     WHERE f.matter_id = matters.id
                       AND f.type IN ('.$deductionPlaceholders.')) as deductions_total',
                 $deductions
             )
+            ->selectRaw($this->receivedSql().' as cash_received')
             ->selectRaw(
-                '(SELECT COALESCE(SUM(a.amount), 0) FROM allocations a
-                    JOIN fees f ON f.id = a.fee_id
-                    WHERE f.matter_id = matters.id) as cash_received'
-            )
-            // Deduction fees recorded positive: the legacy sign problem.
-            ->selectRaw(
-                '(SELECT COUNT(*) FROM fees f
-                    WHERE f.matter_id = matters.id
-                      AND f.type IN ('.$deductionPlaceholders.')
-                      AND f.amount > 0) as wrong_signed_count',
+                $this->wrongSignedSql($deductionPlaceholders).' as wrong_signed_count',
                 $deductions
             );
     }
@@ -104,7 +134,7 @@ class DeductionsReconciliationReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('deductions_total', 'desc')
             ->emptyStateHeading(__('Nothing to reconcile'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -126,7 +156,7 @@ class DeductionsReconciliationReport extends Page implements HasTable
                     ->wrap(),
 
                 TextColumn::make('revenue_billed')
-                    ->label(__('Revenue Billed'))
+                    ->label(__('Net Billed'))
                     ->money('AED')
                     ->alignEnd()
                     ->sortable()
@@ -174,13 +204,16 @@ class DeductionsReconciliationReport extends Page implements HasTable
             ->filters([
                 Filter::make('unbalanced_only')
                     ->label(__('Not balanced only'))
-                    ->query(fn (Builder $query) => $query->havingRaw('ABS(revenue_billed - cash_received) >= 0.005'))
-                    ->indicateUsing(fn () => __('Not balanced only')),
+                    ->query(fn (Builder $query) => $query->whereRaw(
+                        'ABS('.$this->billedSql().' - '.$this->receivedSql().') >= 0.005'
+                    )),
 
                 Filter::make('wrong_signed_only')
                     ->label(__('Wrong-signed fees only'))
-                    ->query(fn (Builder $query) => $query->havingRaw('wrong_signed_count > 0'))
-                    ->indicateUsing(fn () => __('Wrong-signed fees only')),
+                    ->query(fn (Builder $query) => $query->whereRaw(
+                        $this->wrongSignedSql($this->deductionPlaceholders()).' > 0',
+                        FeeType::deductionTypeValues()
+                    )),
 
                 SelectFilter::make('deduction_type')
                     ->label(__('Deduction Type'))

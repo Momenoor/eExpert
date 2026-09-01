@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
 use App\Models\Type;
@@ -55,6 +55,11 @@ class TypeProfitabilityReport extends Page implements HasTable
         return __('Profitability by Matter Type');
     }
 
+    public function getTablePluralModelLabel(): string
+    {
+        return __('types');
+    }
+
     protected function getTableQuery(): Builder
     {
         $excluded = FeeType::excludedFromIncentiveValues();
@@ -85,14 +90,13 @@ class TypeProfitabilityReport extends Page implements HasTable
                     JOIN incentive_calculations ic ON ic.id = il.incentive_calculation_id
                     JOIN matters m ON m.id = il.matter_id
                     WHERE m.type_id = types.id AND ic.status = 'finalized') as incentive_paid"
-            )
-            ->selectRaw('types.*');
+            );
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('revenue_billed', 'desc')
             ->emptyStateHeading(__('No matter types'))
             ->emptyStateIcon('heroicon-o-presentation-chart-line')
@@ -178,13 +182,11 @@ class TypeProfitabilityReport extends Page implements HasTable
                 Filter::make('with_activity')
                     ->label(__('With matters only'))
                     ->default()
-                    ->query(fn (Builder $query) => $query->has('matters'))
-                    ->indicateUsing(fn () => __('With matters only')),
+                    ->query(fn (Builder $query) => $query->has('matters')),
 
                 Filter::make('active_only')
                     ->label(__('Active types only'))
-                    ->query(fn (Builder $query) => $query->where('active', true))
-                    ->indicateUsing(fn () => __('Active types only')),
+                    ->query(fn (Builder $query) => $query->where('active', true)),
             ])
             ->filtersFormWidth(Width::Medium)
             ->queryStringIdentifier('type_profitability');
