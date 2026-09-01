@@ -37,8 +37,8 @@ class CalendarWidget extends FullCalendarWidget
             ->map(fn ($event) => [
                 'id' => $event->id,
                 'title' => $event->title,
-                'start' => $event->start_datetime->subHours(4),
-                'end' => $event->end_datetime->subHours(4),
+                'start' => $event->start_datetime,
+                'end' => $event->end_datetime,
                 'allDay' => $event->is_all_day,
                 'extendedProps' => [
                     'location' => $event->location,
