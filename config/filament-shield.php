@@ -220,6 +220,10 @@ return [
                 'importFromOutlook',
                 'syncToOutlook',
             ],
+
+            App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource::class => [
+                'Print',
+            ]
         ],
         'exclude' => [
             //
