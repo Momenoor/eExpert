@@ -225,13 +225,13 @@ return [
          */
         'custom_authorization' => null,
 
-        'view_any' => 'viewAny:Activity',
-        'view' => 'view:Activity',
-        'create' => 'create:Activity',
-        'update' => 'update:Activity',
-        'delete' => 'delete:Activity',
-        'restore' => 'restore:Activity',
-        'force_delete' => 'forceDelete:Activity',
+        'view_any' => 'ViewAny:Activity',
+        'view' => 'View:Activity',
+        'create' => 'Create:Activity',
+        'update' => 'Update:Activity',
+        'delete' => 'Delete:Activity',
+        'restore' => 'Restore:Activity',
+        'force_delete' => 'ForceDelete:Activity',
     ],
 
     /*

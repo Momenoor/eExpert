@@ -14,7 +14,7 @@ return [
      * When the clean-command is executed, all recording activities older than
      * the number of days specified here will be deleted.
      */
-    'delete_records_older_than_days' => 365,
+    'delete_records_older_than_days' => 36500,
 
     /*
      * If no log name is passed to the activity() helper
@@ -55,5 +55,6 @@ return [
 
     'activity_logger_taps' => [
         SetActivityContextTap::class,
+        \AlizHarb\ActivityLog\Taps\SetActivityContextTap::class,
     ],
 ];
