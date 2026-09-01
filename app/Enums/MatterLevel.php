@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum MatterLevel: string implements HasLabel, HasColor
+enum MatterLevel: string implements HasColor, HasLabel
 {
     case FIRST_INSTANCE = 'first_instance';
     case APPEAL = 'appeal';

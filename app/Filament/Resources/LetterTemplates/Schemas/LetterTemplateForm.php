@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\LetterTemplates\Schemas;
 
 use App\Enums\LetterTemplateCategories;
-use App\Filament\Forms\Components\RichEditor\RichContentCustomBlocks\HeroBlock;
+use App\Models\Matter;
+use App\Models\Party;
 use App\Models\User;
 use App\Services\TemplatePlaceholderService;
 use Filament\Actions\Action;
@@ -16,7 +17,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Momenoor\FilamentTiptapEditor\TiptapEditor;
 
 class LetterTemplateForm
 {
@@ -25,7 +25,7 @@ class LetterTemplateForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->afterStateUpdated(fn($state, Set $set) => $set('slug', str($state)->slug()))
+                    ->afterStateUpdated(fn ($state, Set $set) => $set('slug', str($state)->slug()))
                     ->lazy()
                     ->required(),
 
@@ -53,9 +53,8 @@ class LetterTemplateForm
                     ->toolbarButtons([
                         ['h1', 'h2', 'h3', 'bulletList', 'orderedList', 'blockquote', 'horizontalRule'],
                         ['bold', 'italic', 'strike', 'underline', 'superscript', 'subscript', 'lead', 'textColor', 'small', 'highlight', 'alignStart', 'alignCenter', 'alignEnd'],
-                        ['link', 'table', 'grid', 'details', 'code', 'codeBlock', 'customBlocks', 'mergeTags',],
+                        ['link', 'table', 'grid', 'details', 'code', 'codeBlock', 'customBlocks', 'mergeTags'],
                     ]),
-
 
                 // ── Placeholder panel ──────────────────────────────────────────────────
                 Section::make(__('Placeholders'))
@@ -69,7 +68,7 @@ class LetterTemplateForm
                             ->icon('heroicon-o-arrow-down-tray')
                             ->action(function (Set $set, Get $get) {
                                 $flat = app(TemplatePlaceholderService::class)
-                                    ->flatten(\App\Models\Matter::class, depth: 1);
+                                    ->flatten(Matter::class, depth: 1);
 
                                 // Merge with existing, don't overwrite user edits
                                 $existing = $get('placeholders') ?? [];
@@ -83,7 +82,7 @@ class LetterTemplateForm
                             ->color('gray')
                             ->action(function (Set $set, Get $get) {
                                 $flat = app(TemplatePlaceholderService::class)
-                                    ->flatten(\App\Models\Party::class, depth: 0, prefix: 'party');
+                                    ->flatten(Party::class, depth: 0, prefix: 'party');
 
                                 $existing = $get('placeholders') ?? [];
                                 $set('placeholders', array_merge($flat, $existing));
@@ -95,7 +94,7 @@ class LetterTemplateForm
                             ->icon('heroicon-o-trash')
                             ->color('danger')
                             ->requiresConfirmation()
-                            ->action(fn(Set $set) => $set('placeholders', [])),
+                            ->action(fn (Set $set) => $set('placeholders', [])),
                     ])
                     ->schema([
                         KeyValue::make('placeholders')

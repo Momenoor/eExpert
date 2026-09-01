@@ -6,16 +6,9 @@ use App\Enums\RequestStatus;
 use App\Enums\RequestType;
 use App\Filament\Actions\Request\ApproveRequestAction;
 use App\Filament\Actions\Request\RejectRequestAction;
-use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class MatterRequestsTable
@@ -25,8 +18,8 @@ class MatterRequestsTable
         return $table
             ->columns([
                 TextColumn::make('matter.number')
-                    ->formatStateUsing(fn($record) => $record->matter->number . '/' . $record->matter->year)
-                    ->url(fn($record) => route('filament.admin.resources.matters.view', $record->matter_id))
+                    ->formatStateUsing(fn ($record) => $record->matter->number.'/'.$record->matter->year)
+                    ->url(fn ($record) => route('filament.admin.resources.matters.view', $record->matter_id))
                     ->label(__('Matter')),
                 TextColumn::make('requestBy.display_name')
                     ->label(__('Request By'))
@@ -84,7 +77,7 @@ class MatterRequestsTable
             ->recordActions([
                 ApproveRequestAction::make(),
                 RejectRequestAction::make(),
-                DeleteAction::make()->visible(fn($record) => $record->status === RequestStatus::PENDING && auth()->user()->can('Delete:MatterRequest')),
+                DeleteAction::make()->visible(fn ($record) => $record->status === RequestStatus::PENDING && auth()->user()->can('Delete:MatterRequest')),
             ])
             ->toolbarActions([
 

@@ -30,7 +30,7 @@ class BulkMailCampaignTable
                     ->badge(),
                 TextColumn::make('stats')
                     ->label(__('bulk_mail.fields.progress'))
-                    ->getStateUsing(fn($record) => "{$record->sent_count} / {$record->total_recipients} (" . __('bulk_mail.fields.failed') . ": {$record->failed_count})"),
+                    ->getStateUsing(fn ($record) => "{$record->sent_count} / {$record->total_recipients} (".__('bulk_mail.fields.failed').": {$record->failed_count})"),
                 TextColumn::make('scheduled_at')
                     ->label(__('bulk_mail.fields.scheduled_at'))
                     ->dateTime()
@@ -50,7 +50,7 @@ class BulkMailCampaignTable
                 ImportAction::make()
                     ->importer(BulkMailRecipientImporter::class)
                     ->label(__('bulk_mail.actions.import'))
-                    ->options(fn($record) => [
+                    ->options(fn ($record) => [
                         'campaign_id' => $record->id,
                     ])
                     ->icon('heroicon-o-arrow-up-tray'),

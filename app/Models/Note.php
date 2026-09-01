@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-
 class Note extends Model
 {
     use LogsActivity;
@@ -21,15 +20,15 @@ class Note extends Model
         'matter_id',
         'user_id',
         'text',
-        'datetime'
+        'datetime',
     ];
 
     protected $dates = [
-        'datetime'
+        'datetime',
     ];
 
     protected $with = [
-        'user'
+        'user',
     ];
 
     protected static function boot()
@@ -42,9 +41,8 @@ class Note extends Model
         });
     }
 
-
     public function user()
     {
-        return  $this->belongsTo(User::class);
+        return $this->belongsTo(User::class);
     }
 }

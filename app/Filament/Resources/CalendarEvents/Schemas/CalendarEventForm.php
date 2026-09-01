@@ -6,17 +6,14 @@ use App\Models\Matter;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Markdown;
 use Illuminate\Support\Str;
 
 class CalendarEventForm
@@ -30,29 +27,26 @@ class CalendarEventForm
     {
         $plaintiffs = $matter->mainPartiesOnly
             ->where('type', 'plaintiff')
-            ->map(fn($mp) => $mp->party?->name)->filter()->join(', ');
+            ->map(fn ($mp) => $mp->party?->name)->filter()->join(', ');
 
         $defendants = $matter->mainPartiesOnly
             ->where('type', 'defendant')
-            ->map(fn($mp) => $mp->party?->name)->filter()->join(', ');
+            ->map(fn ($mp) => $mp->party?->name)->filter()->join(', ');
 
         $experts = $matter->expertsOnly
-            ->map(fn($mp) => $mp->party?->name)->filter()->join(', ');
+            ->map(fn ($mp) => $mp->party?->name)->filter()->join(', ');
 
         return collect([
-            __('Matter') . ': ' . $matter->year . '/' . $matter->number,
-            __('Court') . ': ' . ($matter->court?->name ?? '—'),
-            __('Type') . ': ' . ($matter->type?->name ?? '—'),
-            $plaintiffs ? __('Plaintiffs') . ': ' . $plaintiffs : null,
-            $defendants ? __('Defendants') . ': ' . $defendants : null,
-            $experts ? __('Experts') . ': ' . $experts : null,
+            __('Matter').': '.$matter->year.'/'.$matter->number,
+            __('Court').': '.($matter->court?->name ?? '—'),
+            __('Type').': '.($matter->type?->name ?? '—'),
+            $plaintiffs ? __('Plaintiffs').': '.$plaintiffs : null,
+            $defendants ? __('Defendants').': '.$defendants : null,
+            $experts ? __('Experts').': '.$experts : null,
         ])->filter()->join("\n");
     }
 
-    /**
-     * @return array
-     */
-    public static function getFormSchema(int $matterId = null): array
+    public static function getFormSchema(?int $matterId = null): array
     {
         return [
 
@@ -60,33 +54,36 @@ class CalendarEventForm
                 Select::make('matter_id')
                     ->label(__('Matter'))
                     ->relationship('matter', 'year')
-                    ->getOptionLabelFromRecordUsing(fn($record) => $record?->year . '/' . $record?->number . ' - ' . ($record?->court?->name ?? '') . ' - ' . ($record?->type?->name ?? ''))
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record?->year.'/'.$record?->number.' - '.($record?->court?->name ?? '').' - '.($record?->type?->name ?? ''))
                     ->placeholder(__('Select Matter'))
                     ->searchable()
                     ->preload()
-                    ->hidden((fn($record) => $record instanceof Matter))
-                    ->disabled(fn($record) => $record instanceof Matter)
+                    ->hidden((fn ($record) => $record instanceof Matter))
+                    ->disabled(fn ($record) => $record instanceof Matter)
                     ->live()
                     ->afterStateUpdated(function (?int $state, Set $set) {
-                        if (!$state) return;
+                        if (! $state) {
+                            return;
+                        }
                         $matter = Matter::with(['court', 'type', 'mainPartiesOnly.party', 'expertsOnly.party'])
                             ->find($state);
-                        if (!$matter) return;
+                        if (! $matter) {
+                            return;
+                        }
 
-                        $set('title', $matter->year . '/' . $matter->number
-                            . ' — ' . ($matter->court?->name ?? '')
-                            . ' — ' . ($matter->type?->name ?? ''));
-                        $set('location', 'Microsoft Teams - ' . $matter->court?->name ?? 'Microsoft Teams');
+                        $set('title', $matter->year.'/'.$matter->number
+                            .' — '.($matter->court?->name ?? '')
+                            .' — '.($matter->type?->name ?? ''));
+                        $set('location', 'Microsoft Teams - '.$matter->court?->name ?? 'Microsoft Teams');
 
-//                        if ($matter->next_session_date) {
-//                            $set('start_at', Carbon::parse($matter->next_session_date)->format('Y-m-d H:i:s'));
-//                            $set('end_at', Carbon::parse($matter->next_session_date)->addHour()->format('Y-m-d H:i:s'));
-//                        }
+                        //                        if ($matter->next_session_date) {
+                        //                            $set('start_at', Carbon::parse($matter->next_session_date)->format('Y-m-d H:i:s'));
+                        //                            $set('end_at', Carbon::parse($matter->next_session_date)->addHour()->format('Y-m-d H:i:s'));
+                        //                        }
 
                         $set('description', self::buildDescription($matter));
                     })
                     ->columnSpanFull(),
-
 
                 TextInput::make('title')
                     ->label(__('Title'))
@@ -100,7 +97,7 @@ class CalendarEventForm
                     ->timezone('Asia/Muscat')
                     ->minutesStep(15)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn(Set $set, ?string $state) => $set('end_datetime', $state ? Carbon::parse($state)->addHour()->format('Y-m-d H:i:s') : null)
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('end_datetime', $state ? Carbon::parse($state)->addHour()->format('Y-m-d H:i:s') : null)
                     ),
 
                 DateTimePicker::make('end_datetime')
@@ -127,7 +124,7 @@ class CalendarEventForm
                 Toggle::make('update_next_session_date')
                     ->label(__("Update matter's next session date"))
                     ->default(true)
-                    ->disabled(fn(Get $get) => empty($get('matter_id'))),
+                    ->disabled(fn (Get $get) => empty($get('matter_id'))),
 
                 Toggle::make('sync_to_outlook')
                     ->label(__('Sync to Outlook Calendar'))
@@ -142,10 +139,10 @@ class CalendarEventForm
                     ->live(onBlur: true)
                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                         $location = $get('location');
-                        if (!$state) {
+                        if (! $state) {
                             $location = Str::of($location)->remove('Microsoft Teams - ');
                         } else {
-                            $location = 'Microsoft Teams - ' . $location;
+                            $location = 'Microsoft Teams - '.$location;
                         }
                         $set('location', $location);
                     })
@@ -158,12 +155,12 @@ class CalendarEventForm
                     ->dehydrated(false) // Ensures it doesn't try to save back to DB if disabled
                     ->placeholder(__('Generated after sync'))
                     ->suffixIcon('heroicon-o-video-camera')
-                    ->visible(fn($state) => !empty($state))
+                    ->visible(fn ($state) => ! empty($state))
                     ->suffixAction(
                         Action::make('openUrl')
                             ->icon('heroicon-m-arrow-top-right-on-square')
                             ->tooltip(__('Join Meeting'))
-                            ->url(fn($state) => $state)
+                            ->url(fn ($state) => $state)
                             ->openUrlInNewTab()
                     ),
             ]),

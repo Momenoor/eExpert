@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
+use App\Filament\Concerns\HasMultiWordSearch;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;
@@ -19,11 +20,22 @@ use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 
 class IncentiveSummaryTableWidget extends TableWidget
 {
+    /**
+     * This widget shows payroll figures for every assistant.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('View:IncentiveCalculation') ?? false;
+    }
+
+    use HasMultiWordSearch;
+
     protected int|string|array $columnSpan = 'full';
 
     public ?int $calculationId = null;
@@ -65,48 +77,33 @@ class IncentiveSummaryTableWidget extends TableWidget
         return IncentiveCalculation::find($this->calculationId)?->isDraft() ?? false;
     }
 
+    protected function calculation(): ?IncentiveCalculation
+    {
+        return IncentiveCalculation::find($this->calculationId);
+    }
+
+    /**
+     * Server-side guard for the mutating row actions. ->disabled() only greys the
+     * button out in the UI; without this an assistant could invoke the action
+     * directly and change their own payroll figures.
+     */
+    protected function guardMutation(): void
+    {
+        $calculation = $this->calculation();
+
+        abort_unless(
+            $calculation !== null
+                && $calculation->isDraft()
+                && auth()->user()?->can('runCalculation', $calculation),
+            403
+        );
+    }
+
     protected function getTableQuery(): Builder
     {
         return IncentiveAssistantLine::query()
             ->whereHas('incentiveLine', fn ($q) => $q->where('incentive_calculation_id', $this->calculationId))
             ->with(['party', 'incentiveLine.matter.court', 'incentiveLine.matter.type', 'incentiveLine.deductions']);
-    }
-
-    private static function splitSearch(string $search): array
-    {
-        return $search
-                |> trim(...)
-                |> (fn ($x) => preg_split('/[\s\/\\\\\-]+/', $x))
-                |> (fn ($x) => array_filter($x, fn ($token) => strlen($token) > 0))
-                |> array_values(...);
-    }
-
-    private static function applyMultiWordSearch(Builder $query, string $search, array $columns): Builder
-    {
-        $tokens = static::splitSearch($search);
-        foreach ($tokens as $token) {
-            $query->where(function (Builder $query) use ($token, $columns) {
-                foreach ($columns as $i => $column) {
-                    $method = $i === 0 ? 'where' : 'orWhere';
-                    if (str_contains($column, '.')) {
-                        // Split on the LAST dot so a multi-level relation path
-                        // (e.g. incentiveLine.matter.type.name) is passed to
-                        // whereHas as one nested relation string — Eloquent's
-                        // whereHas natively traverses dotted relation chains
-                        // of any depth, it's only the final segment that's a
-                        // real column to filter on.
-                        $lastDot = strrpos($column, '.');
-                        $relation = substr($column, 0, $lastDot);
-                        $col = substr($column, $lastDot + 1);
-                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn ($r) => $r->where($col, 'like', "%{$token}%"));
-                    } else {
-                        $query->{$method}($column, 'like', "%{$token}%");
-                    }
-                }
-            });
-        }
-
-        return $query;
     }
 
     /**
@@ -294,6 +291,8 @@ class IncentiveSummaryTableWidget extends TableWidget
                         'percentage_override' => $record->percentage_override,
                     ])
                     ->action(function (array $data, $record) {
+                        $this->guardMutation();
+
                         $record->update([
                             'percentage_override' => filled($data['percentage_override']) ? $data['percentage_override'] : null,
                         ]);
@@ -334,12 +333,21 @@ class IncentiveSummaryTableWidget extends TableWidget
                         ];
                     })
                     ->action(function (array $data, $record) {
-                        IncentiveAssistantExtra::where('incentive_calculation_id', $this->calculationId)
-                            ->where('party_id', $record->party_id)
-                            ->update([
+                        $this->guardMutation();
+
+                        // updateOrCreate, not update: an assistant whose matters were
+                        // all excluded has no extras row yet, and a bare update()
+                        // silently affected 0 rows while still reporting success.
+                        IncentiveAssistantExtra::updateOrCreate(
+                            [
+                                'incentive_calculation_id' => $this->calculationId,
+                                'party_id' => $record->party_id,
+                            ],
+                            [
                                 'fixed_deduction' => $data['fixed_deduction'] ?? 0,
                                 'fixed_deduction_reason' => $data['fixed_deduction_reason'] ?? null,
-                            ]);
+                            ]
+                        );
 
                         app(IncentiveCalculatorService::class)->calculate(
                             IncentiveCalculation::findOrFail($this->calculationId)
@@ -371,15 +379,19 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->modalIcon('heroicon-o-trash')
                     ->modalIconColor('danger')
                     ->action(function ($record) {
+                        $this->guardMutation();
+
                         $matterId = $record->incentiveLine?->matter_id;
 
-                        IncentiveLine::where('incentive_calculation_id', $this->calculationId)
-                            ->where('matter_id', $matterId)
-                            ->delete();
+                        DB::transaction(function () use ($matterId) {
+                            IncentiveLine::where('incentive_calculation_id', $this->calculationId)
+                                ->where('matter_id', $matterId)
+                                ->delete();
 
-                        app(IncentiveCalculatorService::class)->calculate(
-                            IncentiveCalculation::findOrFail($this->calculationId)
-                        );
+                            app(IncentiveCalculatorService::class)->calculate(
+                                IncentiveCalculation::findOrFail($this->calculationId)
+                            );
+                        });
 
                         Notification::make()->title(__('Matter Removed'))->success()->send();
                     }),

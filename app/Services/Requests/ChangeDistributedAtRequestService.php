@@ -2,10 +2,42 @@
 
 namespace App\Services\Requests;
 
-use App\Services\Requests\BaseRequestService;
+use App\Enums\RequestStatus;
+use App\Models\Matter;
+use App\Models\User;
+use Filament\Forms\Components\DatePicker;
 
 class ChangeDistributedAtRequestService extends BaseRequestService
 {
+    public static function createFormFields(): array
+    {
+        return [
+            DatePicker::make('proposed_distributed_at')
+                ->label(__('Proposed Assistant Assigning Date'))
+                ->required(),
+        ];
+    }
+
+    public static function prepareForCreation(array $data, Matter $matter): array
+    {
+        return [
+            'comment' => $data['comment'] ?? null,
+            'extra' => ! empty($data['proposed_distributed_at'])
+                ? ['proposed_distributed_at' => $data['proposed_distributed_at']]
+                : null,
+        ];
+    }
+
+    public function canBeApproved(User $user): bool
+    {
+        return $this->request->status === RequestStatus::PENDING
+            && (auth()->id() === $this->request->request_by || $user->hasAnyRole('super-admin', 'super_admin'));
+    }
+
+    public function canBeRejected(User $user): bool
+    {
+        return $this->canBeApproved($user);
+    }
 
     public function approve(array $data = [], $component = null): void
     {

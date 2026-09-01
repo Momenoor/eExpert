@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{{ __('Dispute Received Date') }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite('resources/css/print.css')
     <link rel="stylesheet" href="{{asset('fonts/Boutros.css')}}">
     <style>
         * {
@@ -40,7 +40,7 @@
     </div>
 
     <form method="POST"
-          action="{{ route('matter.received.dispute.submit', ['matter' => $matter->id,'matterRequest'=> $matterRequest]) }}"
+          action="{{ $submitUrl }}"
           class="space-y-5">
         @csrf
         <div>

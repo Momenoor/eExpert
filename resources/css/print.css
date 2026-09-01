@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+
+/*
+ * Standalone stylesheet for pages rendered outside the Filament panel: the
+ * incentive print reports and the emailed accept/dispute pages.
+ *
+ * These previously loaded https://cdn.tailwindcss.com — the Tailwind *v3* Play
+ * CDN — in a v4 project. That meant a different major version styled them than
+ * the rest of the app, it added an external network dependency to the print
+ * path, and the Play CDN is documented as development-only.
+ */
+
+@source '../views/filament/pages/incentive/**/*.blade.php';
+@source '../views/mails/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Boutros MBC Dinkum', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Print reports are RTL Arabic documents. */
+@media print {
+    .no-print {
+        display: none;
+    }
+
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    @page {
+        margin: 1cm;
+    }
+}

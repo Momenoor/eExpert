@@ -1,10 +1,17 @@
-<div class="fi-callout fi-color" style="margin-top:10px;--color-400: var(--warning-400, #f59e0b); --color-600: var(--warning-600, #d97706);">
-<div class="fi-callout-icon fi-color">
-<x-filament::icon icon="heroicon-o-megaphone" class="fi-icon fi-size-md" />
-</div>
-<div class="fi-callout-main">
-    <div class="fi-callout-text">
-        <div class="fi-callout-heading">{{$escaped}}</div>
-        </div>
-    </div>
+{{--
+    System-wide announcement banner.
+
+    Uses Filament's own callout component instead of hand-reconstructing its DOM
+    (fi-callout / fi-callout-icon / fi-callout-main / fi-callout-heading) and
+    then hand-patching the colour through an inline style with hardcoded amber
+    hex fallbacks. `color="warning"` does all of that, and survives upgrades.
+
+    $announcement is raw here on purpose: Blade's {{ }} escapes it exactly once.
+    It was previously escaped in the provider AND again here, so an announcement
+    containing & or a quote displayed as &amp; to users.
+--}}
+<div class="mt-2.5">
+    <x-filament::callout color="warning" icon="heroicon-o-megaphone">
+        {{ $announcement }}
+    </x-filament::callout>
 </div>

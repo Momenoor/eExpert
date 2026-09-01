@@ -5,8 +5,9 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
+use Illuminate\Contracts\Support\Htmlable;
 
-enum LetterStatus:string implements HasColor,HasLabel,HasIcon
+enum LetterStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
     case SENT = 'sent';
@@ -16,6 +17,7 @@ enum LetterStatus:string implements HasColor,HasLabel,HasIcon
     case CANCELLED = 'cancelled';
     case FAILED = 'failed';
     case DELIVERED = 'delivered';
+
     public function getLabel(): ?string
     {
         return match ($this) {
@@ -29,6 +31,7 @@ enum LetterStatus:string implements HasColor,HasLabel,HasIcon
             self::DELIVERED => __('Delivered'),
         };
     }
+
     public function getColor(): string|array|null
     {
         return match ($this) {
@@ -40,7 +43,8 @@ enum LetterStatus:string implements HasColor,HasLabel,HasIcon
             self::CANCELLED, self::FAILED => 'danger',
         };
     }
-    public function getIcon(): string|null|\BackedEnum|\Illuminate\Contracts\Support\Htmlable
+
+    public function getIcon(): string|null|\BackedEnum|Htmlable
     {
         return match ($this) {
             self::DRAFT => 'heroicon-o-document-text',

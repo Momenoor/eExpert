@@ -9,6 +9,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class Court extends Model
 {
+    use HasFactory;
     use LogsActivity;
 
     public function getActivitylogOptions(): LogOptions

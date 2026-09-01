@@ -1,6 +1,6 @@
 <div>
-    <hr style="margin: -5px; margin-top: 5px; border-top: 1px solid #e5e5e5">
-    <div style="margin: 10px">
+    <hr class="mt-1 border-t border-gray-200 dark:border-white/10">
+    <div class="m-2.5">
 
         {{ $this->form }}
     </div>

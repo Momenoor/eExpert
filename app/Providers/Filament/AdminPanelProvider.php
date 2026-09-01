@@ -22,10 +22,8 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Assets\Css;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
-use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Table;
@@ -53,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->login(CustomLogin::class)
             ->sidebarWidth('15rem')
             ->colors([
@@ -118,7 +117,6 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('10s')
             ->databaseTransactions()
-            ->databaseNotificationsPolling('10s')
             ->globalSearch(false)
             ->maxContentWidth(Width::Full);
     }
@@ -148,9 +146,6 @@ class AdminPanelProvider extends PanelProvider
             ActivitiesRelationManager::class,
         ]);
         FilamentTimezone::set('Asia/Muscat');
-        FilamentAsset::register([
-            Css::make('custom-css', asset('css/custom-css.css')),
-        ]);
         FileUpload::configureUsing(fn (FileUpload $component) => $component->maxSize(1024 * 1024 * 50));
 
         FilamentView::registerRenderHook(
@@ -163,13 +158,12 @@ class AdminPanelProvider extends PanelProvider
                 $announcement = Setting::get('system_announcement');
 
                 if (empty($announcement)) {
-                    return view('');
+                    return view('blank');
                 }
 
-                $escaped = e($announcement);
-
-                //                return "<div class=\"fi-callout fi-color fi-color-warning fi-mt-4\"><div class=\"fi-callout-icon fi-color\"><x-filament::icon icon=\"heroicon-m-plus\" class=\"fi-icon fi-size-md\"/></div><div class=\"fi-callout-main\"><div class=\"fi-callout-text\"><div class=\"fi-callout-heading\"> $escaped </div></div></div></div>";
-                return view('filament.pages.announcement', ['escaped' => $escaped]);
+                // Passed raw — the view's {{ }} escapes it once. Escaping here as
+                // well produced double-escaped output (&amp;amp;) for users.
+                return view('filament.pages.announcement', ['announcement' => $announcement]);
             });
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
@@ -195,14 +189,17 @@ class AdminPanelProvider extends PanelProvider
                 // server-rendered <head> so it's correct from the very first
                 // paint. A separate client-side script applying it later (e.g.
                 // on DOMContentLoaded) causes a visible flash-then-resize.
+                // No !important needed: nothing else sets font-size on :root, and
+                // the previous one forced a matching !important in the panel's
+                // stylesheet to compensate.
                 return "
             <style>
                 :root {
                     --user-font-size: {$fontSize}px;
-                    font-size: var(--user-font-size) !important;
+                    font-size: var(--user-font-size);
                 }
                 body {
-                    font-size: var(--user-font-size) !important;
+                    font-size: var(--user-font-size);
                 }
             </style>
         ";

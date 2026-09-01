@@ -3,13 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Enums\FeeType;
-use App\Models\Matter;
+use App\Filament\Exports\AssistantMatterFeesExporter;
 use App\Models\MatterParty;
 use App\Models\Party;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\ExportAction;
-use Filament\Actions\Exports\Jobs\PrepareCsvExport;
-use Filament\Actions\Exports\Models\Export;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
@@ -21,18 +19,20 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Exports\AssistantMatterFeesExporter;
 
 class AssistantMatterFeesReport extends Page implements HasTable
 {
-    use InteractsWithTable;
     use HasPageShield;
+    use InteractsWithTable;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-document-chart-bar';
+
     protected static string|null|\UnitEnum $navigationGroup = 'Reports';
+
     protected static ?int $navigationSort = 3;
 
     protected string $view = 'filament.pages.assistant-matter-fees-report';
+
     protected static ?string $navigationLabel = 'Assistant Fees Report';
 
     public static function getNavigationGroup(): string|null|\UnitEnum
@@ -58,7 +58,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
             ->columns([
                 TextColumn::make('matter.reference')
                     ->label(__('Matter'))
-                    ->getStateUsing(fn($record) => $record->matter->year . '/' . $record->matter->number)
+                    ->getStateUsing(fn ($record) => $record->matter->year.'/'.$record->matter->number)
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('matter', function ($q) use ($search) {
                             $q->where('year', 'like', "%{$search}%")
@@ -85,7 +85,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
                     ->alignEnd(),
                 TextColumn::make('divided_fees')
                     ->label(__('Divided Fees'))
-                    ->getStateUsing(fn($record) => ($record->assistants_count > 0) ? ($record->total_matter_fees / $record->assistants_count) : 0)
+                    ->getStateUsing(fn ($record) => ($record->assistants_count > 0) ? ($record->total_matter_fees / $record->assistants_count) : 0)
                     ->money('AED')
                     ->alignEnd(),
             ])
@@ -109,9 +109,9 @@ class AssistantMatterFeesReport extends Page implements HasTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         $query
-                            ->when($data['final_from'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])))
-                            ->when($data['final_until'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])));
-                    })->indicateUsing(fn($data) => ($data['final_from'] || $data['final_until'] ? __('Final Report Date') . ' ' . ($data['final_from'] ? __('From:') . $data['final_from'] : '') . ($data['final_until'] ? ' '.__('Until:') . $data['final_until'] : ''):'')),
+                            ->when($data['final_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])))
+                            ->when($data['final_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])));
+                    })->indicateUsing(fn ($data) => ($data['final_from'] || $data['final_until'] ? __('Final Report Date').' '.($data['final_from'] ? __('From:').$data['final_from'] : '').($data['final_until'] ? ' '.__('Until:').$data['final_until'] : '') : '')),
             ])
             ->queryStringIdentifier('final_report')
             ->persistSearchInSession()

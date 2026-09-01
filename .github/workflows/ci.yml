@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Tests, style and static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: zip, pdo, pdo_sqlite, sqlite3, intl, bcmath, gd
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env || true
+          php artisan key:generate
+
+      # Formatting is enforced, not suggested — the codebase was brought to a
+      # clean Pint state, and this keeps it there.
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      # Baselined: 249 pre-existing findings are grandfathered, so this fails
+      # only on NEW static-analysis errors.
+      - name: Static analysis
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      # Runs against sqlite :memory: per phpunit.xml. Includes SchemaFidelityTest,
+      # which fails if a column is used in code but not created by a migration —
+      # the drift that previously made migrate:fresh unable to reproduce production.
+      - name: Run tests
+        run: php artisan test

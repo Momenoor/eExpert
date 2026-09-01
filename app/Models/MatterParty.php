@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-
 class MatterParty extends Model
 {
     use LogsActivity;
@@ -36,7 +35,9 @@ class MatterParty extends Model
     ];
 
     public $incrementing = true;
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected static function booted(): void
@@ -46,7 +47,7 @@ class MatterParty extends Model
         });
 
         static::creating(function (MatterParty $matterParty) {
-            if (!$matterParty->matter_id && $matterParty->parent_id) {
+            if (! $matterParty->matter_id && $matterParty->parent_id) {
                 $parent = MatterParty::find($matterParty->parent_id);
                 if ($parent) {
                     $matterParty->matter_id = $parent->matter_id;
@@ -75,6 +76,9 @@ class MatterParty extends Model
 
     /**
      * The party this row points to.
+     */
+    /**
+     * @return BelongsTo<Party, $this>
      */
     public function party(): BelongsTo
     {
@@ -114,6 +118,6 @@ class MatterParty extends Model
 
     public function experts(): BelongsTo
     {
-        return $this->belongsTo(Party::class, 'party_id')->whereJsonContains('role' , ['role' => 'expert', 'type' => 'certified']);
+        return $this->belongsTo(Party::class, 'party_id')->whereJsonContains('role', ['role' => 'expert', 'type' => 'certified']);
     }
 }

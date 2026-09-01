@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum MatterStatus: string implements HasLabel, HasColor
+enum MatterStatus: string implements HasColor, HasLabel
 {
     case IN_PROGRESS = 'In Progress';
     case INITIALED = 'Initial Report';

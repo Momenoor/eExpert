@@ -13,6 +13,7 @@ use App\Services\IncentiveService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -40,6 +41,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Import Qualifying Matters'))
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
+                ->authorize('runCalculation', $this->record)
                 ->visible(fn () => $this->record->isDraft())
                 ->mountUsing(function ($form) {
                     $form->fill([
@@ -68,6 +70,12 @@ class ViewIncentiveCalculation extends ViewRecord
                     Repeater::make('temp_lines')
                         ->label('')
                         ->schema([
+                            // Without this the action's ->pluck('matter_id') returned
+                            // an array of nulls and the import silently did nothing:
+                            // a repeater only dehydrates the fields it declares, and
+                            // every other field here is ->disabled() (also not
+                            // dehydrated), so only is_selected survived.
+                            Hidden::make('matter_id'),
                             Checkbox::make('is_selected')
                                 ->hiddenLabel(),
                             TextInput::make('reference')
@@ -85,10 +93,21 @@ class ViewIncentiveCalculation extends ViewRecord
                         ->reorderable(false),
                 ])
                 ->action(function (array $data) {
-                    $selectedMatterIds = collect($data['temp_lines'])
+                    $selectedMatterIds = collect($data['temp_lines'] ?? [])
                         ->where('is_selected', true)
                         ->pluck('matter_id')
-                        ->toArray();
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    if ($selectedMatterIds === []) {
+                        Notification::make()
+                            ->title(__('No matters selected'))
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
 
                     app(IncentiveService::class)->importSelectedMatters($this->record, $selectedMatterIds);
                     Notification::make()
@@ -104,6 +123,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Import All Qualifying Matters'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('primary')
+                ->authorize('runCalculation', $this->record)
                 ->visible(fn () => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->modalHeading(__('Import All Qualifying Matters'))
@@ -141,6 +161,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Add Specific Matter'))
                 ->icon('heroicon-o-document-plus')
                 ->color('gray')
+                ->authorize('runCalculation', $this->record)
                 ->visible(fn () => $this->record->isDraft())
                 ->modalHeading(__('Add Specific Matter'))
                 ->modalDescription(__('Imports this matter regardless of its period or trigger date. Any fee already included in another calculation is skipped automatically.'))
@@ -199,6 +220,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Run Calculation'))
                 ->icon('heroicon-o-play')
                 ->color('info')
+                ->authorize('runCalculation', $this->record)
                 ->visible(fn () => $this->record->isDraft())
                 ->requiresConfirmation()
                 ->modalHeading(__('Run Incentive Calculation'))
@@ -229,6 +251,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Delete All Lines'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
+                ->authorize('runCalculation', $this->record)
                 ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
                 ->requiresConfirmation()
                 ->modalHeading(__('Delete All Lines'))
@@ -251,6 +274,7 @@ class ViewIncentiveCalculation extends ViewRecord
                 ->label(__('Finalize'))
                 ->icon('heroicon-o-lock-closed')
                 ->color('success')
+                ->authorize('finalize', $this->record)
                 ->visible(fn () => $this->record->isDraft() && $this->record->lines()->exists())
                 ->requiresConfirmation()
                 ->modalHeading(__('Finalize Calculation'))

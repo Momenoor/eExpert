@@ -47,7 +47,7 @@ class ListIncentiveCalculations extends ListRecords
                 ])->columnMappingColumns(2)
                 ->modifyQueryUsing(function (Builder $query, array $options) {
                     // Filter by initial report date range
-                    if (!empty($options['initial_start_date']) && !empty($options['initial_end_date'])) {
+                    if (! empty($options['initial_start_date']) && ! empty($options['initial_end_date'])) {
                         $query->whereHas('matter', function (Builder $q) use ($options) {
                             $q->whereBetween('initial_report_at', [
                                 $options['initial_start_date'],
@@ -57,7 +57,7 @@ class ListIncentiveCalculations extends ListRecords
                     }
 
                     // Filter by final report date range (optional)
-                    if (!empty($options['final_start_date']) && !empty($options['final_end_date'])) {
+                    if (! empty($options['final_start_date']) && ! empty($options['final_end_date'])) {
                         $query->whereHas('matter', function (Builder $q) use ($options) {
                             $q->whereBetween('final_report_at', [
                                 $options['final_start_date'],
@@ -72,14 +72,14 @@ class ListIncentiveCalculations extends ListRecords
                 ->modalWidth(Width::ThreeExtraLarge)
                 ->schema([
                     DatePicker::make('start_date'),
-                    DatePicker::make('end_date')
+                    DatePicker::make('end_date'),
                 ])
                 ->columnMapping(false)
                 ->model(Matter::class)
                 ->icon(Heroicon::DocumentChartBar)
                 ->exporter(MattersCompletingDataExporter::class)
                 ->label(__('Check Data'))
-                ->modifyQueryUsing(fn(Builder $query, array $options) => Matter::query()->whereBetween('final_report_at', [$options['start_date'], $options['end_date']])),
+                ->modifyQueryUsing(fn (Builder $query, array $options) => Matter::query()->whereBetween('final_report_at', [$options['start_date'], $options['end_date']])),
         ];
     }
 }

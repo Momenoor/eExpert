@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Enums\RequestStatus;
 use App\Enums\RequestType;
-use App\Observers\AttachmentObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -29,12 +29,8 @@ class MatterRequest extends Model
         'approved_by',
         'approved_at',
         'approved_comment',
+        'email_action',
         'extra',
-        'name',
-        'path',
-        'size',
-        'extension',
-        'user_id',
     ];
 
     protected $casts = [
@@ -54,22 +50,22 @@ class MatterRequest extends Model
         });
     }
 
-    public function matter(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function matter(): BelongsTo
     {
         return $this->belongsTo(Matter::class);
     }
 
-    public function requestBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function requestBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'request_by');
     }
 
-    public function approvedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function attachments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class, 'matter_request_id');
     }

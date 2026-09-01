@@ -5,7 +5,9 @@ namespace App\Filament\Resources\BulkMailCampaigns\Pages;
 use App\Enums\BulkMailCampaignStatus;
 use App\Filament\Resources\BulkMailCampaigns\BulkMailCampaignResource;
 use App\Filament\Resources\BulkMailCampaigns\Widgets\CampaignStatsWidget;
+use App\Jobs\SendBulkMailBatch;
 use App\Mail\BulkMailMessage;
+use App\Models\BulkMailRecipient;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -24,7 +26,7 @@ class ViewBulkMailCampaign extends ViewRecord
                 ->label(__('bulk_mail.actions.send_test'))
                 ->icon('heroicon-o-paper-airplane')
                 ->action(function ($record) {
-                    $recipient = new \App\Models\BulkMailRecipient([
+                    $recipient = new BulkMailRecipient([
                         'email' => auth()->user()->email,
                         'name' => auth()->user()->name,
                     ]);
@@ -41,10 +43,10 @@ class ViewBulkMailCampaign extends ViewRecord
                 ->label(__('bulk_mail.actions.start'))
                 ->icon('heroicon-o-play')
                 ->color('success')
-                ->visible(fn() => in_array($this->record->status, [BulkMailCampaignStatus::Draft, BulkMailCampaignStatus::Paused]))
+                ->visible(fn () => in_array($this->record->status, [BulkMailCampaignStatus::Draft, BulkMailCampaignStatus::Paused]))
                 ->action(function () {
                     $this->record->update(['status' => BulkMailCampaignStatus::Active]);
-                    \App\Jobs\SendBulkMailBatch::dispatch($this->record->id);
+                    SendBulkMailBatch::dispatch($this->record->id);
 
                     Notification::make()
                         ->success()
@@ -56,7 +58,7 @@ class ViewBulkMailCampaign extends ViewRecord
                 ->label(__('bulk_mail.actions.pause'))
                 ->icon('heroicon-o-pause')
                 ->color('warning')
-                ->visible(fn() => $this->record->status === BulkMailCampaignStatus::Active)
+                ->visible(fn () => $this->record->status === BulkMailCampaignStatus::Active)
                 ->action(function () {
                     $this->record->update(['status' => BulkMailCampaignStatus::Paused]);
 

@@ -10,6 +10,7 @@ use App\Enums\MatterStatus;
 use App\Observers\MatterObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +25,7 @@ use Spatie\Activitylog\Support\LogOptions;
 #[ObservedBy(MatterObserver::class)]
 class Matter extends Model
 {
+    use HasFactory;
     use LogsActivity;
     use SoftDeletes;
 
@@ -95,7 +97,7 @@ class Matter extends Model
 
                 // Remove metas that are no longer in custom_fields
                 $fieldsToRemove = array_diff($existingFieldNames, $newFieldNames);
-                if (!empty($fieldsToRemove)) {
+                if (! empty($fieldsToRemove)) {
                     $matter->metas()->whereIn('field_name', $fieldsToRemove)->delete();
                 }
 
@@ -169,6 +171,9 @@ class Matter extends Model
             ->where('role', 'expert');
     }
 
+    /**
+     * @return HasMany<MatterParty, $this>
+     */
     public function assistantsOnly(): HasMany
     {
         return $this->hasMany(MatterParty::class, 'matter_id')
@@ -315,6 +320,9 @@ class Matter extends Model
         }
     }
 
+    /**
+     * @return BelongsTo<Type, $this>
+     */
     public function type(): BelongsTo
     {
         return $this->belongsTo(Type::class);

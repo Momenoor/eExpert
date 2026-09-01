@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -74,6 +75,7 @@ class TemplatePlaceholderService
         $nested = $this->discover($modelClass, $depth, $prefix);
         $flat = [];
         $this->flattenRecursive($nested, $flat);
+
         return $flat; // ['{{matter.reference}}' => 'Matter / Reference', ...]
     }
 
@@ -87,6 +89,7 @@ class TemplatePlaceholderService
         $structure = $this->analyzeModel($model, $prefix, $depth);
         $values = [];
         $this->resolveValues($model, $structure, $values);
+
         return $values;
     }
 
@@ -97,8 +100,8 @@ class TemplatePlaceholderService
     protected function analyzeModel(Model $model, string $prefix, int $depth): array
     {
         $result = [
-            'model'     => get_class($model),
-            'label'     => Str::headline(class_basename($model)),
+            'model' => get_class($model),
+            'label' => Str::headline(class_basename($model)),
             'variables' => $this->extractColumns($model, $prefix),
             'relations' => [],
         ];
@@ -136,28 +139,34 @@ class TemplatePlaceholderService
         $hidden = $model->getHidden();
 
         foreach ($columns as $column) {
-            if (in_array($column, $this->skipColumns, true)) continue;
-            if (in_array($column, $hidden, true)) continue;
-            if (Str::endsWith($column, '_id')) continue; // FK columns — skip raw IDs
+            if (in_array($column, $this->skipColumns, true)) {
+                continue;
+            }
+            if (in_array($column, $hidden, true)) {
+                continue;
+            }
+            if (Str::endsWith($column, '_id')) {
+                continue;
+            } // FK columns — skip raw IDs
 
             $type = $this->getColumnType($model, $column);
-            $label = Str::headline(class_basename($model)) . ' / ' . Str::headline($column);
+            $label = Str::headline(class_basename($model)).' / '.Str::headline($column);
 
             $variables[] = [
-                'key'     => "{{{{{$prefix}.{$column}}}}}",
-                'label'   => $label,
-                'type'    => $type,
-                'column'  => $column,
+                'key' => "{{{{{$prefix}.{$column}}}}}",
+                'label' => $label,
+                'type' => $type,
+                'column' => $column,
             ];
         }
 
         // Also pick up public accessors (get*Attribute / Laravel 9+ Attribute casts)
         foreach ($this->detectAccessors($model) as $accessor) {
-            $label = Str::headline(class_basename($model)) . ' / ' . Str::headline($accessor) . ' (computed)';
+            $label = Str::headline(class_basename($model)).' / '.Str::headline($accessor).' (computed)';
             $variables[] = [
-                'key'    => "{{{{{$prefix}.{$accessor}}}}}",
-                'label'  => $label,
-                'type'   => 'computed',
+                'key' => "{{{{{$prefix}.{$accessor}}}}}",
+                'label' => $label,
+                'type' => 'computed',
                 'column' => $accessor,
             ];
         }
@@ -172,9 +181,15 @@ class TemplatePlaceholderService
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             // Skip inherited, constructor, snake_case (likely not relations), and magic
-            if ($method->class !== get_class($model)) continue;
-            if ($method->getNumberOfParameters() > 0) continue;
-            if (Str::startsWith($method->name, ['get', 'set', 'scope', 'boot', '__'])) continue;
+            if ($method->class !== get_class($model)) {
+                continue;
+            }
+            if ($method->getNumberOfParameters() > 0) {
+                continue;
+            }
+            if (Str::startsWith($method->name, ['get', 'set', 'scope', 'boot', '__'])) {
+                continue;
+            }
 
             try {
                 $result = $method->invoke($model);
@@ -200,22 +215,25 @@ class TemplatePlaceholderService
         $tableColumns = Schema::getColumnListing($model->getTable());
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            if ($method->class !== get_class($model)) continue;
+            if ($method->class !== get_class($model)) {
+                continue;
+            }
 
             // Laravel 9+ style: methods returning Attribute
             $returnType = $method->getReturnType();
             if ($returnType && Str::endsWith((string) $returnType, 'Attribute')) {
                 $name = Str::snake($method->name);
-                if (!in_array($name, $tableColumns)) {
+                if (! in_array($name, $tableColumns)) {
                     $accessors[] = $name;
                 }
+
                 continue;
             }
 
             // Laravel 8 style: getXxxAttribute
             if (preg_match('/^get(.+)Attribute$/', $method->name, $m)) {
                 $name = Str::snake($m[1]);
-                if (!in_array($name, $tableColumns)) {
+                if (! in_array($name, $tableColumns)) {
                     $accessors[] = $name;
                 }
             }
@@ -254,9 +272,9 @@ class TemplatePlaceholderService
             try {
                 $raw = $model->{$var['column']};
                 $values[$var['key']] = match ($var['type']) {
-                    'date', 'datetime' => $raw ? \Carbon\Carbon::parse($raw)->format('d/m/Y') : '',
-                    'boolean'          => $raw ? __('Yes') : __('No'),
-                    default            => (string) ($raw ?? ''),
+                    'date', 'datetime' => $raw ? Carbon::parse($raw)->format('d/m/Y') : '',
+                    'boolean' => $raw ? __('Yes') : __('No'),
+                    default => (string) ($raw ?? ''),
                 };
             } catch (Throwable) {
                 $values[$var['key']] = '';

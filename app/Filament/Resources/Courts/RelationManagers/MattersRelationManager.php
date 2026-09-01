@@ -7,6 +7,7 @@ use App\Filament\Resources\Matters\Tables\MattersTable;
 use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class MattersRelationManager extends RelationManager
 {
@@ -14,7 +15,7 @@ class MattersRelationManager extends RelationManager
 
     protected static ?string $relatedResource = MatterResource::class;
 
-    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('Matters');
     }

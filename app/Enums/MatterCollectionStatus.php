@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum MatterCollectionStatus: string implements HasLabel, HasColor
+enum MatterCollectionStatus: string implements HasColor, HasLabel
 {
     case UNPAID = 'unpaid';
     case PARTIAL = 'partial';

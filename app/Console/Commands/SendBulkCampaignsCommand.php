@@ -10,6 +10,7 @@ use Illuminate\Console\Command;
 class SendBulkCampaignsCommand extends Command
 {
     protected $signature = 'mail:send-bulk-campaigns';
+
     protected $description = 'Find all active campaigns and dispatch sending jobs.';
 
     public function handle(): void

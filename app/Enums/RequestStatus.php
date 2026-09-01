@@ -2,7 +2,10 @@
 
 namespace App\Enums;
 
-enum RequestStatus: string implements \Filament\Support\Contracts\HasLabel, \Filament\Support\Contracts\HasColor
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
+
+enum RequestStatus: string implements HasColor, HasLabel
 {
     case APPROVED = 'approved';
     case REJECTED = 'rejected';

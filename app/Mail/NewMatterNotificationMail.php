@@ -3,12 +3,10 @@
 namespace App\Mail;
 
 use App\Models\Matter;
-use App\Models\Party;
 use App\Models\MatterRequest;
+use App\Models\Party;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -19,6 +17,7 @@ class NewMatterNotificationMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $acceptUrl;
+
     public string $disputeUrl;
 
     /**
@@ -47,7 +46,7 @@ class NewMatterNotificationMail extends Mailable
     {
         return new Envelope(
             subject: __('New Matter Notification')
-            . ' — ' . $this->matter->year . '/' . $this->matter->number . ($this->matter->type ? ' — ' . $this->matter->type->name : ''),
+            .' — '.$this->matter->year.'/'.$this->matter->number.($this->matter->type ? ' — '.$this->matter->type->name : ''),
         );
     }
 

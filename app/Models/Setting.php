@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class Setting extends Model
@@ -67,7 +68,14 @@ class Setting extends Model
                     })
                     ->all();
             });
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            // Falling back to an empty set means EVERY caller silently gets its
+            // hardcoded default — including the incentive rates, so payroll would
+            // be computed at defaults with nothing visibly wrong. Swallowing is
+            // still the right call during boot/migrations (the table may not
+            // exist yet), but it must not be silent.
+            Log::warning('Settings could not be loaded, falling back to defaults: '.$e->getMessage());
+
             return [];
         }
     }

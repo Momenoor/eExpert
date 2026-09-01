@@ -1,6 +1,13 @@
 <?php
 
 declare(strict_types=1);
+use AlizHarb\ActivityLog\Pages\UserActivitiesPage;
+use AlizHarb\ActivityLog\Resources\ActivityLogs\ActivityLogResource;
+use AlizHarb\ActivityLog\Taps\SetActivityContextTap;
+use AlizHarb\ActivityLog\Widgets\ActivityChartWidget;
+use AlizHarb\ActivityLog\Widgets\ActivityHeatmapWidget;
+use AlizHarb\ActivityLog\Widgets\ActivityStatsWidget;
+use AlizHarb\ActivityLog\Widgets\LatestActivityWidget;
 
 return [
     /*
@@ -12,7 +19,7 @@ return [
     |
     */
     'resource' => [
-        'class' => \AlizHarb\ActivityLog\Resources\ActivityLogs\ActivityLogResource::class,
+        'class' => ActivityLogResource::class,
         'group' => null,
         'sort' => null,
         'default_sort_column' => 'created_at',
@@ -30,9 +37,8 @@ return [
 
     ],
 
-
     'activity_logger_taps' => [
-        \AlizHarb\ActivityLog\Taps\SetActivityContextTap::class,
+        SetActivityContextTap::class,
     ],
 
     /*
@@ -239,7 +245,7 @@ return [
     'pages' => [
         'user_activities' => [
             'enabled' => false,
-            'class' => \AlizHarb\ActivityLog\Pages\UserActivitiesPage::class,
+            'class' => UserActivitiesPage::class,
             'navigation_label' => null, // null uses translation key
             'navigation_group' => null, // null uses resource group
             'navigation_sort' => 2,
@@ -259,10 +265,10 @@ return [
         'enabled' => false,
         'dashboard' => false,
         'widgets' => [
-            \AlizHarb\ActivityLog\Widgets\ActivityChartWidget::class,
-            \AlizHarb\ActivityLog\Widgets\LatestActivityWidget::class,
-            \AlizHarb\ActivityLog\Widgets\ActivityHeatmapWidget::class,
-            \AlizHarb\ActivityLog\Widgets\ActivityStatsWidget::class,
+            ActivityChartWidget::class,
+            LatestActivityWidget::class,
+            ActivityHeatmapWidget::class,
+            ActivityStatsWidget::class,
         ],
 
         /**

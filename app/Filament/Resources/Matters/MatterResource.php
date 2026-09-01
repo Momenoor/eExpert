@@ -11,23 +11,24 @@ use App\Filament\Resources\Matters\Schemas\MatterInfolist;
 use App\Filament\Resources\Matters\Tables\MattersTable;
 use App\Models\Matter;
 use BackedEnum;
-use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class MatterResource extends Resource
 {
     protected static ?string $model = Matter::class;
+
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-scale';
+
     protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
     {
         $user = auth()->user();
+
         return $user->can('ViewAny:Matter') || $user->can('ViewOwn:Matter');
     }
 
@@ -90,15 +91,23 @@ class MatterResource extends Resource
                 'fees.allocations',
                 'court',
                 'type',
-                'matterParties'
+                'matterParties',
             ])
             ->orderByRaw('COALESCE(parent_id, id) ASC, id ASC');
 
         $user = auth()->user();
 
-        if (!$user->can('ViewAny:Matter') && $user->can('ViewOwn:Matter') && $user->party) {
-            $query->whereHas('matterParties', fn(Builder $q) => $q->where('party_id', $user->party->id)
-            );
+        // Fail CLOSED. canViewAny() admits anyone holding ViewOwn:Matter, so a
+        // user restricted to their own matters whose Party link is missing must
+        // see nothing — previously the scoping clause additionally required
+        // $user->party, and without it the query was left completely unscoped,
+        // exposing every matter in the office.
+        if (! $user->can('ViewAny:Matter') && $user->can('ViewOwn:Matter')) {
+            if (! $user->party) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            $query->whereHas('matterParties', fn (Builder $q) => $q->where('party_id', $user->party->id));
         }
 
         return $query;

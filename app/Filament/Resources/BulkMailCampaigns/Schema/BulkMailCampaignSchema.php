@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BulkMailCampaigns\Schema;
 
+use App\Enums\BulkMailCampaignStatus;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
@@ -39,7 +40,7 @@ class BulkMailCampaignSchema
 
                     Select::make('from_sender_key')
                         ->label(__('bulk_mail.fields.from_sender'))
-                        ->options(collect(Config::get('mail_senders.senders'))->mapWithKeys(fn($s, $k) => [$k => $s['name']]))
+                        ->options(collect(Config::get('mail_senders.senders'))->mapWithKeys(fn ($s, $k) => [$k => $s['name']]))
                         ->required()
                         ->live(),
 
@@ -95,9 +96,9 @@ class BulkMailCampaignSchema
                         ->hint(__('bulk_mail.hints.scheduled_at')),
                     Select::make('status')
                         ->label(__('bulk_mail.fields.status'))
-                        ->options(\App\Enums\BulkMailCampaignStatus::class)
+                        ->options(BulkMailCampaignStatus::class)
                         ->required()
-                        ->default(\App\Enums\BulkMailCampaignStatus::Draft),
+                        ->default(BulkMailCampaignStatus::Draft),
                 ])->columns(3),
         ]);
     }

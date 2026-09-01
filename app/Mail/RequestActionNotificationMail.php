@@ -5,7 +5,6 @@ namespace App\Mail;
 use App\Models\Matter;
 use App\Models\MatterRequest;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -24,8 +23,7 @@ class RequestActionNotificationMail extends Mailable
         public Matter $matter,
         public MatterRequest $matterRequest,
         public string $statusLabel
-    )
-    {
+    ) {
         //
     }
 
@@ -36,7 +34,7 @@ class RequestActionNotificationMail extends Mailable
     {
         return new Envelope(
             subject: __('Request :status', ['status' => $this->statusLabel])
-            . ' — ' . $this->matter->year . '/' . $this->matter->number . ($this->matter->type ? ' — ' . $this->matter->type->name : ''),
+            .' — '.$this->matter->year.'/'.$this->matter->number.($this->matter->type ? ' — '.$this->matter->type->name : ''),
         );
     }
 
@@ -63,8 +61,9 @@ class RequestActionNotificationMail extends Mailable
         foreach ($attachments as $attachment) {
             $exists = Storage::disk('public')->exists($attachment->path);
 
-            if (!$exists) {
-                \Log::warning("Attachment file not found on public disk: " . $attachment->path);
+            if (! $exists) {
+                \Log::warning('Attachment file not found on public disk: '.$attachment->path);
+
                 continue;
             }
 
@@ -75,7 +74,7 @@ class RequestActionNotificationMail extends Mailable
                         Storage::disk('public')->mimeType($attachment->path) ?? 'application/octet-stream'
                     );
             } catch (\Exception $e) {
-                \Log::error("Failed to attach file: " . $attachment->path . " Error: " . $e->getMessage());
+                \Log::error('Failed to attach file: '.$attachment->path.' Error: '.$e->getMessage());
             }
         }
 

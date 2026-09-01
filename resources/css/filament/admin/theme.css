@@ -1,0 +1,62 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../app/Helpers/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/livewire/**/*';
+
+/*
+ * Panel styling previously lived in public/css/custom-css.css, a hand-written
+ * stylesheet outside Vite and Tailwind that was injected via FilamentAsset.
+ * Folded in here so it is compiled, versioned and cache-busted with everything
+ * else. Physical padding-left/right became logical padding-inline-start/end —
+ * the panel's default locale is Arabic (RTL), where the physical form applied
+ * the padding to the wrong side.
+ */
+
+html {
+    transition: font-size 0.2s ease-in-out;
+}
+
+/*
+ * Compact table rows on narrower screens. These override Filament's own cell
+ * padding, so they need to win on specificity — but note the !important that
+ * used to be here is gone: the extra class in the selector is already more
+ * specific than Filament's single-class rule.
+ */
+@media (max-width: 1280px) {
+    .custom-compact-table .fi-ta-cell {
+        padding-block: 0;
+    }
+
+    .custom-compact-table .fi-ta-text-item,
+    .custom-compact-table .fi-ta-text {
+        padding-inline: 0;
+    }
+
+    .custom-compact-table .fi-ta-header-cell {
+        padding-inline: 0.5rem;
+    }
+
+    .fi-sidebar-nav {
+        padding: 0.5rem;
+    }
+}
+
+/*
+ * The role label inside party/expert badges is hidden on smaller or
+ * high-DPI screens, leaving just the index number and the name.
+ */
+@media (min-width: 1280px) {
+    .type-label {
+        display: inline;
+    }
+}
+
+@media (max-width: 1280px),
+    (-webkit-min-device-pixel-ratio: 1.25),
+    (min-resolution: 120dpi) {
+    .type-label {
+        display: none;
+    }
+}

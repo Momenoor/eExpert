@@ -20,11 +20,42 @@ use App\Models\User;
 use App\Services\IncentiveCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class IncentiveSummaryTableWidgetTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * A user allowed to mutate a draft calculation. The widget's row actions
+     * change payroll figures, so they require RunCalculation:IncentiveCalculation
+     * — without it the action aborts 403.
+     */
+    private function actingAsIncentiveManager(): User
+    {
+        $user = $this->actingAsIncentiveViewer();
+        Permission::firstOrCreate(['name' => 'RunCalculation:IncentiveCalculation', 'guard_name' => 'web']);
+        $user->givePermissionTo('RunCalculation:IncentiveCalculation');
+
+        return $user;
+    }
+
+    /**
+     * A user who may see the widget but not change anything. The widget shows
+     * payroll figures for every assistant, so it requires View:IncentiveCalculation.
+     */
+    private function actingAsIncentiveViewer(): User
+    {
+        Permission::firstOrCreate(['name' => 'View:IncentiveCalculation', 'guard_name' => 'web']);
+
+        $user = User::factory()->create();
+        $user->givePermissionTo('View:IncentiveCalculation');
+        $this->actingAs($user);
+
+        return $user;
+    }
 
     private function makeCalculationWithOneMatter(): array
     {
@@ -50,7 +81,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_widget_renders_the_calculation_lines(): void
     {
         [$calc] = $this->makeCalculationWithOneMatter();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->assertSuccessful()
@@ -60,7 +91,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_edit_percentage_action_sets_override_for_that_assistant_only(): void
     {
         [$calc, $matter, $assistant] = $this->makeCalculationWithOneMatter();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveManager();
 
         $assistantLine = IncentiveAssistantLine::whereHas(
             'incentiveLine',
@@ -94,7 +125,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_add_deduction_action_updates_the_assistant_extra_record(): void
     {
         [$calc, , $assistant] = $this->makeCalculationWithOneMatter();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveManager();
 
         $assistantLine = IncentiveAssistantLine::whereHas(
             'incentiveLine',
@@ -137,7 +168,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
         IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id]);
         app(IncentiveCalculatorService::class)->calculate($calc);
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->assertSuccessful()
@@ -171,7 +202,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
         IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $fee->id]);
         app(IncentiveCalculatorService::class)->calculate($calc);
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->assertSuccessful()
@@ -201,7 +232,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
         IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matterB->id, 'fee_id' => $feeB->id]);
         app(IncentiveCalculatorService::class)->calculate($calc);
 
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveManager();
 
         $rowToDelete = IncentiveAssistantLine::whereHas(
             'incentiveLine',
@@ -214,6 +245,39 @@ class IncentiveSummaryTableWidgetTest extends TestCase
 
         $this->assertFalse(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterA->id)->exists());
         $this->assertTrue(IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matterB->id)->exists());
+    }
+
+    public function test_user_without_run_calculation_permission_cannot_change_payroll_figures(): void
+    {
+        // Regression: these row actions were gated only by ->disabled(), which is a
+        // UI affordance. A user who can merely VIEW the calculation could invoke
+        // the action directly and raise their own percentage override.
+        [$calc, , $assistant] = $this->makeCalculationWithOneMatter();
+        $this->actingAsIncentiveViewer(); // can view, but not RunCalculation
+
+        $assistantLine = IncentiveAssistantLine::whereHas(
+            'incentiveLine',
+            fn ($q) => $q->where('incentive_calculation_id', $calc->id)
+        )->where('party_id', $assistant->id)->first();
+
+        $originalShare = (float) $assistantLine->share_amount;
+
+        // However the refusal surfaces (HTTP 403 or a swallowed action), the
+        // security property is the same: nothing may be written.
+        try {
+            Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
+                ->callTableAction('editPercentage', $assistantLine, data: ['percentage_override' => 90]);
+        } catch (HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
+
+        $assistantLine = IncentiveAssistantLine::whereHas(
+            'incentiveLine',
+            fn ($q) => $q->where('incentive_calculation_id', $calc->id)
+        )->where('party_id', $assistant->id)->first();
+
+        $this->assertNull($assistantLine->percentage_override);
+        $this->assertEquals($originalShare, (float) $assistantLine->share_amount);
     }
 
     private function makeTwoMatterCalculation(): array
@@ -257,7 +321,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
         // year/number directly on IncentiveAssistantLine (which has neither
         // column), throwing an SQL error instead of matching the matter.
         [$calc, $matterA] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable('2026/70')
@@ -272,7 +336,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_search_by_court_name_finds_the_matter(): void
     {
         [$calc, $matterA] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable('Fujairah')
@@ -287,7 +351,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_search_by_type_name_finds_the_matter(): void
     {
         [$calc, , $matterB] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable('Commercial Dispute')
@@ -302,7 +366,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_search_by_difficulty_label_finds_the_matter_regardless_of_locale(): void
     {
         [$calc, $matterA] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable(MatterDifficulty::HARD->getLabel())
@@ -317,7 +381,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_search_by_commissioning_label_finds_the_matter(): void
     {
         [$calc, $matterA] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable(MatterCommissiong::COMMITTEE->getLabel())
@@ -332,7 +396,7 @@ class IncentiveSummaryTableWidgetTest extends TestCase
     public function test_search_by_assistant_name_finds_all_their_matters(): void
     {
         [$calc, $matterA, $matterB] = $this->makeTwoMatterCalculation();
-        $this->actingAs(User::factory()->create());
+        $this->actingAsIncentiveViewer();
 
         Livewire::test(IncentiveSummaryTableWidget::class, ['calculationId' => $calc->id])
             ->searchTable('Assistant')

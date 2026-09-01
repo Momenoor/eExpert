@@ -25,8 +25,7 @@ class SendBulkMailBatch implements ShouldQueue
     public function __construct(
         public int $campaignId,
         public int $batchSize = 10
-    )
-    {
+    ) {
         $this->onQueue('mail');
     }
 
@@ -34,7 +33,7 @@ class SendBulkMailBatch implements ShouldQueue
     {
         $campaign = BulkMailCampaign::find($this->campaignId);
 
-        if (!$campaign || $campaign->status !== BulkMailCampaignStatus::Active) {
+        if (! $campaign || $campaign->status !== BulkMailCampaignStatus::Active) {
             return;
         }
 
@@ -42,6 +41,7 @@ class SendBulkMailBatch implements ShouldQueue
 
         if ($remainingLimit <= 0) {
             Log::info("Campaign {$this->campaignId} reached daily limit.");
+
             return;
         }
 
@@ -52,10 +52,11 @@ class SendBulkMailBatch implements ShouldQueue
 
         if ($recipients->isEmpty()) {
             if (BulkMailRecipient::where('campaign_id', $this->campaignId)
-                    ->where('status', BulkMailRecipientStatus::Pending)
-                    ->count() === 0) {
+                ->where('status', BulkMailRecipientStatus::Pending)
+                ->count() === 0) {
                 $campaign->update(['status' => BulkMailCampaignStatus::Completed]);
             }
+
             return;
         }
 
@@ -77,7 +78,7 @@ class SendBulkMailBatch implements ShouldQueue
                     $sendFolder->appendMessage(
                         $message->getSymfonySentMessage()->toString(),
                         ['\Seen'],
-                        now()->format("d-M-Y h:i:s O")
+                        now()->format('d-M-Y h:i:s O')
                     );
                 });
 
@@ -86,41 +87,41 @@ class SendBulkMailBatch implements ShouldQueue
 
                 // 4. All succeeded — update record
                 $recipient->update([
-                    'status'   => BulkMailRecipientStatus::Sent,
-                    'sent_at'  => now(),
+                    'status' => BulkMailRecipientStatus::Sent,
+                    'sent_at' => now(),
                     'pdf_path' => $pdfPath,
                 ]);
                 $campaign->increment('sent_count');
 
                 BulkMailLog::create([
-                    'campaign_id'  => $campaign->id,
+                    'campaign_id' => $campaign->id,
                     'recipient_id' => $recipient->id,
-                    'action'       => 'sent',
-                    'metadata'     => ['pdf_path' => $pdfPath],
-                    'timestamp'    => now(),
+                    'action' => 'sent',
+                    'metadata' => ['pdf_path' => $pdfPath],
+                    'timestamp' => now(),
                 ]);
 
             } catch (\Exception $e) {
                 // Log the failure
-                Log::error("Bulk mail batch stopped. Failed for recipient {$email}: " . $e->getMessage());
+                Log::error("Bulk mail batch stopped. Failed for recipient {$email}: ".$e->getMessage());
 
                 $recipient->increment('attempt_count');
 
                 if ($recipient->attempt_count >= config('mail_senders.retry_attempts', 3)) {
                     $recipient->update([
-                        'status'         => BulkMailRecipientStatus::Failed,
-                        'failed_at'      => now(),
+                        'status' => BulkMailRecipientStatus::Failed,
+                        'failed_at' => now(),
                         'failure_reason' => $e->getMessage(),
                     ]);
                     $campaign->increment('failed_count');
                 }
 
                 BulkMailLog::create([
-                    'campaign_id'  => $campaign->id,
+                    'campaign_id' => $campaign->id,
                     'recipient_id' => $recipient->id,
-                    'action'       => 'failed',
-                    'metadata'     => ['error' => $e->getMessage()],
-                    'timestamp'    => now(),
+                    'action' => 'failed',
+                    'metadata' => ['error' => $e->getMessage()],
+                    'timestamp' => now(),
                 ]);
 
                 // Stop the entire batch — do NOT dispatch next batch
@@ -134,7 +135,7 @@ class SendBulkMailBatch implements ShouldQueue
         }
     }
 
-    public function withMailerConfig(BulkMailCampaign $campaign, callable $callable)
+    public function withMailerConfig(BulkMailCampaign $campaign, callable $callable): void
     {
         $original = [
             'mail.default' => config('mail.default'),
@@ -159,9 +160,13 @@ class SendBulkMailBatch implements ShouldQueue
             ]);
             app('mail.manager')->purge('smtp');
             $callable();
-        } catch (\Exception $e) {
-            Log::error("Failed to execute mailer configuration callback: " . $e->getMessage());
-            return false;
+        } catch (\Throwable $e) {
+            // Must re-throw: the caller's own handler counts the attempt, marks the
+            // recipient Failed and stops the batch. Swallowing it here let a failed
+            // send fall through and be recorded as Sent, so an SMTP/IMAP outage
+            // produced a campaign reporting 100% delivered with nothing retried.
+            Log::error('Failed to execute mailer configuration callback: '.$e->getMessage());
+            throw $e;
         } finally {
             config($original);
             app('mail.manager')->purge('smtp');
@@ -170,10 +175,9 @@ class SendBulkMailBatch implements ShouldQueue
     }
 
     /**
-     * @param $campaign
-     * @return \array[][]
+     * @return array[][]
      */
-    function getIMAPConfig($campaign): array
+    public function getIMAPConfig($campaign): array
     {
         return [
             'accounts' => [
@@ -183,7 +187,7 @@ class SendBulkMailBatch implements ShouldQueue
                     'encryption' => $campaign->sender_config['encryption'],
                     'username' => $campaign->sender_config['username'],
                     'password' => $campaign->sender_config['password'],
-                    'protocol' => 'imap', //might also use imap, [pop3 or nntp (untested)]
+                    'protocol' => 'imap', // might also use imap, [pop3 or nntp (untested)]
                     'validate_cert' => true,
                     'authentication' => null,
                     'proxy' => [
@@ -192,8 +196,8 @@ class SendBulkMailBatch implements ShouldQueue
                         'username' => null,
                         'password' => null,
                     ],
-                    "timeout" => 30,
-                    "extensions" => []
+                    'timeout' => 30,
+                    'extensions' => [],
                 ],
             ],
         ];

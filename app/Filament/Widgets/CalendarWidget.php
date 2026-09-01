@@ -4,13 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\CalendarEvent;
 use App\Models\Matter;
-use App\Services\OutlookCalendarService;
-use Carbon\Carbon;
-use Filament\Forms;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\ConnectionException;
@@ -19,11 +12,19 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
+    /**
+     * Calendar entries can name matters and parties.
+     */
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('ViewAny:CalendarEvent') ?? false;
+    }
 
     public Model|string|null $model = CalendarEvent::class;
-    protected int | string | array $columnSpan = 1;
+
+    protected int|string|array $columnSpan = 1;
+
     /**
-     * @param array $info
      * @throws ConnectionException
      */
     public function fetchEvents(array $info): array
@@ -33,17 +34,17 @@ class CalendarWidget extends FullCalendarWidget
             ->where('start_datetime', '>=', $info['start'])
             ->where('end_datetime', '<=', $info['end'])
             ->get()
-            ->map(fn($event) => [
+            ->map(fn ($event) => [
                 'id' => $event->id,
                 'title' => $event->title,
-                'start' =>  $event->start_datetime->subHours(4),
-                'end' =>  $event->end_datetime->subHours(4),
+                'start' => $event->start_datetime->subHours(4),
+                'end' => $event->end_datetime->subHours(4),
                 'allDay' => $event->is_all_day,
                 'extendedProps' => [
                     'location' => $event->location,
                     'description' => $event->description,
                     // Pass the matter numbers for the tooltip
-                    'matters' => $event->matters->map(fn($m) => "{$m->number}/{$m->year}")->implode(', '),
+                    'matters' => $event->matters->map(fn ($m) => "{$m->number}/{$m->year}")->implode(', '),
                 ],
             ])
             ->toArray();
@@ -57,7 +58,6 @@ class CalendarWidget extends FullCalendarWidget
         }';
     }
 
-
     public function config(): array
     {
         return [
@@ -68,7 +68,7 @@ class CalendarWidget extends FullCalendarWidget
                 'right' => 'prev,next today',
             ],
             'initialView' => 'listWeek',
-            //'eventDisplay' => 'block',
+            // 'eventDisplay' => 'block',
             'scrollTime' => '09:00:00',
             'timeZone' => 'Asia/Muscat', // Or 'local'
             'slotMinTime' => '00:00:00', // Start workday at 8 AM
@@ -87,7 +87,7 @@ class CalendarWidget extends FullCalendarWidget
         return [
             Actions\EditAction::make()
                 ->mountUsing(
-                    fn(Schema $form, array $arguments) => $form->fill([
+                    fn (Schema $form, array $arguments) => $form->fill([
                         'title' => $arguments['event']['title'] ?? null,
                         'start_at' => $arguments['event']['start'] ?? null,
                         'end_at' => $arguments['event']['end'] ?? null,
@@ -98,7 +98,6 @@ class CalendarWidget extends FullCalendarWidget
             Actions\DeleteAction::make(),
         ];
     }
-
 
     protected function getOptions(): array
     {

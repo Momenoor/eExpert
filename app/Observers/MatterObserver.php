@@ -6,12 +6,9 @@ use App\Enums\MatterCollectionStatus;
 use App\Models\Matter;
 use App\Services\NewMatterNotification;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class MatterObserver
 {
-
-
     public function creating(Matter $matter): void
     {
         $matter->collection_status ??= MatterCollectionStatus::NO_FEES;
@@ -21,14 +18,15 @@ class MatterObserver
     {
         Log::debug('MatterObserver@created fired', [
             'matter_id' => $matter->id,
-            'exists'    => $matter->exists,
-            'dirty'     => $matter->getDirty(),
+            'exists' => $matter->exists,
+            'dirty' => $matter->getDirty(),
         ]);
 
         $matterId = $matter->id;
 
         if (! $matterId) {
             Log::error('MatterObserver@created: matter has no ID at observer time.');
+
             return;
         }
 
@@ -38,11 +36,13 @@ class MatterObserver
 
                 if (! $matter) {
                     Log::error("NewMatterNotification [created]: Matter #{$matterId} not found in DB.");
+
                     return;
                 }
 
                 if (! $matter->distributed_at) {
                     Log::info("NewMatterNotification [created]: Matter #{$matterId} has no distributed_at, skipping.");
+
                     return;
                 }
 
@@ -50,9 +50,9 @@ class MatterObserver
 
             } catch (\Throwable $e) {
                 Log::error("NewMatterNotification [created]: Failed for Matter #{$matterId}.", [
-                    'error'   => $e->getMessage(),
-                    'file'    => $e->getFile(),
-                    'line'    => $e->getLine(),
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
                 ]);
             }
         })->afterCommit();
@@ -77,7 +77,7 @@ class MatterObserver
     public function forceDeleting(Matter $matter): void
     {
         $matter->children()->withTrashed()->each(
-            fn(Matter $child) => $child->forceDelete()
+            fn (Matter $child) => $child->forceDelete()
         );
         $matter->matterParties()->delete();
         $matter->fees()->each(function ($fee) {
@@ -90,5 +90,4 @@ class MatterObserver
         $matter->attachments->each->delete();
         $matter->requests()->delete();
     }
-
 }

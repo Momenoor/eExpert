@@ -83,7 +83,7 @@ class RecipientsRelationManager extends RelationManager
                     }),
                 ImportAction::make()
                     ->importer(BulkMailRecipientImporter::class)
-                    ->options(fn($livewire) => [
+                    ->options(fn ($livewire) => [
                         'campaign_id' => $livewire->getOwnerRecord()->id,
                     ])
                     ->after(function ($livewire) {
@@ -102,7 +102,7 @@ class RecipientsRelationManager extends RelationManager
                 Action::make('resend')
                     ->label(__('bulk_mail.actions.resend'))
                     ->icon('heroicon-o-arrow-path')
-                    ->visible(fn($record) => filled($record->sent_at))
+                    ->visible(fn ($record) => filled($record->sent_at))
                     ->requiresConfirmation()
                     ->action(function ($record) {
                         if ($record->pdf_path && Storage::exists($record->pdf_path)) {
@@ -121,29 +121,29 @@ class RecipientsRelationManager extends RelationManager
                 Action::make('print')
                     ->label(__('bulk_mail.actions.print'))
                     ->icon('heroicon-o-printer')
-                    ->url(fn($record) => route('bulk-mail.preview', [
+                    ->url(fn ($record) => route('bulk-mail.preview', [
                         'campaign' => $record->campaign_id,
                         'recipient' => $record->id,
                         'print' => 1,   // auto-triggers print dialog
                     ]))
-                    ->visible(fn($record) => filled($record->sent_at))
+                    ->visible(fn ($record) => filled($record->sent_at))
                     ->openUrlInNewTab(),
 
                 // Preview only
                 Action::make('preview')
                     ->label(__('bulk_mail.actions.preview'))
                     ->icon('heroicon-o-eye')
-                    ->url(fn($record) => route('bulk-mail.preview', [
+                    ->url(fn ($record) => route('bulk-mail.preview', [
                         'campaign' => $record->campaign_id,
                         'recipient' => $record->id,
                     ]))
-                    ->visible(fn($record) => filled($record->sent_at))
+                    ->visible(fn ($record) => filled($record->sent_at))
                     ->openUrlInNewTab(),
                 Action::make('downloadPdf')
                     ->label(__('bulk_mail.actions.download_pdf'))
                     ->icon('heroicon-o-document-arrow-down')
-                    ->visible(fn($record) => filled($record->pdf_path))
-                    ->url(fn($record) => Storage::url($record->pdf_path))
+                    ->visible(fn ($record) => filled($record->pdf_path))
+                    ->url(fn ($record) => Storage::url($record->pdf_path))
                     ->openUrlInNewTab(),
 
             ])
@@ -185,29 +185,30 @@ class RecipientsRelationManager extends RelationManager
                     BulkAction::make('downloadPdf')
                         ->label(__('bulk_mail.actions.download_pdf'))
                         ->action(function (Collection $records) {
-                            $files = $records->filter(fn($r) => $r->pdf_path && Storage::exists($r->pdf_path));
+                            $files = $records->filter(fn ($r) => $r->pdf_path && Storage::exists($r->pdf_path));
 
                             if ($files->isEmpty()) {
                                 Notification::make()
                                     ->title(__('bulk_mail.notifications.no_pdfs'))
                                     ->warning()
                                     ->send();
+
                                 return false;
                             }
 
-                            $zipName = 'bulk-mail-' . now()->format('Y-m-d-His') . '.zip';
-                            $zipPath = storage_path('app/temp/' . $zipName);
+                            $zipName = 'bulk-mail-'.now()->format('Y-m-d-His').'.zip';
+                            $zipPath = storage_path('app/temp/'.$zipName);
 
-                            if (!is_dir(dirname($zipPath))) {
+                            if (! is_dir(dirname($zipPath))) {
                                 mkdir(dirname($zipPath), 0755, true);
                             }
 
-                            $zip = new ZipArchive();
+                            $zip = new ZipArchive;
                             $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
                             $files->each(function ($record) use ($zip) {
                                 $zip->addFile(
-                                    storage_path('app/public/' . $record->pdf_path),
+                                    storage_path('app/public/'.$record->pdf_path),
                                     basename($record->pdf_path)
                                 );
                             });
@@ -215,7 +216,7 @@ class RecipientsRelationManager extends RelationManager
                             $zip->close();
 
                             return response()->download($zipPath, $zipName)->deleteFileAfterSend(true);
-                        })
+                        }),
                 ]),
             ]);
     }

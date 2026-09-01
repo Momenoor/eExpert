@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\IncentiveCalculation;
 use App\Models\Party;
 use App\Services\IncentiveCalculatorService;
-use Illuminate\Support\Facades\Gate;
 
 class IncentiveCalculationAssistantPrintController extends Controller
 {

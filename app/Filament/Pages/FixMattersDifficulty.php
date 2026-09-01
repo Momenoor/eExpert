@@ -15,9 +15,13 @@ use Illuminate\Support\Facades\DB;
 class FixMattersDifficulty extends Page
 {
     use HasPageShield;
+
     protected string $view = 'filament.pages.fix-matters-difficulty';
+
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-wrench-screwdriver';
+
     protected static ?string $navigationLabel = 'Fix Matters Difficulty';
+
     protected static ?string $title = 'Fix Matters Difficulty';
 
     public static function getNavigationLabel(): string
@@ -34,7 +38,6 @@ class FixMattersDifficulty extends Page
     {
         return false;
     }
-
 
     public function content(Schema $schema): Schema
     {
@@ -66,7 +69,7 @@ class FixMattersDifficulty extends Page
                 ->requiresConfirmation()
                 ->modalHeading(__('Fix Matters Difficulty'))
                 ->modalDescription(__('This will change "simple" to "easy" and "exceptional" to "hard" in the matters table. Are you sure?'))
-                ->action(fn() => $this->runFix()),
+                ->action(fn () => $this->runFix()),
         ];
     }
 
@@ -78,6 +81,7 @@ class FixMattersDifficulty extends Page
 
         if ($total === 0) {
             Notification::make()->title(__('Difficulty Values Already Fixed'))->info()->send();
+
             return;
         }
 
