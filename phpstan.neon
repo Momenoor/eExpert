@@ -1,0 +1,17 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app
+        - database
+        - routes
+
+    # Starting at level 3. The codebase has not been analysed before, so this is
+    # the highest level that passes today; raise it one step at a time as the
+    # existing findings are worked through rather than baselining everything.
+    level: 3
+
+    excludePaths:
+        - database/migrations/*

@@ -1,0 +1,853 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method App\\Services\\OutlookCalendarService\:\:createEvent\(\) invoked with 2 parameters, 1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/Filament/Actions/Calendar/CreateBulkCalendarEventAction.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Actions\\Fee\\CollectFeeAction\:\:actionLabel\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Actions/Fee/CollectFeeAction.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Actions\\Fee\\CollectFeeAction\:\:amountLabel\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Actions/Fee/CollectFeeAction.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Actions\\Fee\\CollectFeeAction\:\:collectedAmount\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 9
+			path: app/Filament/Actions/Fee/CollectFeeAction.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Actions\\Fee\\CollectFeeAction\:\:feeBalance\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 5
+			path: app/Filament/Actions/Fee/CollectFeeAction.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Actions\\Fee\\CollectFeeAction\:\:modalHeadingLabel\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Actions/Fee/CollectFeeAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$campaign_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Imports/BulkMailRecipientImporter.php
+
+		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\IncentiveConfiguration\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Pages/IncentiveConfiguration.php
+
+		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\SystemSettings\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Pages/SystemSettings.php
+
+		-
+			message: '#^Cannot access property \$id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/BulkMailCampaigns/Pages/ViewBulkMailCampaign.php
+
+		-
+			message: '#^Cannot access property \$status on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Filament/Resources/BulkMailCampaigns/Pages/ViewBulkMailCampaign.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$campaign\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Resources/BulkMailCampaigns/RelationManagers/RecipientsRelationManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pdf_path\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Filament/Resources/BulkMailCampaigns/RelationManagers/RecipientsRelationManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/BulkMailCampaigns/RelationManagers/RecipientsRelationManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Filament/Resources/CalendarEvents/Schemas/CalendarEventForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$party\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Filament/Resources/CalendarEvents/Schemas/CalendarEventForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Anonymous function should return Illuminate\\Support\\Collection\<\(int\|string\), string\|null\> but returns Illuminate\\Support\\Collection\<\(int\|string\), string\|null\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Cannot access property \$id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Cannot access property \$period_end on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Cannot access property \$period_start on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Cannot call method isDraft\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 7
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Cannot call method lines\(\) on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Filament/Resources/Incentive/IncentiveCalculations/Pages/ViewIncentiveCalculation.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$incentiveConfig\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Incentive/MatterTypeIncentiveConfigs/RelationManagers/IncentiveConfigRelationManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
+
+		-
+			message: '#^Method App\\Filament\\Resources\\MatterRequests\\MatterRequestResource\:\:getNavigationBadge\(\) should return string\|null but returns int\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\MatterRequests\\MatterRequestResource\:\:count\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/MatterRequests/MatterRequestResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/MatterResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:withTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/MatterResource.php
+
+		-
+			message: '#^Cannot access property \$id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Filament/Resources/Matters/Pages/EditMatter.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:onlyTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/Pages/ListMatters.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:withoutTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Filament/Resources/Matters/Pages/ListMatters.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 8
+			path: app/Filament/Resources/Matters/Schemas/MatterForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$required\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:addAttachmentsAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:addNoteAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:addRequestAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:approveRequestAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:attachmentsSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:classificationSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:collectFeeAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:datesSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:deleteAllocationAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:deleteAttachmentAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:deleteFeeAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:deleteNoteAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:downloadAttachmentAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:editAllocationAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:editFeeAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:editNoteAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:expertTypeColor\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:expertsSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:feesSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:identitySection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:incentiveSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:notesSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:partiesSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:partyTypeColor\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:refreshComponent\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 6
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:refreshRecord\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 5
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:rejectRequestAction\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Resources\\Matters\\Schemas\\MatterInfolist\:\:requestsSection\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Filament/Resources/Matters/Schemas/MatterInfolist.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Widgets/AssistantMattersCountChartWidget.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Widgets/CalendarWidget.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$year\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Widgets/CalendarWidget.php
+
+		-
+			message: '#^Unsafe call to private method App\\Filament\\Widgets\\IncentiveSummaryTableWidget\:\:matchingEnumValues\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 2
+			path: app/Filament/Widgets/IncentiveSummaryTableWidget.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Widgets/VacationCalendarWidget.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BulkMailCampaign\:\:\$sender_config\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/BulkMailController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BulkMailCampaign\:\:\$sender_config\.$#'
+			identifier: property.notFound
+			count: 7
+			path: app/Jobs/SendBulkMailBatch.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Listeners/SendFilamentActionNotifications.php
+
+		-
+			message: '#^Method App\\Listeners\\SendFilamentActionNotifications\:\:resolveMatter\(\) should return App\\Models\\Matter\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Listeners/SendFilamentActionNotifications.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\FontSizeSlider\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/FontSizeSlider.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: app/Livewire/FontSizeSlider.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BulkMailCampaign\:\:\$sender_config\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/BulkMailMessage.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Mail/NewMatterNotificationMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Mail/NewRequestNotificationMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$path\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Mail/NewRequestNotificationMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Mail/RequestActionNotificationMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$path\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Mail/RequestActionNotificationMail.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$matter_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Allocation.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateCollectionStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Models/Allocation.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Models/Allocation.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BulkMailCampaign\:\:\$sender_config\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/BulkMailCampaign.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:fees\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Fee.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:updateCollectionStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Models/Fee.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Matter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role_index\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Matter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$review_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/MatterRequest.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Models\\User\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:allocations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Observers/MatterObserver.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:onlyTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Observers/MatterObserver.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:withTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Observers/MatterObserver.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BulkMailCampaign\:\:\$sender_config\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/BulkMailService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\IncentiveLine\:\:\$total_base_amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\IncentiveLine\:\:\$total_fee_amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$base_amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$base_percentage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$commissioning\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$committee_adjustment\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$completion_days\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$deductions\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$difficulty\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$distributed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$effective_percentage\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$fee_amount_excl_vat\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$final_report_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$final_report_memo_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 15
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$initial_report_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$matter\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$matter_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$metas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_end\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_start\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reference\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_deduction_pct\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Anonymous function should return array\{party\: Illuminate\\Database\\Eloquent\\Model\|null, matter_count\: int\<0, max\>, completed_matter_count\: int, count_for_incentive\: int\<0, max\>, meets_minimum\: bool, fees_amount\: mixed, share_total\: mixed, extra_percentage\: 0\|numeric\-string, \.\.\.\} but returns array\{party\: Illuminate\\Database\\Eloquent\\Model\|null, matter_count\: int\<0, max\>, completed_matter_count\: int, count_for_incentive\: int\<0, max\>, meets_minimum\: bool, fees_amount\: mixed, share_total\: mixed, extra_percentage\: 0\|numeric\-string, \.\.\.\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isFinalized\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/IncentiveCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$allow_current_status_import\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$incentive_trigger_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_end\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_start\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:isDraft\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/IncentiveService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$party\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/NewMatterNotification.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assistantsOnly\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Requests/BaseRequestService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Requests/BaseRequestService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$year\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Requests/BaseRequestService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Requests/RequestServiceFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$party\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/WhatsAppService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$display_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/WhatsAppService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/WhatsAppService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/WhatsAppService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$year\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/WhatsAppService.php

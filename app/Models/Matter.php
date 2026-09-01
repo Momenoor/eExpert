@@ -10,6 +10,7 @@ use App\Enums\MatterStatus;
 use App\Observers\MatterObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +25,7 @@ use Spatie\Activitylog\Support\LogOptions;
 #[ObservedBy(MatterObserver::class)]
 class Matter extends Model
 {
+    use HasFactory;
     use LogsActivity;
     use SoftDeletes;
 
