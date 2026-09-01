@@ -7,8 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.5",
+        "ext-pdo": "*",
         "ext-zip": "*",
-        "alizharb/filament-activity-log": "^1.3",
+        "alizharb/filament-activity-log": "^2.0",
         "bezhansalleh/filament-shield": "^4.1",
         "craft-forge/filament-language-switcher": "*",
         "filament/actions": "^5.0",
@@ -31,14 +32,14 @@
         "qalainau/filament-inbox": "^1.0",
         "relaticle/activity-log": "^1.0",
         "saade/filament-fullcalendar": "^4.0",
+        "spatie/laravel-activitylog": "^5.1",
         "symfony/mailer": "^8.0",
         "tomatophp/filament-users": "^5.0",
         "ueberdosis/tiptap-php": "^2.1",
         "webklex/laravel-imap": "^6.2",
         "ymsoft/filament-money": "^0.1.3",
         "zpm-packages/cron-manager-filament": "^1.0",
-        "zpmlabs/filament-popup": "^1.0",
-        "ext-pdo": "*"
+        "zpmlabs/filament-popup": "^1.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.0",
