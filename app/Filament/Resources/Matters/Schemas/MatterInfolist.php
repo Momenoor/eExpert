@@ -31,6 +31,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -116,6 +117,7 @@ class MatterInfolist
                     ->formatStateUsing(fn ($state) => __($state->getLabel())),
                 IconEntry::make('is_office_work')
                     ->label(__('Is Office Work'))
+                    ->default(false)
                     ->boolean(),
                 TextEntry::make('review_count')->label(__('Review Count')),
                 IconEntry::make('has_substantive_changes')->label(__('Has Substantive Changes'))->boolean(),
@@ -189,7 +191,7 @@ class MatterInfolist
             ->icon('heroicon-o-calendar-days')
             ->columns(2)
             ->schema([
-                TextEntry::make('distributed_at')->label(__('Court Assigning Date'))->date()
+                TextEntry::make('received_at')->label(__('Court Assigning Date'))->date()
                     ->icon('heroicon-o-arrow-down-tray')->placeholder('—'),
                 TextEntry::make('next_session_date')->label(__('Next Session'))->dateTime()
                     ->icon('heroicon-o-calendar')->placeholder('—'),
@@ -217,6 +219,7 @@ class MatterInfolist
                     ->columns(4)
                     ->columnSpanFull()
                     ->schema([
+                        TextEntry::make('id')->color('primary')->icon(Heroicon::Hashtag)->default(0)->label(__('Number'))->url(fn ($record) => route('filament.admin.resources.matter-requests.view', $record)),
                         TextEntry::make('requestBy.display_name')
                             ->label(__('Requester'))
                             ->weight(FontWeight::SemiBold),

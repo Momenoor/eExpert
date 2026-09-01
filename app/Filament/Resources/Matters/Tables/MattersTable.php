@@ -3,26 +3,17 @@
 namespace App\Filament\Resources\Matters\Tables;
 
 use App\Enums\MatterCollectionStatus;
-use App\Filament\Resources\Matters\MatterResource;
-use App\Models\Matter;
+use App\Models\Party;
 use App\Models\Type;
 use Carbon\Carbon;
-use Filament\Actions\BulkAction;
-use Filament\Actions\ExportAction;
-use App\Filament\Exports\MatterExporter;
-use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
-use Filament\Tables\Filters\TrashedFilter;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Support\Enums\FontWeight;
@@ -33,7 +24,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 
 class MattersTable
 {
@@ -41,8 +31,8 @@ class MattersTable
     {
         return $search
                 |> trim(...)
-                |> (fn($x) => preg_split('/[\s\/\\\\\-]+/', $x))
-                |> (fn($x) => array_filter($x, fn($token) => strlen($token) > 0))
+                |> (fn ($x) => preg_split('/[\s\/\\\\\-]+/', $x))
+                |> (fn ($x) => array_filter($x, fn ($token) => strlen($token) > 0))
                 |> array_values(...);
     }
 
@@ -55,13 +45,14 @@ class MattersTable
                     $method = $i === 0 ? 'where' : 'orWhere';
                     if (str_contains($column, '.')) {
                         [$relation, $col] = explode('.', $column, 2);
-                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn($r) => $r->where($col, 'like', "%{$token}%"));
+                        $query->{$i === 0 ? 'whereHas' : 'orWhereHas'}($relation, fn ($r) => $r->where($col, 'like', "%{$token}%"));
                     } else {
                         $query->{$method}($column, 'like', "%{$token}%");
                     }
                 }
             });
         }
+
         return $query;
     }
 
@@ -70,20 +61,20 @@ class MattersTable
         return $table
             ->striped()
             ->extraAttributes([
-                'class' => 'custom-compact-table [&_td]:py-1 [&_th]:py-1 [&_table]:text-sm [&_table]:w-full'
+                'class' => 'custom-compact-table [&_td]:py-1 [&_th]:py-1 [&_table]:text-sm [&_table]:w-full',
             ])
             ->columns([
 
                 // ── Reference ─────────────────────────────────────────────────
                 TextColumn::make('reference')
                     ->label(__('Matter'))
-                    ->getStateUsing(fn($record) => $record->year . '/' . $record->number)
+                    ->getStateUsing(fn ($record) => $record->year.'/'.$record->number)
                     ->weight(FontWeight::Bold)
-                    ->description(fn($record) => $record->status->getLabel())
+                    ->description(fn ($record) => $record->status->getLabel())
                     ->html()
-                    ->prefix(fn($record) => $record->parent_id ? (app()->getLocale() === 'en' ? '↳ ' : ' ↲') : '')
-                    ->color(fn($record) => $record->parent_id ? 'primary' : null)
-                    ->extraAttributes(fn($record) => $record->parent_id
+                    ->prefix(fn ($record) => $record->parent_id ? (app()->getLocale() === 'en' ? '↳ ' : ' ↲') : '')
+                    ->color(fn ($record) => $record->parent_id ? 'primary' : null)
+                    ->extraAttributes(fn ($record) => $record->parent_id
                         ? ['class' => 'pl-6 opacity-90']
                         : []
                     )
@@ -95,11 +86,12 @@ class MattersTable
                                     $q->where(function ($inner) use ($token) {
                                         $inner->orWhere('year', $token)
                                             ->orWhere('number', $token)
-                                            ->orWhere('number', "0" . $token);
+                                            ->orWhere('number', '0'.$token);
                                     });
                                 }
                             });
                         }
+
                         return static::applyMultiWordSearch($query, $search, ['year', 'number']);
                     })
                     ->toggleable()
@@ -109,8 +101,8 @@ class MattersTable
                 // ── Court / Type ───────────────────────────────────────────────
                 TextColumn::make('court.name')
                     ->label(__('Court / Type'))
-                    ->description(fn($record) => $record->type?->name)
-                    ->searchable(query: fn(Builder $query, string $search) => static::applyMultiWordSearch($query, $search, ['court.name', 'type.name'])
+                    ->description(fn ($record) => $record->type?->name)
+                    ->searchable(query: fn (Builder $query, string $search) => static::applyMultiWordSearch($query, $search, ['court.name', 'type.name'])
                     )
                     ->wrap()
                     ->toggleable()
@@ -121,11 +113,11 @@ class MattersTable
                 TextColumn::make('level')
                     ->label(__('Level'))
                     ->badge()
-                    ->description(fn($record) => collect([
+                    ->description(fn ($record) => collect([
                         $record->difficulty?->getLabel(),
                         $record->commissioning->getLabel(),
                     ])->filter()->join(' · '))
-                    ->searchable(query: fn(Builder $query, string $search) => static::applyMultiWordSearch($query, $search, ['level', 'difficulty', 'commissioning'])
+                    ->searchable(query: fn (Builder $query, string $search) => static::applyMultiWordSearch($query, $search, ['level', 'difficulty', 'commissioning'])
                     )
                     ->sortable()
                     ->toggleable()
@@ -136,37 +128,38 @@ class MattersTable
                 TextColumn::make('indexedParties')
                     ->label(__('Parties'))
                     ->listWithLineBreaks()
-                    ->getStateUsing(fn($record) =>  $record->indexedParties
-                            ->map(function ($mp) {
-                                $type = $mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : '';
-                                $color = match ($mp->type) {
-                                    'plaintiff' => 'success',
-                                    'defendant' => 'danger',
-                                    'implicate-litigant' => 'warning',
-                                    default => 'gray',
-                                };
+                    ->getStateUsing(fn ($record) => $record->indexedParties
+                        ->map(function ($mp) {
+                            $type = $mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : '';
+                            $color = match ($mp->type) {
+                                'plaintiff' => 'success',
+                                'defendant' => 'danger',
+                                'implicate-litigant' => 'warning',
+                                default => 'gray',
+                            };
 
-                                return sprintf(
-                                    '<span class="inline-flex items-center gap-1 text-xs">'
-                                    . '<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
-                                    . '<span class="type-label">%s</span> #%d'
-                                    . '</span>'
-                                    . '%s'
-                                    . '</span>',
-                                    $color, __($type), $mp->role_index, e($mp->party?->name ?? '—')
-                                );
-                            })
-                            ->toArray()
+                            return sprintf(
+                                '<span class="inline-flex items-center gap-1 text-xs">'
+                                .'<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
+                                .'<span class="type-label">%s</span> #%d'
+                                .'</span>'
+                                .'%s'
+                                .'</span>',
+                                $color, __($type), $mp->role_index, e($mp->party?->name ?? '—')
+                            );
+                        })
+                        ->toArray()
                     )
                     ->html()
                     ->grow()
-                    ->color(fn($record) => $record->parent_id ? 'gray' : null)
+                    ->color(fn ($record) => $record->parent_id ? 'gray' : null)
                     ->searchable(query: function (Builder $query, string $search) {
                         $tokens = static::splitSearch($search);
                         foreach ($tokens as $token) {
-                            $query->whereHas('mainPartiesOnly.party', fn($q) => $q->where('name', 'like', "%{$token}%")
+                            $query->whereHas('mainPartiesOnly.party', fn ($q) => $q->where('name', 'like', "%{$token}%")
                             );
                         }
+
                         return $query;
                     })
                     ->wrap()
@@ -177,7 +170,7 @@ class MattersTable
                 TextColumn::make('indexedExperts')
                     ->label(__('Experts'))
                     ->listWithLineBreaks()
-                    ->getStateUsing(fn($record) => $record->indexedExperts
+                    ->getStateUsing(fn ($record) => $record->indexedExperts
                         ->map(function ($mp) {
                             $type = $mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : '';
                             $color = match ($mp->type) {
@@ -190,11 +183,11 @@ class MattersTable
 
                             return sprintf(
                                 '<span class="inline-flex items-center gap-1 text-xs">'
-                                . '<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
-                                . '<span class="type-label">%s</span> #%d'
-                                . '</span>'
-                                . '%s'
-                                . '</span>',
+                                .'<span class="fi-color fi-color-%s fi-text-color-600 dark:fi-text-color-200 fi-badge fi-size-sm">'
+                                .'<span class="type-label">%s</span> #%d'
+                                .'</span>'
+                                .'%s'
+                                .'</span>',
                                 $color, __($type), $mp->role_index, e($mp->party?->name ?? '—')
                             );
                         })
@@ -204,9 +197,10 @@ class MattersTable
                     ->searchable(query: function (Builder $query, string $search) {
                         $tokens = static::splitSearch($search);
                         foreach ($tokens as $token) {
-                            $query->whereHas('expertsOnly.party', fn($q) => $q->where('name', 'like', "%{$token}%")
+                            $query->whereHas('expertsOnly.party', fn ($q) => $q->where('name', 'like', "%{$token}%")
                             );
                         }
+
                         return $query;
                     })
                     ->wrap()
@@ -216,16 +210,23 @@ class MattersTable
                 // ── Fees ───────────────────────────────────────────────────────
                 TextColumn::make('fees_summary')
                     ->label(__('Fees'))
-                    ->getStateUsing(fn($record) => number_format($record->fees->sum('amount'), 2))
-                    ->description(fn($record) => number_format(
-                        $record->fees->sum(fn($fee) => $fee->allocations->sum('amount')), 2
+                    ->getStateUsing(fn ($record) => number_format($record->fees->sum('amount'), 2))
+                    ->description(fn ($record) => number_format(
+                        $record->fees->sum(fn ($fee) => $fee->allocations->sum('amount')), 2
                     ))
                     ->color(function ($record) {
-                        $total = (float)$record->fees->sum('amount');
-                        $collected = (float)$record->fees->sum(fn($fee) => $fee->allocations->sum('amount'));
-                        if ($total <= 0) return 'gray';
-                        if ($collected >= $total) return 'success';
-                        if ($collected > 0) return 'warning';
+                        $total = (float) $record->fees->sum('amount');
+                        $collected = (float) $record->fees->sum(fn ($fee) => $fee->allocations->sum('amount'));
+                        if ($total <= 0) {
+                            return 'gray';
+                        }
+                        if ($collected >= $total) {
+                            return 'success';
+                        }
+                        if ($collected > 0) {
+                            return 'warning';
+                        }
+
                         return 'danger';
                     })
                     ->searchable(false)
@@ -237,8 +238,8 @@ class MattersTable
                 TextColumn::make('next_session_date')
                     ->label(__('Next Session'))
                     ->date()
-                    ->description(fn($record) => $record->distributed_at
-                        ? __('Report') . ': ' . Carbon::parse($record->distributed_at)->format('M d, Y')
+                    ->description(fn ($record) => $record->distributed_at
+                        ? __('Report').': '.Carbon::parse($record->distributed_at)->format('M d, Y')
                         : null
                     )
                     ->sortable()
@@ -285,7 +286,7 @@ class MattersTable
                 SelectFilter::make('assistant_expert')
                     ->label(__('Assistant Expert'))
                     ->options(function () {
-                        return \App\Models\Party::query()
+                        return Party::query()
                             ->whereExists(function ($query) {
                                 $query->select('party_id')
                                     ->from('matter_party')
@@ -323,14 +324,16 @@ class MattersTable
 
                         Select::make('type_id')
                             ->label(__('Matter Type'))
-                            ->options(fn() => Type::orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Type::orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->preload()
                             ->multiple()
                             ->placeholder(__('Select a type')),
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (empty($data['type_id'])) return $query;
+                        if (empty($data['type_id'])) {
+                            return $query;
+                        }
 
                         $mode = $data['type_filter_mode'] ?? 'only_selected';
 
@@ -339,9 +342,11 @@ class MattersTable
                             : $query->whereIn('type_id', $data['type_id']);
                     })
                     ->indicateUsing(function (array $data): array {
-                        if (empty($data['type_id'])) return [];
+                        if (empty($data['type_id'])) {
+                            return [];
+                        }
 
-                        $typeNames = Type::whereIn('id', (array)$data['type_id'])
+                        $typeNames = Type::whereIn('id', (array) $data['type_id'])
                             ->pluck('name')
                             ->join(', ');
 
@@ -349,8 +354,8 @@ class MattersTable
 
                         return [
                             $mode === 'all_except_selected'
-                                ? __('Type') . ': ' . __('All without') . ' ' . $typeNames
-                                : __('Type') . ': ' . $typeNames,
+                                ? __('Type').': '.__('All without').' '.$typeNames
+                                : __('Type').': '.$typeNames,
                         ];
                     })
                     ->columnSpan(3),
@@ -365,13 +370,18 @@ class MattersTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['received_from'], fn($q, $v) => $q->whereDate('distributed_at', '>=', $v))
-                            ->when($data['received_until'], fn($q, $v) => $q->whereDate('distributed_at', '<=', $v));
+                            ->when($data['received_from'], fn ($q, $v) => $q->whereDate('distributed_at', '>=', $v))
+                            ->when($data['received_until'], fn ($q, $v) => $q->whereDate('distributed_at', '<=', $v));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['received_from']) $indicators[] = __('Received from') . ': ' . $data['received_from'];
-                        if ($data['received_until']) $indicators[] = __('Received until') . ': ' . $data['received_until'];
+                        if ($data['received_from']) {
+                            $indicators[] = __('Received from').': '.$data['received_from'];
+                        }
+                        if ($data['received_until']) {
+                            $indicators[] = __('Received until').': '.$data['received_until'];
+                        }
+
                         return $indicators;
                     })
                     ->columnSpan(3),
@@ -386,13 +396,18 @@ class MattersTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['next_session_from'], fn($q, $v) => $q->whereDate('next_session_date', '>=', $v))
-                            ->when($data['next_session_until'], fn($q, $v) => $q->whereDate('next_session_date', '<=', $v));
+                            ->when($data['next_session_from'], fn ($q, $v) => $q->whereDate('next_session_date', '>=', $v))
+                            ->when($data['next_session_until'], fn ($q, $v) => $q->whereDate('next_session_date', '<=', $v));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['next_session_from']) $indicators[] = __('Next session from') . ': ' . $data['next_session_from'];
-                        if ($data['next_session_until']) $indicators[] = __('Next session until') . ': ' . $data['next_session_until'];
+                        if ($data['next_session_from']) {
+                            $indicators[] = __('Next session from').': '.$data['next_session_from'];
+                        }
+                        if ($data['next_session_until']) {
+                            $indicators[] = __('Next session until').': '.$data['next_session_until'];
+                        }
+
                         return $indicators;
                     })
                     ->columnSpan(3),
@@ -407,13 +422,18 @@ class MattersTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['reported_from'], fn($q, $v) => $q->whereDate('initial_report_at', '>=', $v))
-                            ->when($data['reported_until'], fn($q, $v) => $q->whereDate('initial_report_at', '<=', $v));
+                            ->when($data['reported_from'], fn ($q, $v) => $q->whereDate('initial_report_at', '>=', $v))
+                            ->when($data['reported_until'], fn ($q, $v) => $q->whereDate('initial_report_at', '<=', $v));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['reported_from']) $indicators[] = __('Reported from') . ': ' . $data['reported_from'];
-                        if ($data['reported_until']) $indicators[] = __('Reported until') . ': ' . $data['reported_until'];
+                        if ($data['reported_from']) {
+                            $indicators[] = __('Reported from').': '.$data['reported_from'];
+                        }
+                        if ($data['reported_until']) {
+                            $indicators[] = __('Reported until').': '.$data['reported_until'];
+                        }
+
                         return $indicators;
                     })
                     ->columnSpan(3),
@@ -428,13 +448,18 @@ class MattersTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['submitted_from'], fn($q, $v) => $q->whereDate('final_report_at', '>=', $v))
-                            ->when($data['submitted_until'], fn($q, $v) => $q->whereDate('final_report_at', '<=', $v));
+                            ->when($data['submitted_from'], fn ($q, $v) => $q->whereDate('final_report_at', '>=', $v))
+                            ->when($data['submitted_until'], fn ($q, $v) => $q->whereDate('final_report_at', '<=', $v));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['submitted_from']) $indicators[] = __('Submitted from') . ': ' . $data['submitted_from'];
-                        if ($data['submitted_until']) $indicators[] = __('Submitted until') . ': ' . $data['submitted_until'];
+                        if ($data['submitted_from']) {
+                            $indicators[] = __('Submitted from').': '.$data['submitted_from'];
+                        }
+                        if ($data['submitted_until']) {
+                            $indicators[] = __('Submitted until').': '.$data['submitted_until'];
+                        }
+
                         return $indicators;
                     })
                     ->columnSpan(3),
@@ -457,19 +482,24 @@ class MattersTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['fees_from'], fn($q, $v) => $q->whereHas('fees', fn($f) => $f->havingRaw('SUM(amount) >= ?', [(float)$v])
+                            ->when($data['fees_from'], fn ($q, $v) => $q->whereHas('fees', fn ($f) => $f->havingRaw('SUM(amount) >= ?', [(float) $v])
                                 ->groupBy('matter_id')
                                 ->select('matter_id')
                             ))
-                            ->when($data['fees_until'], fn($q, $v) => $q->whereHas('fees', fn($f) => $f->havingRaw('SUM(amount) <= ?', [(float)$v])
+                            ->when($data['fees_until'], fn ($q, $v) => $q->whereHas('fees', fn ($f) => $f->havingRaw('SUM(amount) <= ?', [(float) $v])
                                 ->groupBy('matter_id')
                                 ->select('matter_id')
                             ));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['fees_from']) $indicators[] = __('Fees min') . ': $' . number_format((float)$data['fees_from'], 2);
-                        if ($data['fees_until']) $indicators[] = __('Fees max') . ': $' . number_format((float)$data['fees_until'], 2);
+                        if ($data['fees_from']) {
+                            $indicators[] = __('Fees min').': $'.number_format((float) $data['fees_from'], 2);
+                        }
+                        if ($data['fees_until']) {
+                            $indicators[] = __('Fees max').': $'.number_format((float) $data['fees_until'], 2);
+                        }
+
                         return $indicators;
                     })
                     ->columnSpan(3),
@@ -480,13 +510,13 @@ class MattersTable
             ->filtersFormWidth(Width::FourExtraLarge)
             ->deselectAllRecordsWhenFiltered(true)
             ->recordActions([
-                ViewAction::make()->iconButton()->visible(fn($record) => auth()->user()->can('View:Matter')),
-                EditAction::make()->iconButton()->visible(fn($record) => auth()->user()->can('Update:Matter')),
-                DeleteAction::make()->iconButton()->visible(fn($record) => auth()->user()->can('Delete:Matter')),
+                ViewAction::make()->iconButton()->visible(fn ($record) => auth()->user()->can('View:Matter')),
+                EditAction::make()->iconButton()->visible(fn ($record) => auth()->user()->can('Update:Matter')),
+                DeleteAction::make()->iconButton()->visible(fn ($record) => auth()->user()->can('Delete:Matter')),
                 RestoreAction::make()->iconButton()
-                    ->visible(fn($record) => $record->trashed() && auth()->user()->can('Restore:Matter')),
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->can('Restore:Matter')),
                 ForceDeleteAction::make()->iconButton()
-                    ->visible(fn($record) => $record->trashed() && auth()->user()->can('ForceDelete:Matter')),
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->can('ForceDelete:Matter')),
             ]);
     }
 }

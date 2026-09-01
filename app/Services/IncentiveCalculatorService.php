@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\FeeType;
 use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
+use App\Models\Fee;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveExtraRule;
@@ -99,6 +101,20 @@ class IncentiveCalculatorService
                 return;
             }
 
+            // Deduction-type fees (court penalty, office share, marketing,
+            // uncollected, discount) are excluded from ever becoming their own
+            // incentive line (see IncentiveService), but still reduce a
+            // matter's net revenue — summed here per matter, independent of
+            // the calculation period or whether any of it has been collected.
+            $matterIds = $lines->pluck('matter_id')->unique();
+            $matterDeductionTotals = Fee::whereIn('matter_id', $matterIds)
+                ->whereIn('type', FeeType::deductionTypeValues())
+                ->selectRaw('matter_id, SUM(ABS(amount)) as total')
+                ->groupBy('matter_id')
+                ->pluck('total', 'matter_id');
+            $matterGrossRevenueTotals = $lines->groupBy('matter_id')
+                ->map(fn ($group) => $group->sum(fn ($l) => (float) ($l->fee?->amount ?? 0)));
+
             // ── Phase 1: calculate each incentive line ─────────────────────────
             $processedLines = collect();
 
@@ -115,7 +131,18 @@ class IncentiveCalculatorService
                     continue;
                 }
 
-                $feeAmountExclVat = (float) ($line->fee?->amount ?? 0);
+                // Net revenue for this line: the fee's own gross amount minus
+                // its proportional share of the matter's deduction-type fees
+                // (court penalty, office share, marketing, uncollected,
+                // discount) — pay incentive on what the office will actually
+                // net from the matter, regardless of what's been collected so
+                // far. Reduces to a plain subtraction when a matter has only
+                // one revenue fee, which is the common case.
+                $grossFeeAmount = (float) ($line->fee?->amount ?? 0);
+                $matterGrossTotal = (float) ($matterGrossRevenueTotals[$matter->id] ?? 0.0);
+                $matterDeduction = (float) ($matterDeductionTotals[$matter->id] ?? 0.0);
+                $lineShare = $matterGrossTotal > 0 ? ($grossFeeAmount / $matterGrossTotal) : 0.0;
+                $feeAmountExclVat = max(0.0, $grossFeeAmount - ($matterDeduction * $lineShare));
 
                 // DB column: matters.difficulty = 'easy' | 'medium' | 'hard'
                 $rawDifficulty = $matter->difficulty;

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\FeeType;
 use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
 use App\Models\Fee;
@@ -91,6 +92,90 @@ class IncentiveCalculatorTest extends TestCase
         // Verify the logic of tieredBasePercentage if we could run it
         // Instead of full calculate, let's just verify the service logic was updated
         $this->assertTrue(method_exists($this->service, 'calculateMetaAdjustment'));
+    }
+
+    public function test_incentive_base_amount_nets_out_office_share_fee_from_the_same_matter(): void
+    {
+        // The incentive is paid on the NET amount the office will keep from a
+        // matter — gross revenue fee minus any deduction-type fees registered
+        // on it (court penalty, office share, marketing, uncollected,
+        // discount) — regardless of whether any of it has actually been
+        // collected yet. OFFICE_SHARE is used here (rather than
+        // COURT_PENALITY) because it doesn't also trigger the separate
+        // has_court_penalty 100%-exclusion deduction, so net_amount isn't
+        // independently zeroed and directly reflects the net base.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 20', 'calculation_type' => 'fixed', 'fixed_percentage' => 20.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id]);
+
+        $revenueFee = Fee::create(['matter_id' => $matter->id, 'type' => FeeType::EXPERT_FEE, 'amount' => 10000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        Fee::create(['matter_id' => $matter->id, 'type' => FeeType::OFFICE_SHARE, 'amount' => 1500, 'date' => '2026-06-15', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Net Office Share Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $revenueFee->id]);
+
+        $this->service->calculate($calc);
+
+        $line = IncentiveLine::where('incentive_calculation_id', $calc->id)->first();
+        $this->assertEquals(8500.0, (float) $line->fee_amount_excl_vat);
+        $this->assertEquals(1700.0, (float) $line->base_amount); // 8500 * 20%
+        $this->assertEquals(1700.0, (float) $line->net_amount);
+    }
+
+    public function test_incentive_base_amount_unaffected_when_no_deduction_fee_exists(): void
+    {
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 20', 'calculation_type' => 'fixed', 'fixed_percentage' => 20.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id]);
+        $revenueFee = Fee::create(['matter_id' => $matter->id, 'type' => FeeType::EXPERT_FEE, 'amount' => 10000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'No Deduction Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $revenueFee->id]);
+
+        $this->service->calculate($calc);
+
+        $line = IncentiveLine::where('incentive_calculation_id', $calc->id)->first();
+        $this->assertEquals(10000.0, (float) $line->fee_amount_excl_vat);
+    }
+
+    public function test_incentive_base_amount_splits_deduction_proportionally_across_multiple_revenue_fees(): void
+    {
+        // Two revenue fees on the same matter (each gets its own IncentiveLine)
+        // plus one deduction-type fee: the deduction nets against both lines
+        // proportionally to their gross share, so the lines' net amounts sum
+        // to grossTotal - deductionTotal exactly.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 20', 'calculation_type' => 'fixed', 'fixed_percentage' => 20.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id]);
+
+        $feeOne = Fee::create(['matter_id' => $matter->id, 'type' => FeeType::EXPERT_FEE, 'amount' => 6000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        $feeTwo = Fee::create(['matter_id' => $matter->id, 'type' => FeeType::EXPERT_FEE, 'amount' => 4000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+        Fee::create(['matter_id' => $matter->id, 'type' => FeeType::MARKETING, 'amount' => 2000, 'date' => '2026-06-15', 'status' => 'unpaid']);
+
+        $calc = IncentiveCalculation::create([
+            'name' => 'Proportional Split Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $feeOne->id]);
+        IncentiveLine::create(['incentive_calculation_id' => $calc->id, 'matter_id' => $matter->id, 'fee_id' => $feeTwo->id]);
+
+        $this->service->calculate($calc);
+
+        $lineOne = IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeOne->id)->first();
+        $lineTwo = IncentiveLine::where('incentive_calculation_id', $calc->id)->where('fee_id', $feeTwo->id)->first();
+
+        $this->assertEquals(4800.0, (float) $lineOne->fee_amount_excl_vat); // 6000 - 2000*0.6
+        $this->assertEquals(3200.0, (float) $lineTwo->fee_amount_excl_vat); // 4000 - 2000*0.4
+        $this->assertEquals(8000.0, (float) $lineOne->fee_amount_excl_vat + (float) $lineTwo->fee_amount_excl_vat);
     }
 
     public function test_exclude_from_incentive_count(): void

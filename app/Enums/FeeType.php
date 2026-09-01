@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum FeeType: string implements HasLabel, HasColor
+enum FeeType: string implements HasColor, HasLabel
 {
     case EXPERT_FEE = 'expert fee';
 
@@ -53,5 +53,26 @@ enum FeeType: string implements HasLabel, HasColor
         };
     }
 
+    /**
+     * Deduction-type fees (court penalty, office share, marketing, uncollected,
+     * discount) reduce a matter's net revenue but must never become their own
+     * incentive line — they're netted against the matter's revenue fee(s) instead.
+     *
+     * @return list<string>
+     */
+    public static function deductionTypeValues(): array
+    {
+        return collect(self::cases())->filter(fn (self $c) => $c->isNegative())->map(fn (self $c) => $c->value)->all();
+    }
 
+    /**
+     * Fee types that should never be picked as an incentive-eligible fee:
+     * VAT (a pass-through tax, not office revenue) plus every deduction type.
+     *
+     * @return list<string>
+     */
+    public static function excludedFromIncentiveValues(): array
+    {
+        return [...self::deductionTypeValues(), self::VAT->value];
+    }
 }

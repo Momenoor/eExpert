@@ -7,15 +7,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class RequestServiceFactory
 {
+    /**
+     * @return class-string<BaseRequestService>
+     */
+    public static function classFor(RequestType $type): string
+    {
+        return match ($type) {
+            RequestType::CHANGE_DIFFICULTY => ChangeDifficultyRequestService::class,
+            RequestType::CHANGE_DISTRIBUTED_DATE => ChangeDistributedAtRequestService::class,
+            RequestType::CONFIRM_OFFICE_WORK => ConfirmOfficeWorkRequestService::class,
+            RequestType::REVIEW_INCENTIVE => ReviewIncentiveRequestService::class,
+            RequestType::REVIEW_REPORT => ReviewReportRequestService::class,
+            RequestType::CONFIRM_REPORT => ConfirmReportRequestService::class,
+            default => throw new \InvalidArgumentException("Unsupported request type: {$type->value}"),
+        };
+    }
+
     public static function make(Model $request): BaseRequestService
     {
-        return match ($request->type) {
-            RequestType::CHANGE_DIFFICULTY => new ChangeDifficultyRequestService($request),
-            RequestType::REVIEW_INCENTIVE => new ReviewIncentiveRequestService($request),
-            RequestType::REVIEW_REPORT => new ReviewReportRequestService($request),
-            RequestType::CHANGE_DISTRIBUTED_DATE => new ChangeDistributedAtRequestService($request),
-            RequestType::CONFIRM_REPORT => new ConfirmReportRequestService($request),
-            default => throw new \InvalidArgumentException("Unsupported request type: {$request->type->value}"),
-        };
+        return new (self::classFor($request->type))($request);
     }
 }

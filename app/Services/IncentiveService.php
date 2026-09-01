@@ -44,7 +44,7 @@ class IncentiveService
             })
             ->whereHas('fees', function ($q) use ($start, $end) {
                 $q->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-                    ->where(fn ($q2) => $q2->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+                    ->where(fn ($q2) => $q2->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()));
             });
 
         // Condition C: allow_current_status_import — the matter is still
@@ -61,7 +61,7 @@ class IncentiveService
             ->whereNull('final_report_at')
             ->whereHas('fees', function ($q) use ($start, $end, $importedFeeIds) {
                 $q->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-                    ->where(fn ($q2) => $q2->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+                    ->where(fn ($q2) => $q2->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()));
                 if (! empty($importedFeeIds)) {
                     $q->whereNotIn('id', $importedFeeIds);
                 }
@@ -99,7 +99,7 @@ class IncentiveService
         // Filter out matters where ALL eligible fees are already imported
         return $matters->values()->filter(function (Matter $matter) use ($importedFeeIds) {
             $eligibleFees = $matter->fees()
-                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
+                ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()))
                 ->pluck('id')
                 ->toArray();
 
@@ -144,7 +144,7 @@ class IncentiveService
             // Get a primary fee ID to satisfy DB constraint if needed
             // We MUST ensure this primary fee hasn't been imported yet
             $primaryFee = $matter->fees()
-                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
+                ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()))
                 ->whereNotIn('id', $importedFeeIds)
                 ->first();
 
@@ -152,9 +152,9 @@ class IncentiveService
                 continue; // Should have been filtered by getQualifyingMatters, but safety first
             }
 
-            // Fees without VAT
+            // Revenue fees only (VAT and deduction-type fees excluded)
             $feesAmount = $matter->fees()
-                ->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT))
+                ->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()))
                 ->sum('amount');
 
             // Court penalties - Sum the absolute values to deduct later
@@ -275,7 +275,7 @@ class IncentiveService
         }
 
         return DB::transaction(function () use ($calculation, $matter) {
-            $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+            $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()));
 
             return $this->importMatterFees($calculation, $matter, $feesQuery);
         });
@@ -334,7 +334,7 @@ class IncentiveService
      */
     private function eligibleFeesQuery(Matter $matter, Model $calculation): HasMany
     {
-        $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhere('type', '!=', FeeType::VAT));
+        $feesQuery = $matter->fees()->where(fn ($q) => $q->whereNull('type')->orWhereNotIn('type', FeeType::excludedFromIncentiveValues()));
 
         $isCurrentStatusMatter = ($matter->type?->allow_current_status_import ?? false)
             && ! $matter->final_report_at;

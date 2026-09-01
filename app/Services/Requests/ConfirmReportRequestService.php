@@ -2,10 +2,28 @@
 
 namespace App\Services\Requests;
 
-use App\Services\Requests\BaseRequestService;
+use Filament\Forms\Components\Toggle;
 
 class ConfirmReportRequestService extends BaseRequestService
 {
+    public static function requiresAttachmentsOnCreate(): bool
+    {
+        return true;
+    }
+
+    public static function approvalFormFields(): array
+    {
+        return [
+            Toggle::make('has_substantive_changes')
+                ->label(__('Has Substantive Changes'))
+                ->default(false),
+        ];
+    }
+
+    public static function rejectionRequiresAttachments(): bool
+    {
+        return true;
+    }
 
     public function approve(array $data = [], $component = null): void
     {

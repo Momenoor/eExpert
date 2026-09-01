@@ -106,6 +106,7 @@
     "Base Amount": "المبلغ الأساسي",
     "Base %": "النسبة الأساسية",
     "Basic Data": "البيانات الأساسية",
+    "Basic Info": "البيانات الأساسية",
     "Basic Information": "البيانات الأساسية",
     "Black List": "القائمة السوداء",
     "Bcc": "نسخة مخفية",
@@ -469,6 +470,7 @@
     "Note deleted.": "تم حذف الملاحظة.",
     "Note updated successfully.": "تم تحديث الملاحظة بنجاح.",
     "Notes": "ملاحظات",
+    "Notes & Attachments": "الملاحظات والمرفقات",
     "Notes & Records": "الملاحظات والسجلات",
     "Notes / Reference": "ملاحظات / مرجع",
     "Notes Count": "عدد الملاحظات",
@@ -492,6 +494,7 @@
     "Origin Is Unreachable": "لا يمكن الوصول إلى المنشأ",
     "Other": "أخرى",
     "Outlook Event": "موعد Outlook",
+    "Overview": "نظرة عامة",
     "Overpaid": "مسدد بالزيادة",
     "Overpaid by": "مسدد بالزيادة بمقدار",
     "Page Expired": "الصفحة منتهية الصلاحية",
@@ -643,6 +646,7 @@
     "Printed": "تاريخ الطباعة",
     "Private": "خاص",
     "Processing": "جاري المعالجة",
+    "Proposed Assistant Assigning Date": "تاريخ إسناد المساعد المقترح",
     "Proxy Authentication Required": "مصادقة الوكيل مطلوبة",
     "Public": "عام",
     "Railgun Error": "خطأ Railgun",
@@ -1057,5 +1061,7 @@
     "Assign Incentive Config": "تعيين تهيئة الحافز",
     "No Config": "بدون تهيئة",
     "Override Percentage for :name": "تعديل النسبة لـ :name",
-    "This becomes this specific assistant's final effective percentage of the fee for this matter — it does not affect any other assistant sharing the same matter. Deductions still apply on top. Leave empty to use the automatic calculation. The calculation is reapplied immediately.": "تصبح هذه النسبة المئوية النهائية الفعلية الخاصة بهذا المساعد لأتعاب هذه القضية — ولا تؤثر على أي مساعد آخر يشارك في القضية نفسها. وتظل الخصومات مطبقة إضافة إلى ذلك. اترك الخانة فارغة لاستخدام الحساب التلقائي. سيتم تطبيق إعادة الحساب فوراً."
+    "This becomes this specific assistant's final effective percentage of the fee for this matter — it does not affect any other assistant sharing the same matter. Deductions still apply on top. Leave empty to use the automatic calculation. The calculation is reapplied immediately.": "تصبح هذه النسبة المئوية النهائية الفعلية الخاصة بهذا المساعد لأتعاب هذه القضية — ولا تؤثر على أي مساعد آخر يشارك في القضية نفسها. وتظل الخصومات مطبقة إضافة إلى ذلك. اترك الخانة فارغة لاستخدام الحساب التلقائي. سيتم تطبيق إعادة الحساب فوراً.",
+    "Confirm Office Work": "إعتماد مباشرة التقرير من خلال المكتب",
+    "Kindly confirm that the report has been completed on our end.": "يرجى التكرم بالاعتماد بأن التقرير قد تم إنجازه من جانبنا."
 }

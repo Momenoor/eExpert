@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\FeeType;
 use App\Models\Allocation;
 use App\Models\Fee;
 use App\Models\IncentiveAssistantExtra;
@@ -130,6 +131,56 @@ class IncentiveImportAndCalculateTest extends TestCase
         // Re-importing must not create a second fee-less line for the same matter.
         $service->importSelectedMatters($calc, [$matter->id]);
         $this->assertEquals(1, IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matter->id)->count());
+    }
+
+    public function test_deduction_type_fee_never_becomes_its_own_incentive_line(): void
+    {
+        // Regression: a COURT_PENALITY (or any deduction-type) fee must never
+        // be imported as its own IncentiveLine — only the matter's genuine
+        // revenue fee should get a line; the penalty instead nets against it
+        // (see IncentiveCalculatorTest for the net-amount math itself).
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-06-10']);
+
+        $revenueFee = Fee::create(['matter_id' => $matter->id, 'type' => FeeType::EXPERT_FEE, 'amount' => 5000, 'date' => '2026-06-10', 'status' => 'unpaid']);
+        Fee::create(['matter_id' => $matter->id, 'type' => FeeType::COURT_PENALITY, 'amount' => 800, 'date' => '2026-06-10', 'status' => 'unpaid']);
+
+        $service = new IncentiveService;
+        $calc = IncentiveCalculation::create([
+            'name' => 'No Penalty Line Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service->importSelectedMatters($calc, [$matter->id]);
+
+        $lines = IncentiveLine::where('incentive_calculation_id', $calc->id)->get();
+        $this->assertCount(1, $lines);
+        $this->assertEquals($revenueFee->id, $lines->first()->fee_id);
+    }
+
+    public function test_matter_with_only_a_deduction_type_fee_still_imports_as_fee_less_quota_line(): void
+    {
+        // Regression: a matter whose only registered fee is a deduction type
+        // (e.g. a court penalty with no expert fee at all) must fall back to
+        // the existing fee-less quota-only line, exactly like a matter with
+        // no fees at all — it must not simply be skipped.
+        $config = MatterTypeIncentiveConfig::create([
+            'name' => 'Fixed 10', 'calculation_type' => 'fixed', 'fixed_percentage' => 10.0, 'assistant_rate' => 100.0,
+        ]);
+        $type = Type::create(['name' => 'Fixed Type', 'incentive_config_id' => $config->id, 'incentive_trigger_type' => 'final_report_date']);
+        $matter = Matter::create(['number' => '1', 'year' => '2026', 'type_id' => $type->id, 'final_report_at' => '2026-06-10']);
+        Fee::create(['matter_id' => $matter->id, 'type' => FeeType::COURT_PENALITY, 'amount' => 500, 'date' => '2026-06-10', 'status' => 'unpaid']);
+
+        $service = new IncentiveService;
+        $calc = IncentiveCalculation::create([
+            'name' => 'Penalty Only Calc', 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'draft',
+        ]);
+        $service->importSelectedMatters($calc, [$matter->id]);
+
+        $line = IncentiveLine::where('incentive_calculation_id', $calc->id)->where('matter_id', $matter->id)->first();
+        $this->assertNotNull($line);
+        $this->assertNull($line->fee_id);
     }
 
     public function test_import_creates_lines_only_for_selected_matters_and_recalculate_never_reimports(): void

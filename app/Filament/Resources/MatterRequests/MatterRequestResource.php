@@ -3,11 +3,8 @@
 namespace App\Filament\Resources\MatterRequests;
 
 use App\Enums\RequestStatus;
-use App\Filament\Resources\MatterRequests\Pages\CreateMatterRequest;
-use App\Filament\Resources\MatterRequests\Pages\EditRequest;
 use App\Filament\Resources\MatterRequests\Pages\ListMatterRequests;
 use App\Filament\Resources\MatterRequests\Pages\ViewMatterRequest;
-use App\Filament\Resources\MatterRequests\Schemas\MatterRequestForm;
 use App\Filament\Resources\MatterRequests\Schemas\MatterRequestInfolist;
 use App\Filament\Resources\MatterRequests\Tables\MatterRequestsTable;
 use App\Models\MatterRequest;
@@ -45,11 +42,6 @@ class MatterRequestResource extends Resource
     {
         // The $record is passed in automatically by Filament
         return $record?->type?->getLabel();
-    }
-
-    public static function form(Schema $schema): Schema
-    {
-        return MatterRequestForm::configure($schema);
     }
 
     public static function infolist(Schema $schema): Schema
