@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\FeeType;
 use App\Models\Party;
+use App\Support\Sql;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Pages\Page;
@@ -67,7 +68,7 @@ class AssistantPerformanceReport extends Page implements HasTable
             WHERE mp.party_id = parties.id AND mp.role = 'expert' AND mp.type = 'assistant'";
 
         return Party::query()
-            ->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+            ->withRole('expert', 'assistant')
             ->select('parties.*')
             ->selectRaw(
                 "(SELECT COUNT(DISTINCT m.id) FROM matters m
@@ -98,7 +99,7 @@ class AssistantPerformanceReport extends Page implements HasTable
                     WHERE ial.party_id = parties.id AND ic.status = 'finalized') as incentive_earned"
             )
             ->selectRaw(
-                '(SELECT COALESCE(SUM(DATEDIFF(pl.end_date, pl.start_date) + 1), 0)
+                '(SELECT COALESCE(SUM('.Sql::daysBetween('pl.start_date', 'pl.end_date').' + 1), 0)
                     FROM party_leaves pl WHERE pl.party_id = parties.id) as leave_days'
             );
     }
@@ -106,7 +107,7 @@ class AssistantPerformanceReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('matters_total', 'desc')
             ->emptyStateHeading(__('No assistants'))
             ->emptyStateIcon('heroicon-o-user-group')
@@ -188,13 +189,21 @@ class AssistantPerformanceReport extends Page implements HasTable
                     ->query(fn (Builder $query) => $query->whereHas(
                         'matters',
                         fn ($q) => $q->where('matter_party.role', 'expert')->where('matter_party.type', 'assistant')
-                    ))
-                    ->indicateUsing(fn () => __('With matters only')),
+                    )),
 
+                // An existence check, not `havingRaw('matters_open > 0')`.
+                // Filament runs this closure inside a nested where group and
+                // Laravel copies only the wheres out of such a group, so a
+                // HAVING here never reaches the SQL. This also avoids counting
+                // rows we only need to know exist.
                 Filter::make('has_open')
                     ->label(__('With open matters only'))
-                    ->query(fn (Builder $query) => $query->havingRaw('matters_open > 0'))
-                    ->indicateUsing(fn () => __('With open matters only')),
+                    ->query(fn (Builder $query) => $query->whereHas(
+                        'matters',
+                        fn ($q) => $q->where('matter_party.role', 'expert')
+                            ->where('matter_party.type', 'assistant')
+                            ->whereNull('matters.final_report_at')
+                    )),
             ])
             ->filtersFormWidth(Width::Medium)
             ->queryStringIdentifier('assistant_performance');

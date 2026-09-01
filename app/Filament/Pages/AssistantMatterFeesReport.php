@@ -54,7 +54,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
     {
 
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->columns([
                 TextColumn::make('matter.reference')
                     ->label(__('Matter'))
@@ -94,7 +94,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
                     ->label(__('Assistant'))
                     ->multiple()
                     ->preload()
-                    ->options(Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                    ->options(Party::withRole('expert', 'assistant')
                         ->orderBy('name')
                         ->pluck('name', 'id')
                     )

@@ -97,7 +97,7 @@ class MatterQualityReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('review_count', 'desc')
             ->emptyStateHeading(__('No quality issues recorded'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -172,18 +172,15 @@ class MatterQualityReport extends Page implements HasTable
             ->filters([
                 Filter::make('repeat_reviews')
                     ->label(__('Reviewed twice or more'))
-                    ->query(fn (Builder $query) => $query->where('review_count', '>=', 2))
-                    ->indicateUsing(fn () => __('Reviewed twice or more')),
+                    ->query(fn (Builder $query) => $query->where('review_count', '>=', 2)),
 
                 Filter::make('court_penalty')
                     ->label(__('Court penalty only'))
-                    ->query(fn (Builder $query) => $query->where('has_court_penalty', true))
-                    ->indicateUsing(fn () => __('Court penalty only')),
+                    ->query(fn (Builder $query) => $query->where('has_court_penalty', true)),
 
                 Filter::make('substantive_changes')
                     ->label(__('Substantive changes only'))
-                    ->query(fn (Builder $query) => $query->where('has_substantive_changes', true))
-                    ->indicateUsing(fn () => __('Substantive changes only')),
+                    ->query(fn (Builder $query) => $query->where('has_substantive_changes', true)),
 
                 SelectFilter::make('difficulty')
                     ->label(__('Difficulty'))
@@ -203,7 +200,7 @@ class MatterQualityReport extends Page implements HasTable
 
                 SelectFilter::make('assistant')
                     ->label(__('Assistant'))
-                    ->options(fn () => Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                    ->options(fn () => Party::withRole('expert', 'assistant')
                         ->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->preload()

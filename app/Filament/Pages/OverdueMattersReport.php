@@ -125,7 +125,7 @@ class OverdueMattersReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('days_open', 'desc')
             ->emptyStateHeading(__('Nothing overdue'))
             ->emptyStateDescription(__('No open matter matches these filters.'))
@@ -203,8 +203,7 @@ class OverdueMattersReport extends Page implements HasTable
 
                 Filter::make('no_initial_report')
                     ->label(__('No initial report yet'))
-                    ->query(fn (Builder $query) => $query->whereNull('initial_report_at'))
-                    ->indicateUsing(fn () => __('No initial report yet')),
+                    ->query(fn (Builder $query) => $query->whereNull('initial_report_at')),
 
                 SelectFilter::make('court_id')
                     ->label(__('Court'))
@@ -220,7 +219,7 @@ class OverdueMattersReport extends Page implements HasTable
 
                 SelectFilter::make('assistant')
                     ->label(__('Assistant'))
-                    ->options(fn () => Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                    ->options(fn () => Party::withRole('expert', 'assistant')
                         ->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->preload()

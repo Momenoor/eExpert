@@ -71,14 +71,13 @@ class CourtWorkloadReport extends Page implements HasTable
                     WHERE m.court_id = courts.id AND m.deleted_at IS NULL
                       AND (f.type IS NULL OR f.type NOT IN ('.$placeholders.'))) as revenue_billed',
                 $excluded
-            )
-            ->selectRaw('courts.*');
+            );
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('matters_count', 'desc')
             ->emptyStateHeading(__('No courts'))
             ->emptyStateIcon('heroicon-o-building-library')
@@ -149,16 +148,14 @@ class CourtWorkloadReport extends Page implements HasTable
                 Filter::make('with_matters')
                     ->label(__('With matters only'))
                     ->default()
-                    ->query(fn (Builder $query) => $query->has('matters'))
-                    ->indicateUsing(fn () => __('With matters only')),
+                    ->query(fn (Builder $query) => $query->has('matters')),
 
                 Filter::make('has_open')
                     ->label(__('With open matters only'))
                     ->query(fn (Builder $query) => $query->whereHas(
                         'matters',
                         fn ($q) => $q->whereNull('final_report_at')
-                    ))
-                    ->indicateUsing(fn () => __('With open matters only')),
+                    )),
             ])
             ->filtersFormWidth(Width::Medium)
             ->queryStringIdentifier('court_workload');

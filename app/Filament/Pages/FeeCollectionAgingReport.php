@@ -112,7 +112,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('outstanding_amount', 'desc')
             ->emptyStateHeading(__('Nothing outstanding'))
             ->emptyStateDescription(__('No matter matches these filters with a balance owing.'))
@@ -180,11 +180,19 @@ class FeeCollectionAgingReport extends Page implements HasTable
                     ->summarize(Sum::make()->label(__('Total'))->money('AED')),
             ])
             ->filters([
+                // WHERE, not HAVING. Filament runs a filter's query closure
+                // inside a nested where group, and Laravel copies only the
+                // wheres out of such a group — a having written here is
+                // dropped from the SQL entirely, so the filter compiles, raises
+                // no error and changes nothing. The joined subqueries expose
+                // `billed` and `paid` as real columns, so a plain WHERE on the
+                // underlying expression does the job.
                 Filter::make('outstanding_only')
                     ->label(__('Outstanding only'))
                     ->default()
-                    ->query(fn (Builder $query) => $query->havingRaw('outstanding_amount > 0.005'))
-                    ->indicateUsing(fn (array $data) => __('Outstanding only')),
+                    ->query(fn (Builder $query) => $query->whereRaw(
+                        '(billed.owed - COALESCE(paid.received, 0)) > 0.005'
+                    )),
 
                 SelectFilter::make('aging_bucket')
                     ->label(__('Age'))
@@ -195,11 +203,13 @@ class FeeCollectionAgingReport extends Page implements HasTable
                         '90+' => __('90+ days'),
                     ])
                     ->query(function (Builder $query, array $data) {
+                        $age = Sql::daysSince('billed.first_billed');
+
                         return match ($data['value'] ?? null) {
-                            '0-30' => $query->havingRaw('days_outstanding <= 30'),
-                            '31-60' => $query->havingRaw('days_outstanding BETWEEN 31 AND 60'),
-                            '61-90' => $query->havingRaw('days_outstanding BETWEEN 61 AND 90'),
-                            '90+' => $query->havingRaw('days_outstanding > 90'),
+                            '0-30' => $query->whereRaw($age.' <= 30'),
+                            '31-60' => $query->whereRaw($age.' BETWEEN 31 AND 60'),
+                            '61-90' => $query->whereRaw($age.' BETWEEN 61 AND 90'),
+                            '90+' => $query->whereRaw($age.' > 90'),
                             default => $query,
                         };
                     }),
@@ -218,7 +228,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
 
                 SelectFilter::make('assistant')
                     ->label(__('Assistant'))
-                    ->options(fn () => Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+                    ->options(fn () => Party::withRole('expert', 'assistant')
                         ->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
@@ -239,8 +249,8 @@ class FeeCollectionAgingReport extends Page implements HasTable
                         ])->columns(2),
                     ])
                     ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['billed_from'] ?? null, fn ($q, $v) => $q->havingRaw('first_billed >= ?', [$v]))
-                        ->when($data['billed_until'] ?? null, fn ($q, $v) => $q->havingRaw('first_billed <= ?', [$v]))
+                        ->when($data['billed_from'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '>=', $v))
+                        ->when($data['billed_until'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '<=', $v))
                     ),
             ])
             ->filtersFormWidth(Width::ExtraLarge)

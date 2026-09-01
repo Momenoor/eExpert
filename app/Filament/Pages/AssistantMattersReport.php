@@ -66,7 +66,7 @@ class AssistantMattersReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->striped()
             ->extraAttributes(['class' => 'custom-compact-table [&_table]:text-xs'])
             ->defaultPaginationPageOption(25)
@@ -185,7 +185,7 @@ class AssistantMattersReport extends Page implements HasTable
             ])
             ->filters([
                 SelectFilter::make('party.name')
-                    ->relationship('party', 'name', fn ($query) => $query->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant']))
+                    ->relationship('party', 'name', fn ($query) => $query->withRole('expert', 'assistant'))
                     ->label(__('Assistant'))
                     ->searchable()
                     ->preload()
@@ -321,7 +321,7 @@ class AssistantMattersReport extends Page implements HasTable
 
     private static function getAssistantOptions(): array
     {
-        return Party::whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+        return Party::withRole('expert', 'assistant')
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();

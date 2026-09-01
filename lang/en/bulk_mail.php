@@ -68,5 +68,6 @@ return [
     'notifications' => [
         'completed' => 'Campaign ":name" has been completed.',
         'test_sent' => 'Test email sent successfully.',
+        'no_pdfs' => 'No PDF files are available for the selected recipients.',
     ],
 ];

@@ -87,7 +87,7 @@ class MyMattersReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('next_session_date', 'asc')
             ->emptyStateHeading(__('Nothing assigned to you'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -157,19 +157,16 @@ class MyMattersReport extends Page implements HasTable
                 Filter::make('open_only')
                     ->label(__('Open only'))
                     ->default()
-                    ->query(fn (Builder $query) => $query->whereNull('final_report_at'))
-                    ->indicateUsing(fn () => __('Open only')),
+                    ->query(fn (Builder $query) => $query->whereNull('final_report_at')),
 
                 Filter::make('needs_initial_report')
                     ->label(__('Needs initial report'))
-                    ->query(fn (Builder $query) => $query->whereNull('initial_report_at'))
-                    ->indicateUsing(fn () => __('Needs initial report')),
+                    ->query(fn (Builder $query) => $query->whereNull('initial_report_at')),
 
                 Filter::make('session_this_week')
                     ->label(__('Session within 7 days'))
                     ->query(fn (Builder $query) => $query->whereNotNull('next_session_date')
-                        ->whereBetween('next_session_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()]))
-                    ->indicateUsing(fn () => __('Session within 7 days')),
+                        ->whereBetween('next_session_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])),
             ])
             ->filtersFormWidth(Width::Medium)
             ->queryStringIdentifier('my_matters');

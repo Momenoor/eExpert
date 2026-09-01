@@ -71,7 +71,7 @@ class VatSummaryReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getTableQuery())
+            ->query(fn () => $this->getTableQuery())
             ->defaultSort('date', 'desc')
             ->emptyStateHeading(__('No VAT recorded'))
             ->emptyStateDescription(__('No VAT fee falls in this period.'))
@@ -152,8 +152,7 @@ class VatSummaryReport extends Page implements HasTable
                     ->label(__('Not fully collected'))
                     ->query(fn (Builder $query) => $query->whereRaw(
                         'fees.amount > COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.fee_id = fees.id), 0) + 0.005'
-                    ))
-                    ->indicateUsing(fn () => __('Not fully collected')),
+                    )),
             ])
             ->filtersFormWidth(Width::ExtraLarge)
             ->queryStringIdentifier('vat_summary');
