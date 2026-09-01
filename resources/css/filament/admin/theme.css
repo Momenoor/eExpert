@@ -132,3 +132,33 @@ html {
         display: none;
     }
 }
+
+/*
+ * Chart axis labels and gridlines.
+ *
+ * Filament hands Chart.js the colours by reading getComputedStyle().color off
+ * four marker elements, and those resolve to Tailwind v4's palette — which is
+ * authored in oklch(). Chart.js parses hex, rgb(), hsl() and named colours
+ * only; given an oklch() string it silently falls back to its own default dark
+ * grey, so in dark mode the tick labels, legend and axis titles came out black
+ * on a black panel.
+ *
+ * Stated here in rgb so the parser accepts them. The values are Tailwind's own
+ * gray-500 (light) and gray-400 (dark) — what Filament asks for anyway, in a
+ * form that survives the round trip.
+ */
+.fi-wi-chart-text-color {
+    color: #6b7280;
+}
+
+.fi-wi-chart-grid-color {
+    color: rgb(0 0 0 / 10%);
+}
+
+:where(.dark, .dark *) .fi-wi-chart-text-color {
+    color: #9ca3af;
+}
+
+:where(.dark, .dark *) .fi-wi-chart-grid-color {
+    color: rgb(255 255 255 / 10%);
+}
