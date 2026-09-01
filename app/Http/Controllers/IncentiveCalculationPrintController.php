@@ -14,7 +14,6 @@ class IncentiveCalculationPrintController extends Controller
     public function __invoke(IncentiveCalculation $calculation)
     {
 
-        abort_unless(auth()->user()->can('Print:IncentiveCalculation'), 403);
 
         $lines = $calculation->lines()
             ->with(['matter', 'fee', 'deductions', 'assistantLines.party'])
