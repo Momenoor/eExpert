@@ -104,10 +104,18 @@ class AdminPanelProvider extends PanelProvider
                     ->timezone(config('app.timezone'))
                     ->editable()
                     ->selectable(),
+                // Grouped with the rest of Settings, not its own 'System' —
+                // the plugin's getNavigationGroup() evaluates this closure on
+                // every request via Filament's evaluate(), so it always
+                // reflects the current locale rather than baking in whichever
+                // one was active if config/routes ever get cached. label()/
+                // pluralLabel() are deliberately left unset: the package ships
+                // its own proper Arabic translation for both
+                // (filament-activity-log::activity.label /.plural_label) —
+                // hardcoding 'Log'/'Logs' here only overrode that with
+                // untranslated English.
                 ActivityLogPlugin::make()
-                    ->label('Log')
-                    ->pluralLabel('Logs')
-                    ->navigationGroup('System'),
+                    ->navigationGroup(fn () => __('Settings')),
                 // FilamentUiSwitcherPlugin::make(),
                 FilamentLanguageSwitcherPlugin::make()
                     ->locales(['en', ['code' => 'ar', 'name' => __('Arabic'), 'flag' => 'ae']]),
