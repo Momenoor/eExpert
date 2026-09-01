@@ -19,6 +19,7 @@ use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 
@@ -63,6 +64,28 @@ class IncentiveSummaryTableWidget extends TableWidget
     protected function isCalculationDraft(): bool
     {
         return IncentiveCalculation::find($this->calculationId)?->isDraft() ?? false;
+    }
+
+    protected function calculation(): ?IncentiveCalculation
+    {
+        return IncentiveCalculation::find($this->calculationId);
+    }
+
+    /**
+     * Server-side guard for the mutating row actions. ->disabled() only greys the
+     * button out in the UI; without this an assistant could invoke the action
+     * directly and change their own payroll figures.
+     */
+    protected function guardMutation(): void
+    {
+        $calculation = $this->calculation();
+
+        abort_unless(
+            $calculation !== null
+                && $calculation->isDraft()
+                && auth()->user()?->can('runCalculation', $calculation),
+            403
+        );
     }
 
     protected function getTableQuery(): Builder
@@ -294,6 +317,8 @@ class IncentiveSummaryTableWidget extends TableWidget
                         'percentage_override' => $record->percentage_override,
                     ])
                     ->action(function (array $data, $record) {
+                        $this->guardMutation();
+
                         $record->update([
                             'percentage_override' => filled($data['percentage_override']) ? $data['percentage_override'] : null,
                         ]);
@@ -334,12 +359,21 @@ class IncentiveSummaryTableWidget extends TableWidget
                         ];
                     })
                     ->action(function (array $data, $record) {
-                        IncentiveAssistantExtra::where('incentive_calculation_id', $this->calculationId)
-                            ->where('party_id', $record->party_id)
-                            ->update([
+                        $this->guardMutation();
+
+                        // updateOrCreate, not update: an assistant whose matters were
+                        // all excluded has no extras row yet, and a bare update()
+                        // silently affected 0 rows while still reporting success.
+                        IncentiveAssistantExtra::updateOrCreate(
+                            [
+                                'incentive_calculation_id' => $this->calculationId,
+                                'party_id' => $record->party_id,
+                            ],
+                            [
                                 'fixed_deduction' => $data['fixed_deduction'] ?? 0,
                                 'fixed_deduction_reason' => $data['fixed_deduction_reason'] ?? null,
-                            ]);
+                            ]
+                        );
 
                         app(IncentiveCalculatorService::class)->calculate(
                             IncentiveCalculation::findOrFail($this->calculationId)
@@ -371,15 +405,19 @@ class IncentiveSummaryTableWidget extends TableWidget
                     ->modalIcon('heroicon-o-trash')
                     ->modalIconColor('danger')
                     ->action(function ($record) {
+                        $this->guardMutation();
+
                         $matterId = $record->incentiveLine?->matter_id;
 
-                        IncentiveLine::where('incentive_calculation_id', $this->calculationId)
-                            ->where('matter_id', $matterId)
-                            ->delete();
+                        DB::transaction(function () use ($matterId) {
+                            IncentiveLine::where('incentive_calculation_id', $this->calculationId)
+                                ->where('matter_id', $matterId)
+                                ->delete();
 
-                        app(IncentiveCalculatorService::class)->calculate(
-                            IncentiveCalculation::findOrFail($this->calculationId)
-                        );
+                            app(IncentiveCalculatorService::class)->calculate(
+                                IncentiveCalculation::findOrFail($this->calculationId)
+                            );
+                        });
 
                         Notification::make()->title(__('Matter Removed'))->success()->send();
                     }),
