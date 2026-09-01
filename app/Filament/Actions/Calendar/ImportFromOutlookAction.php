@@ -3,6 +3,7 @@
 namespace App\Filament\Actions\Calendar;
 
 use App\Models\CalendarEvent;
+use App\Models\Matter;
 use App\Services\OutlookCalendarService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -38,7 +39,9 @@ class ImportFromOutlookAction extends Action
 
                     foreach ($outlookEvents as $event) {
                         $exists = CalendarEvent::where('outlook_event_id', $event['id'])->exists();
-                        if ($exists) continue;
+                        if ($exists) {
+                            continue;
+                        }
                         $matterIds = $this->findMatterIdsFromText($event['subject']);
                         $CalendarEvent = CalendarEvent::create([
                             'title' => $event['subject'],
@@ -67,7 +70,7 @@ class ImportFromOutlookAction extends Action
 
                     Notification::make()
                         ->title(__('Import Completed'))
-                        ->body(__("Imported :count new events from Outlook", ['count' => $importedCount]))
+                        ->body(__('Imported :count new events from Outlook', ['count' => $importedCount]))
                         ->success()
                         ->send();
                 } catch (\Exception $e) {
@@ -83,8 +86,6 @@ class ImportFromOutlookAction extends Action
     /**
      * Extract Matter IDs from a string (Subject or Description).
      * Handles: "639/2025", "2025/639", "639 of 2025", and Arabic "639 لسنة 2025"
-     * * @param string $text
-     * @return array
      */
     private function findMatterIdsFromText(string $text): array
     {
@@ -113,11 +114,13 @@ class ImportFromOutlookAction extends Action
                 $number = $match[1];
                 $year = $match[2];
 
-                $id = \App\Models\Matter::where('year', $year)
+                $id = Matter::where('year', $year)
                     ->where('number', $number)
                     ->value('id'); // value() is faster than first()
 
-                if ($id) $matterIds[] = $id;
+                if ($id) {
+                    $matterIds[] = $id;
+                }
             }
         }
 
@@ -127,11 +130,13 @@ class ImportFromOutlookAction extends Action
                 $year = $match[1];
                 $number = $match[2];
 
-                $id = \App\Models\Matter::where('year', $year)
+                $id = Matter::where('year', $year)
                     ->where('number', $number)
                     ->value('id');
 
-                if ($id) $matterIds[] = $id;
+                if ($id) {
+                    $matterIds[] = $id;
+                }
             }
         }
 

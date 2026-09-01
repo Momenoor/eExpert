@@ -95,7 +95,7 @@ class Matter extends Model
 
                 // Remove metas that are no longer in custom_fields
                 $fieldsToRemove = array_diff($existingFieldNames, $newFieldNames);
-                if (!empty($fieldsToRemove)) {
+                if (! empty($fieldsToRemove)) {
                     $matter->metas()->whereIn('field_name', $fieldsToRemove)->delete();
                 }
 

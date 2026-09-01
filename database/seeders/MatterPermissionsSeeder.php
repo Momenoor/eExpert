@@ -84,11 +84,10 @@ class MatterPermissionsSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // 2. Create all permissions and collect as objects
-        $created = collect(self::PERMISSIONS)->map(fn($name) =>
-        Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web'])
+        $created = collect(self::PERMISSIONS)->map(fn ($name) => Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web'])
         );
 
-        $this->command->info('✓ ' . $created->count() . ' permissions ready.');
+        $this->command->info('✓ '.$created->count().' permissions ready.');
 
         // 3. Clear cache again so roles can find newly created permissions
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -99,7 +98,7 @@ class MatterPermissionsSeeder extends Seeder
 
             $permissionObjects = $permissions === '*'
                 ? $created
-                : $created->filter(fn($p) => in_array($p->name, $permissions));
+                : $created->filter(fn ($p) => in_array($p->name, $permissions));
 
             $role->syncPermissions($permissionObjects);
 

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -38,12 +37,12 @@ class Allocation extends Model
 
         static::creating(function (Allocation $allocation) {
             $allocation->user_id = auth()->id();
-            if (!$allocation->date) {
+            if (! $allocation->date) {
                 $allocation->date = now();
             }
 
             // Automatically set matter_id from the parent fee
-            if (!$allocation->matter_id && $allocation->fee_id) {
+            if (! $allocation->matter_id && $allocation->fee_id) {
                 $allocation->matter_id = $allocation->fee?->matter_id;
             }
         });

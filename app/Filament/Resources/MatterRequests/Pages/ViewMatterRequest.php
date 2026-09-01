@@ -18,14 +18,13 @@ class ViewMatterRequest extends ViewRecord
         return [
             ApproveRequestAction::make(),
             RejectRequestAction::make(),
-//            Action::make('sendWhatsApp')
-//                ->label('Send WhatsApp')
-//                ->icon('heroicon-o-phone')
-//                ->color('success')
-//                ->action(
-//                    fn($record) => WhatsAppService::notifyNewRequest(auth()->user(), $record)
-//                ),
+            //            Action::make('sendWhatsApp')
+            //                ->label('Send WhatsApp')
+            //                ->icon('heroicon-o-phone')
+            //                ->color('success')
+            //                ->action(
+            //                    fn($record) => WhatsAppService::notifyNewRequest(auth()->user(), $record)
+            //                ),
         ];
     }
-
 }

@@ -14,7 +14,7 @@ class SyncMatterMetas extends Command
     public function handle()
     {
         $matters = Matter::all();
-        $this->info("Syncing " . $matters->count() . " matters...");
+        $this->info('Syncing '.$matters->count().' matters...');
 
         $bar = $this->output->createProgressBar($matters->count());
         $bar->start();
@@ -28,7 +28,7 @@ class SyncMatterMetas extends Command
 
             // Remove metas that are no longer in custom_fields
             $fieldsToRemove = array_diff($existingFieldNames, $newFieldNames);
-            if (!empty($fieldsToRemove)) {
+            if (! empty($fieldsToRemove)) {
                 $matter->metas()->whereIn('field_name', $fieldsToRemove)->delete();
             }
 

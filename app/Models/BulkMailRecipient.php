@@ -29,7 +29,7 @@ class BulkMailRecipient extends Model
     protected $casts = [
         'placeholders' => 'array',
         'cc_emails' => 'array',
-        'email'=> 'array',
+        'email' => 'array',
         'sent_at' => 'datetime',
         'failed_at' => 'datetime',
         'status' => BulkMailRecipientStatus::class,

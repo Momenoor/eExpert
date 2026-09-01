@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Matter;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class MatterPolicy
 {
@@ -186,5 +186,4 @@ class MatterPolicy
     {
         return $authUser->can('DeleteAttachment:Matter');
     }
-
 }

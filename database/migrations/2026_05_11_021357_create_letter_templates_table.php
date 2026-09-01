@@ -1,10 +1,16 @@
 <?php
 
+use App\Models\LetterTemplate;
+use App\Models\Matter;
+use App\Models\MatterLetter;
+use App\Models\Party;
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -24,20 +30,20 @@ return new class extends Migration {
             $table->timestamps();
         });
         Schema::create('matter_letters', function (Blueprint $table) {
-           $table->id();
-           $table->foreignIdFor(\App\Models\LetterTemplate::class)->nullable()->constrained()->cascadeOnDelete();
-           $table->foreignIdFor(\App\Models\Matter::class)->nullable()->constrained()->cascadeOnDelete();
-           $table->string('subject')->nullable()->comment('Subject of the letter, if different from the template subject');
-           $table->longText('body')->nullable()->comment('Body of the letter, if different from the template body');
-           $table->string('status')->default('draft')->comment('Status of the letter, e.g., "draft", "sent", "cancelled", etc.');
-           $table->dateTime('sent_at')->nullable()->comment('Timestamp when the letter was sent');
-           $table->foreignIdFor(\App\Models\User::class,'sent_by')->nullable()->constrained()->cascadeOnDelete();
-           $table->timestamps();
+            $table->id();
+            $table->foreignIdFor(LetterTemplate::class)->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Matter::class)->nullable()->constrained()->cascadeOnDelete();
+            $table->string('subject')->nullable()->comment('Subject of the letter, if different from the template subject');
+            $table->longText('body')->nullable()->comment('Body of the letter, if different from the template body');
+            $table->string('status')->default('draft')->comment('Status of the letter, e.g., "draft", "sent", "cancelled", etc.');
+            $table->dateTime('sent_at')->nullable()->comment('Timestamp when the letter was sent');
+            $table->foreignIdFor(User::class, 'sent_by')->nullable()->constrained()->cascadeOnDelete();
+            $table->timestamps();
         });
         Schema::create('matter_letter_recipients', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\App\Models\MatterLetter::class)->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignIdFor(\App\Models\Party::class,'recipient_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(MatterLetter::class)->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Party::class, 'recipient_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('email')->nullable()->comment('Email address of the recipient');
             $table->string('name')->nullable()->comment('Name of the recipient');
             $table->string('delivery_status')->default('pending')->comment('Status of the delivery, e.g., "pending", "delivered", "failed", etc.');

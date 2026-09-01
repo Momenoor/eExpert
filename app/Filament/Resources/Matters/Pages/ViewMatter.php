@@ -4,9 +4,9 @@ namespace App\Filament\Resources\Matters\Pages;
 
 use App\Enums\MatterCollectionStatus;
 use App\Enums\MatterLevel;
-use App\Helpers\FileUploadHelper;
 use App\Filament\Actions\Calendar\SyncToOutlookAction;
 use App\Filament\Resources\Matters\MatterResource;
+use App\Helpers\FileUploadHelper;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -34,10 +34,10 @@ class ViewMatter extends ViewRecord
             SyncToOutlookAction::make(),
             Action::make('initial_report')
                 ->label(__('Initial Report'))
-                ->color(fn($record) => $record->initial_report_at === null ? 'warning' : Color::Stone)
-                ->visible(fn($record) => auth()->user()->can('initialReport', $record))
-                ->disabled(fn($record) => $record->initial_report_at !== null)
-                ->label(fn($record) => $record->initial_report_at ? __('Initial Report Submitted') : __('Submit Initial Report'))
+                ->color(fn ($record) => $record->initial_report_at === null ? 'warning' : Color::Stone)
+                ->visible(fn ($record) => auth()->user()->can('initialReport', $record))
+                ->disabled(fn ($record) => $record->initial_report_at !== null)
+                ->label(fn ($record) => $record->initial_report_at ? __('Initial Report Submitted') : __('Submit Initial Report'))
                 ->schema([
                     FileUpload::make('screen_shot')
                         ->label(__('Screenshot'))
@@ -46,33 +46,33 @@ class ViewMatter extends ViewRecord
                         ->directory('matter-attachments')
                         ->visibility('public')
                         ->required()
-                        ->getUploadedFileNameForStorageUsing(fn($file) => FileUploadHelper::getUniqueFilename($file, 'matter-attachments')),
+                        ->getUploadedFileNameForStorageUsing(fn ($file) => FileUploadHelper::getUniqueFilename($file, 'matter-attachments')),
                     DatePicker::make('date')
                         ->label(__('Date'))
                         ->visible(auth()->user()->can('UpdateInitialReportDate:Matter')),
                 ])
                 ->requiresConfirmation()
-                ->action(fn($record, array $data) => $this->initialReportSubmit($record, $data)),
+                ->action(fn ($record, array $data) => $this->initialReportSubmit($record, $data)),
 
             Action::make('final_report')
-                ->label(fn($record) => $record->final_report_at ? __('Final Report Submitted') : __('Submit Final Report'))
-                ->color(fn($record) => $record->final_report_at === null ? 'success' : Color::Stone)
-                ->visible(fn($record) => auth()->user()->can('finalReport', $record))
-                ->disabled(fn($record) => $record->final_report_at !== null || $record->final_report_memo_date == null)
-                ->tooltip(fn($record) => $record->final_report_memo_date == null ? __('Final Report must be approved first.') : null)
+                ->label(fn ($record) => $record->final_report_at ? __('Final Report Submitted') : __('Submit Final Report'))
+                ->color(fn ($record) => $record->final_report_at === null ? 'success' : Color::Stone)
+                ->visible(fn ($record) => auth()->user()->can('finalReport', $record))
+                ->disabled(fn ($record) => $record->final_report_at !== null || $record->final_report_memo_date == null)
+                ->tooltip(fn ($record) => $record->final_report_memo_date == null ? __('Final Report must be approved first.') : null)
                 ->schema([
                     DatePicker::make('date')
                         ->label(__('Date'))
                         ->visible(auth()->user()->can('UpdateFinalReportDate:Matter')),
                 ])
                 ->requiresConfirmation()
-                ->action(fn($record, array $data) => $this->finalReportSubmit($record, $data)),
+                ->action(fn ($record, array $data) => $this->finalReportSubmit($record, $data)),
 
             Action::make('clone')
                 ->label(__('Supplementary Matter'))
                 ->color('info')
-                ->visible(fn($record) => auth()->user()->can('replicate', $record))
-                ->schema(fn($record) => [
+                ->visible(fn ($record) => auth()->user()->can('replicate', $record))
+                ->schema(fn ($record) => [
                     Section::make(__('Supplementary Matter Details'))
                         ->columns(2)
                         ->schema([
@@ -96,15 +96,15 @@ class ViewMatter extends ViewRecord
                                 ->options(MatterLevel::class)
                                 ->default($record->level)
                                 ->required(),
-                        ])
+                        ]),
                 ])
-                ->action(fn($record, $data) => $this->cloneMatter($record, $data)),
+                ->action(fn ($record, $data) => $this->cloneMatter($record, $data)),
             EditAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make()
-                ->visible(fn($record) => $record->trashed()),
+                ->visible(fn ($record) => $record->trashed()),
             RestoreAction::make()
-                ->visible(fn($record) => $record->trashed()),
+                ->visible(fn ($record) => $record->trashed()),
         ];
     }
 
@@ -175,7 +175,7 @@ class ViewMatter extends ViewRecord
 
     private function finalReportSubmit($record, array $data): void
     {
-        if (!$record->initial_report_at) {
+        if (! $record->initial_report_at) {
             $record->initial_report_at = $data['date'] ?? now();
         }
         $record->final_report_at = $data['date'] ?? now();

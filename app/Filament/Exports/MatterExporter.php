@@ -3,11 +3,9 @@
 namespace App\Filament\Exports;
 
 use App\Models\Matter;
-use Filament\Actions\Action;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
-use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Number;
 use OpenSpout\Common\Entity\Style\CellAlignment;
@@ -29,7 +27,7 @@ class MatterExporter extends Exporter
         return [
             ExportColumn::make('reference')
                 ->label(__('Matter'))
-                ->getStateUsing(fn($record) => $record->year . '/' . $record->number),
+                ->getStateUsing(fn ($record) => $record->year.'/'.$record->number),
 
             ExportColumn::make('court.name')
                 ->label(__('Court')),
@@ -39,12 +37,12 @@ class MatterExporter extends Exporter
 
             ExportColumn::make('matter_level')
                 ->label(__('Level'))
-                ->getStateUsing(fn($record) => $record->level?->getLabel()),
+                ->getStateUsing(fn ($record) => $record->level?->getLabel()),
 
             ExportColumn::make('parties')
                 ->label(__('Parties'))
-                ->getStateUsing(fn($record) => $record->indexedParties
-                    ->map(fn($mp) => sprintf(
+                ->getStateUsing(fn ($record) => $record->indexedParties
+                    ->map(fn ($mp) => sprintf(
                         '%s #%d — %s',
                         __($mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : ''),
                         $mp->role_index,
@@ -55,8 +53,8 @@ class MatterExporter extends Exporter
 
             ExportColumn::make('experts')
                 ->label(__('Experts'))
-                ->getStateUsing(fn($record) => $record->indexedExperts
-                    ->map(fn($mp) => sprintf(
+                ->getStateUsing(fn ($record) => $record->indexedExperts
+                    ->map(fn ($mp) => sprintf(
                         '%s #%d — %s',
                         __($mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : ''),
                         $mp->role_index,
@@ -67,39 +65,39 @@ class MatterExporter extends Exporter
 
             ExportColumn::make('total_fees_without_vat')
                 ->label(__('Total Fees (Without VAT)'))
-                ->getStateUsing(fn($record) => number_format($record->fees->where('type', '!=', 'vat')->sum('amount'))),
+                ->getStateUsing(fn ($record) => number_format($record->fees->where('type', '!=', 'vat')->sum('amount'))),
 
             ExportColumn::make('total_vat')
                 ->label(__('Total VAT'))
-                ->getStateUsing(fn($record) => number_format($record->fees->where('type', 'vat')->sum('amount'))),
+                ->getStateUsing(fn ($record) => number_format($record->fees->where('type', 'vat')->sum('amount'))),
 
             ExportColumn::make('total_fees')
                 ->label(__('Total'))
-                ->getStateUsing(fn($record) => number_format($record->fees->sum('amount'))),
+                ->getStateUsing(fn ($record) => number_format($record->fees->sum('amount'))),
 
             ExportColumn::make('total_allocations')
                 ->label(__('Sum Allocations'))
-                ->getStateUsing(fn($record) => number_format($record->allocations->sum('amount'))),
+                ->getStateUsing(fn ($record) => number_format($record->allocations->sum('amount'))),
 
             ExportColumn::make('unpaid_amount')
                 ->label(__('Unpaid'))
-                ->getStateUsing(fn($record) => number_format($record->fees->sum('amount') - $record->allocations->sum('amount'))),
+                ->getStateUsing(fn ($record) => number_format($record->fees->sum('amount') - $record->allocations->sum('amount'))),
 
             ExportColumn::make('notes')
                 ->label(__('Notes'))
-                ->getStateUsing(fn($record) => $record->notes
-                    ->map(fn($note) => $note->text)
+                ->getStateUsing(fn ($record) => $record->notes
+                    ->map(fn ($note) => $note->text)
                     ->filter()
                     ->join("\n")
                 ),
 
             ExportColumn::make('status')
                 ->label(__('Status'))
-                ->getStateUsing(fn($record) => $record->status?->getLabel()),
+                ->getStateUsing(fn ($record) => $record->status?->getLabel()),
 
             ExportColumn::make('collection_status')
                 ->label(__('Collection Status'))
-                ->getStateUsing(fn($record) => $record->collection_status?->getLabel()),
+                ->getStateUsing(fn ($record) => $record->collection_status?->getLabel()),
         ];
     }
 
@@ -108,7 +106,7 @@ class MatterExporter extends Exporter
         $body = trans_choice('export_completed', $export->successful_rows, ['count' => Number::format($export->successful_rows)]);
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . trans_choice('export_failed', $failedRowsCount, ['count' => Number::format($failedRowsCount)]);
+            $body .= ' '.trans_choice('export_failed', $failedRowsCount, ['count' => Number::format($failedRowsCount)]);
         }
 
         return $body;
@@ -139,7 +137,7 @@ class MatterExporter extends Exporter
 
     public function getXlsxWriterOptions(): ?Options
     {
-        $options = new Options();
+        $options = new Options;
         $options->setColumnWidth(15, 1);  // Matter
         $options->setColumnWidth(22, 2);  // Court
         $options->setColumnWidth(18, 3);  // Type
@@ -165,7 +163,7 @@ class MatterExporter extends Exporter
      */
     public function configureXlsxWriterBeforeClose(Writer $writer): Writer
     {
-        $sheetView = new SheetView();
+        $sheetView = new SheetView;
         $sheetView->setFreezeRow(2);
 
         $sheet = $writer->getCurrentSheet();
@@ -174,7 +172,6 @@ class MatterExporter extends Exporter
 
         return $writer;
     }
-
 
     public static function modifyQuery(Builder $query): Builder
     {
@@ -189,5 +186,4 @@ class MatterExporter extends Exporter
             'allocations',
         ]);
     }
-
 }

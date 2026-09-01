@@ -3,14 +3,14 @@
 return [
     'senders' => [
         'iflas' => [
-            'username'=>'iflas@jpaemirates.com',
+            'username' => 'iflas@jpaemirates.com',
             'address' => 'iflas@jpaemirates.com',
             'name' => 'JPA Iflas Department قسم الإفلاس',
             'password' => 'q.r6=;9=wT1P',
-            'host'=>'mail.jpaemirates.com',
-            'port'=>587,
-            'encryption'=>'tls',
-            'signature' => <<<HTML
+            'host' => 'mail.jpaemirates.com',
+            'port' => 587,
+            'encryption' => 'tls',
+            'signature' => <<<'HTML'
                 <div dir="ltr" id="Signature" style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000000;">
                   <br>
                   <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
@@ -117,14 +117,14 @@ return [
                 HTML,
         ],
         'haikala' => [
-            'username'=>'haikala@jpaemirates.com',
+            'username' => 'haikala@jpaemirates.com',
             'address' => 'haikala@jpaemirates.com',
             'name' => 'JPA Haikala Department قسم إعادة الهيكة',
             'password' => 'kW]ZB{?4,&xs',
-            'host'=>'mail.jpaemirates.com',
-            'port'=>587,
-            'encryption'=>'tls',
-            'signature' => <<<HTML
+            'host' => 'mail.jpaemirates.com',
+            'port' => 587,
+            'encryption' => 'tls',
+            'signature' => <<<'HTML'
                 <div dir="ltr" id="Signature" style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000000;">
                   <br>
                   <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">
@@ -231,14 +231,14 @@ return [
                 HTML,
         ],
         'easar' => [
-            'username'=>'easar@jpaemirates.com',
+            'username' => 'easar@jpaemirates.com',
             'address' => 'easar@jpaemirates.com',
             'name' => 'JPA Easar Department قسم الإعسار',
             'password' => 'lK80$nTTm10J',
-            'host'=>'mail.jpaemirates.com',
-            'port'=>587,
-            'encryption'=>'tls',
-            'signature' => <<<HTML
+            'host' => 'mail.jpaemirates.com',
+            'port' => 587,
+            'encryption' => 'tls',
+            'signature' => <<<'HTML'
                 <div dir="ltr" id="Signature" style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000000;">
                   <br>
                   <p style="margin: 0; font-family: Calibri, sans-serif; font-size: 12pt;">

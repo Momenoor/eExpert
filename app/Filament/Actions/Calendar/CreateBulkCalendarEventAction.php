@@ -3,9 +3,9 @@
 namespace App\Filament\Actions\Calendar;
 
 use App\Models\CalendarEvent;
+use App\Models\Court;
 use App\Models\Matter;
 use App\Models\Type;
-use App\Models\Court;
 use App\Services\OutlookCalendarService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -46,7 +46,10 @@ class CreateBulkCalendarEventAction extends Action
                     ->label(__('Matters'))
                     ->options(function (callable $get) {
                         $typeId = $get('matter_type_id');
-                        if (!$typeId) return [];
+                        if (! $typeId) {
+                            return [];
+                        }
+
                         return Matter::where('type_id', $typeId)
                             ->get()
                             ->mapWithKeys(fn ($m) => [$m->id => "{$m->number}/{$m->year}"])
@@ -71,10 +74,12 @@ class CreateBulkCalendarEventAction extends Action
                         $courtId = $get('court_id');
                         $typeId = $get('matter_type_id');
 
-                        if (empty($matterIds) || !$courtId || !$typeId) return '—';
+                        if (empty($matterIds) || ! $courtId || ! $typeId) {
+                            return '—';
+                        }
 
                         $matters = Matter::whereIn('id', $matterIds)->get();
-                        $matterNumbers = $matters->map(fn($m) => "{$m->number}/{$m->year}")->join(', ');
+                        $matterNumbers = $matters->map(fn ($m) => "{$m->number}/{$m->year}")->join(', ');
                         $courtName = Court::find($courtId)?->name;
                         $typeName = Type::find($typeId)?->name;
 
@@ -91,7 +96,7 @@ class CreateBulkCalendarEventAction extends Action
             ])
             ->action(function (array $data, OutlookCalendarService $outlookService) {
                 $matters = Matter::whereIn('id', $data['matter_ids'])->get();
-                $matterNumbers = $matters->map(fn($m) => "{$m->number}/{$m->year}")->join(', ');
+                $matterNumbers = $matters->map(fn ($m) => "{$m->number}/{$m->year}")->join(', ');
                 $courtName = Court::find($data['court_id'])?->name;
                 $typeName = Type::find($data['matter_type_id'])?->name;
 

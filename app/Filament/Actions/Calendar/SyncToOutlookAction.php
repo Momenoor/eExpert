@@ -21,13 +21,13 @@ class SyncToOutlookAction extends Action
 
         $this->label(__('Sync to Outlook'))
             ->icon('heroicon-o-arrow-path')
-            ->visible(fn ($record) => ($record instanceof CalendarEvent && !$record->synced_to_outlook) || ($record instanceof Matter && $record->calendarEvents()->where('synced_to_outlook', false)->exists()))
+            ->visible(fn ($record) => ($record instanceof CalendarEvent && ! $record->synced_to_outlook) || ($record instanceof Matter && $record->calendarEvents()->where('synced_to_outlook', false)->exists()))
             ->action(function ($record, OutlookCalendarService $outlookService) {
                 if ($record instanceof Matter) {
                     $record = $record->calendarEvents()->where('synced_to_outlook', false)->latest()->first();
                 }
 
-                if (!$record instanceof CalendarEvent) {
+                if (! $record instanceof CalendarEvent) {
                     return;
                 }
                 try {

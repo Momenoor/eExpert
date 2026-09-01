@@ -4,9 +4,7 @@ namespace App\Mail;
 
 use App\Models\Matter;
 use App\Models\MatterRequest;
-use App\Models\Party;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -33,7 +31,7 @@ class NewRequestNotificationMail extends Mailable
     {
         return new Envelope(
             subject: __('New Request Submitted')
-            . ' — ' . $this->matter->year . '/' . $this->matter->number . ($this->matter->type ? ' — ' . $this->matter->type->name : ''),
+            .' — '.$this->matter->year.'/'.$this->matter->number.($this->matter->type ? ' — '.$this->matter->type->name : ''),
         );
     }
 
@@ -60,7 +58,7 @@ class NewRequestNotificationMail extends Mailable
 
         foreach ($attachments as $attachment) {
             $exists = Storage::disk('public')->exists($attachment->path);
-            if (!$exists) {
+            if (! $exists) {
                 continue;
             }
             try {
@@ -70,7 +68,7 @@ class NewRequestNotificationMail extends Mailable
                         Storage::disk('public')->mimeType($attachment->path) ?? 'application/octet-stream'
                     );
             } catch (\Exception $e) {
-                \Log::error("Failed to attach file: " . $attachment->path . " Error: " . $e->getMessage());
+                \Log::error('Failed to attach file: '.$attachment->path.' Error: '.$e->getMessage());
             }
         }
 

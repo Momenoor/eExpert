@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-
 class Fee extends Model
 {
     use LogsActivity;
@@ -48,21 +47,20 @@ class Fee extends Model
 
         static::saving(function (Fee $fee) {
             $fee->user_id = auth()->id();
-            if (!$fee->date) {
+            if (! $fee->date) {
                 $fee->date = now();
             }
             if ($fee->type?->isNegative() && $fee->amount > 0) {
                 $fee->amount = -abs($fee->amount);
             }
             if ($fee->type === FeeType::COURT_PENALITY) {
-                $fee->matter->update(['has_court_penalty'=> true]);
+                $fee->matter->update(['has_court_penalty' => true]);
             }
         });
 
         static::saved(function (Fee $fee) {
             $fee->matter?->updateCollectionStatus();
         });
-
 
         static::deleted(function (Fee $fee) {
             if ($fee->type === FeeType::COURT_PENALITY) {
@@ -72,7 +70,7 @@ class Fee extends Model
                     ->where('id', '!=', $fee->id)
                     ->exists();
 
-                if (!$hasOtherPenalties) {
+                if (! $hasOtherPenalties) {
                     $fee->matter->update(['has_court_penalty' => false]);
                 }
             }
@@ -102,12 +100,12 @@ class Fee extends Model
 
     public function getTotalAllocatedAttribute(): float
     {
-        return (float)$this->allocations()->sum('amount');
+        return (float) $this->allocations()->sum('amount');
     }
 
     public function getBalanceAttribute(): float
     {
-        return (float)($this->amount - $this->total_allocated);
+        return (float) ($this->amount - $this->total_allocated);
     }
 
     /**
@@ -115,8 +113,8 @@ class Fee extends Model
      */
     public function updateStatus(): void
     {
-        $allocated = (float)$this->allocations()->sum('amount');
-        $total = (float)$this->amount;
+        $allocated = (float) $this->allocations()->sum('amount');
+        $total = (float) $this->amount;
 
         if ($allocated <= 0) {
             $this->status = FeeStatus::UNPAID;

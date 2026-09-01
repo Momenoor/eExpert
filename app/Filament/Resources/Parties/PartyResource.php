@@ -6,15 +6,14 @@ use App\Filament\Resources\Parties\Pages\CreateParty;
 use App\Filament\Resources\Parties\Pages\EditParty;
 use App\Filament\Resources\Parties\Pages\ListParties;
 use App\Filament\Resources\Parties\Pages\ViewParty;
+use App\Filament\Resources\Parties\RelationManagers\MattersRelationManager;
 use App\Filament\Resources\Parties\Schemas\PartyForm;
 use App\Filament\Resources\Parties\Schemas\PartyInfolist;
 use App\Filament\Resources\Parties\Tables\PartiesTable;
-use App\Filament\Resources\Parties\RelationManagers\MattersRelationManager;
 use App\Models\Party;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -23,6 +22,7 @@ class PartyResource extends Resource
     protected static ?string $model = Party::class;
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-user-group';
+
     protected static ?int $navigationSort = 3;
 
     public static function getEloquentQuery(): Builder
@@ -55,6 +55,7 @@ class PartyResource extends Resource
     {
         return __('Parties');
     }
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema

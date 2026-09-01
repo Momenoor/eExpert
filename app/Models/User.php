@@ -2,31 +2,29 @@
 
 namespace App\Models;
 
-
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use FilamentInbox\Concerns\HasInbox;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-
 class User extends Authenticatable implements FilamentUser
 {
-    use  HasFactory, Notifiable, HasRoles, HasInbox;
+    use HasFactory, HasInbox, HasRoles, Notifiable;
     use LogsActivity;
-
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logAll();
     }
-
 
     protected $fillable = [
         'name',
@@ -52,7 +50,6 @@ class User extends Authenticatable implements FilamentUser
         'remember_token',
     ];
 
-
     /**
      * The attributes that should be cast.
      *
@@ -67,13 +64,12 @@ class User extends Authenticatable implements FilamentUser
         'notify_by_whatsapp' => 'boolean',
     ];
 
-
-    public function party(): User|\Illuminate\Database\Eloquent\Relations\HasOne
+    public function party(): User|HasOne
     {
         return $this->hasOne(Party::class);
     }
 
-    public function incentiveCalculations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function incentiveCalculations(): HasMany
     {
         return $this->hasMany(IncentiveCalculation::class, 'created_by');
     }
@@ -86,7 +82,7 @@ class User extends Authenticatable implements FilamentUser
     public function phone(): Attribute
     {
         return new Attribute(
-            get: fn() => $this->party?->phone ?? '',
+            get: fn () => $this->party?->phone ?? '',
         );
     }
 }

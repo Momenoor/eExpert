@@ -43,7 +43,6 @@ class PartyInfolist
                                             ->trueIcon('heroicon-o-check-circle')
                                             ->falseIcon('heroicon-o-x-circle'),
 
-
                                     ])
                                     ->columns(2)
                                     ->columnSpan(1),
@@ -58,7 +57,9 @@ class PartyInfolist
                                             ->color('info')
                                             ->getStateUsing(function ($record) {
                                                 $role = $record->role;
-                                                if (empty($role)) return [];
+                                                if (empty($role)) {
+                                                    return [];
+                                                }
                                                 if (isset($role['role'])) {
                                                     $roles = (array) ($role['role'] ?? []);
                                                 } else {
@@ -68,7 +69,8 @@ class PartyInfolist
                                                         ->values()
                                                         ->toArray();
                                                 }
-                                                return array_map(fn($r) => __($r ? ucfirst($r) : ''), $roles);
+
+                                                return array_map(fn ($r) => __($r ? ucfirst($r) : ''), $roles);
                                             })
                                             ->columnSpanFull(),
 
@@ -78,7 +80,9 @@ class PartyInfolist
                                             ->color('warning')
                                             ->getStateUsing(function ($record) {
                                                 $role = $record->role;
-                                                if (empty($role)) return [];
+                                                if (empty($role)) {
+                                                    return [];
+                                                }
                                                 if (isset($role['type'])) {
                                                     $types = (array) ($role['type'] ?? []);
                                                 } else {
@@ -90,9 +94,10 @@ class PartyInfolist
                                                         ->values()
                                                         ->toArray();
                                                 }
-                                                return array_map(fn($t) => __($t ? ucfirst($t) : ''), $types);
+
+                                                return array_map(fn ($t) => __($t ? ucfirst($t) : ''), $types);
                                             })
-                                            ->visible(fn($record) => $record->role && $record->isExpert())
+                                            ->visible(fn ($record) => $record->role && $record->isExpert())
                                             ->placeholder('—')
                                             ->columnSpanFull(),
 
@@ -101,7 +106,9 @@ class PartyInfolist
                                             ->icon('heroicon-o-academic-cap')
                                             ->getStateUsing(function ($record) {
                                                 $role = $record->role;
-                                                if (empty($role)) return null;
+                                                if (empty($role)) {
+                                                    return null;
+                                                }
                                                 if (isset($role['field'])) {
                                                     $field = $role['field'];
                                                 } else {
@@ -111,6 +118,7 @@ class PartyInfolist
                                                         ->filter()
                                                         ->first();
                                                 }
+
                                                 return $field ? __($field ? ucfirst($field) : '') : null;
                                             })
                                             ->placeholder('—')

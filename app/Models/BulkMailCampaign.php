@@ -68,7 +68,7 @@ class BulkMailCampaign extends Model
     public function senderConfig(): Attribute
     {
         return new Attribute(
-            get: fn() => Config::get("mail_senders.senders.{$this->from_sender_key}")
+            get: fn () => Config::get("mail_senders.senders.{$this->from_sender_key}")
         );
     }
 
@@ -89,7 +89,7 @@ class BulkMailCampaign extends Model
 
         $sender = $this->sender_config;
         if ($sender && isset($sender['signature'])) {
-            $body .= '<br><br>' . $sender['signature'];
+            $body .= '<br><br>'.$sender['signature'];
         }
 
         return $body;
@@ -104,18 +104,17 @@ class BulkMailCampaign extends Model
     }
 
     /**
-     * @param BulkMailRecipient $recipient
-     * @param array $recipientPlaceholders
-     * @param mixed $body
      * @return array|mixed|string|string[]
      */
     private function getDefaultPlaceholder(BulkMailRecipient $recipient, array $recipientPlaceholders, mixed $body): mixed
     {
         $placeholder = array_merge($recipient->placeholders ?? [], $recipientPlaceholders);
-        if (!isset($placeholder['name']))
+        if (! isset($placeholder['name'])) {
             $placeholder['name'] = $recipient->name;
-        if (!isset($placeholder['email']))
+        }
+        if (! isset($placeholder['email'])) {
             $placeholder['email'] = is_array($recipient->email) ? implode('; ', $recipient->email) : $recipient->email;
+        }
         foreach ($placeholder as $key => $value) {
             $body = str_replace("{{{$key}}}", $value, $body);
         }

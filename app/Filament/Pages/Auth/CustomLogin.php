@@ -6,14 +6,10 @@ use Filament\Auth\Pages\Login;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
-use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
-
 
 class CustomLogin extends Login
 {
-
-
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -23,6 +19,7 @@ class CustomLogin extends Login
                 $this->getRememberFormComponent(),
             ]);
     }
+
     protected function getLoginFormComponent(): Component
     {
         return TextInput::make('login')
@@ -31,8 +28,6 @@ class CustomLogin extends Login
             ->autocomplete()
             ->autofocus();
     }
-
-
 
     protected function getCredentialsFromFormData(#[SensitiveParameter] array $data): array
     {
@@ -46,5 +41,4 @@ class CustomLogin extends Login
             'password' => $data['password'],
         ];
     }
-
 }

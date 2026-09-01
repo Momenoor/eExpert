@@ -12,7 +12,6 @@ class BulkMailRecipientImporter extends Importer
 {
     protected static ?string $model = BulkMailRecipient::class;
 
-
     public static function getColumns(): array
     {
         return [
@@ -28,7 +27,7 @@ class BulkMailRecipientImporter extends Importer
 
     public function resolveRecord(): BulkMailRecipient
     {
-        return new BulkMailRecipient();
+        return new BulkMailRecipient;
     }
 
     protected function beforeSave(): void
@@ -38,10 +37,10 @@ class BulkMailRecipientImporter extends Importer
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Your recipients import import has completed and ' . Number::format($import->successful_rows) . ' ' . str('row')->plural($import->successful_rows) . ' imported.';
+        $body = 'Your recipients import import has completed and '.Number::format($import->successful_rows).' '.str('row')->plural($import->successful_rows).' imported.';
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
-            $body .= ' ' . Number::format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to import.';
+            $body .= ' '.Number::format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to import.';
         }
 
         return $body;

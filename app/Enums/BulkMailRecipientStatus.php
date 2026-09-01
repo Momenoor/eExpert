@@ -5,7 +5,7 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum BulkMailRecipientStatus: string implements HasLabel, HasColor
+enum BulkMailRecipientStatus: string implements HasColor, HasLabel
 {
     case Pending = 'pending';
     case Sent = 'sent';

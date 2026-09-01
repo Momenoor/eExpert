@@ -3,19 +3,18 @@
 namespace App\Filament\Pages;
 
 use App\Enums\FeeType;
-use App\Enums\MatterStatus;
 use App\Filament\Exports\AssistantMattersExporter;
+use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\Party;
+use App\Models\Type;
+use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Actions\Action;
 use Filament\Actions\ExportAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -24,20 +23,22 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
-use BackedEnum;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class AssistantMattersReport extends Page implements HasTable
 {
-    use InteractsWithTable;
     use HasPageShield;
+    use InteractsWithTable;
 
     protected string $view = 'filament.pages.assistant-matters-report';
+
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-clipboard-document-list';
-    protected static string|null|\UnitEnum $navigationGroup = 'Reports';
+
+    protected static string|null|UnitEnum $navigationGroup = 'Reports';
+
     protected static ?int $navigationSort = 1;
+
     protected array $queryString = [
         'tableFilters',
         'tableSortColumn',
@@ -74,11 +75,11 @@ class AssistantMattersReport extends Page implements HasTable
                 // ── Matter Reference ──────────────────────────────────────
                 TextColumn::make('matter.reference')
                     ->label(__('Matter'))
-                    ->getStateUsing(fn($record) => $record->matter?->year . '/' . $record->matter?->number
+                    ->getStateUsing(fn ($record) => $record->matter?->year.'/'.$record->matter?->number
                     )
                     ->weight(FontWeight::Bold)
-                    ->url(fn($record) => $record->matter_id
-                        ? \App\Filament\Resources\Matters\MatterResource::getUrl('view', ['record' => $record->matter_id])
+                    ->url(fn ($record) => $record->matter_id
+                        ? MatterResource::getUrl('view', ['record' => $record->matter_id])
                         : null
                     )
                     ->openUrlInNewTab()
@@ -88,9 +89,9 @@ class AssistantMattersReport extends Page implements HasTable
                 TextColumn::make('party.name')
                     ->label(__('Assistant'))
                     ->weight(FontWeight::SemiBold)
-                    ->searchable(query: fn(Builder $query, string $search) => $query->whereHas('party', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->searchable(query: fn (Builder $query, string $search) => $query->whereHas('party', fn ($q) => $q->where('name', 'like', "%{$search}%"))
                     )
-                    ->sortable(query: fn(Builder $query, string $direction) => $query->join('parties', 'parties.id', '=', 'matter_party.party_id')
+                    ->sortable(query: fn (Builder $query, string $direction) => $query->join('parties', 'parties.id', '=', 'matter_party.party_id')
                         ->orderBy('parties.name', $direction)
                     )
                     ->wrap()
@@ -115,7 +116,7 @@ class AssistantMattersReport extends Page implements HasTable
                 TextColumn::make('matter.status')
                     ->label(__('Status'))
                     ->badge()
-                    ->getStateUsing(fn($record) => $record->matter?->status)
+                    ->getStateUsing(fn ($record) => $record->matter?->status)
                     ->width('7%'),
 
                 // ── Experts on the matter ─────────────────────────────────
@@ -156,14 +157,14 @@ class AssistantMattersReport extends Page implements HasTable
 
                 // ── Total Fees (excl. VAT) ────────────────────────────────
                 TextColumn::make('total_fees')
-                    ->label(fn() => new HtmlString(__('Total Fees <br> (excl. VAT)')))
+                    ->label(fn () => new HtmlString(__('Total Fees <br> (excl. VAT)')))
                     ->money('AED')
                     ->alignEnd()
                     ->width('7%'),
 
                 // ── Total Allocations (excl. VAT) ─────────────────────────
                 TextColumn::make('total_allocations')
-                    ->label(fn() => new HtmlString(__('Total Collected <br> (excl. VAT)')))
+                    ->label(fn () => new HtmlString(__('Total Collected <br> (excl. VAT)')))
                     ->money('AED')
                     ->alignEnd()
                     ->width('7%'),
@@ -175,115 +176,115 @@ class AssistantMattersReport extends Page implements HasTable
                     ->placeholder(__('—'))
                     ->wrap()
                     ->limit(80)
-                    ->tooltip(fn($record) => $record->matter?->notes
-                        ->map(fn($note) => $note->text)
+                    ->tooltip(fn ($record) => $record->matter?->notes
+                        ->map(fn ($note) => $note->text)
                         ->join(' | ')
                     )
                     ->width('12%'),
 
             ])
             ->filters([
-        SelectFilter::make('party.name')
-            ->relationship('party', 'name', fn($query) => $query->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant']))
-            ->label(__('Assistant'))
-            ->searchable()
-            ->preload()
-            ->multiple(),
-        SelectFilter::make('experts')
-            ->relationship('matter.mainExpertsOnly', 'name')
-            ->label(__('Experts'))
-            ->searchable()
-            ->preload()
-            ->multiple(),
+                SelectFilter::make('party.name')
+                    ->relationship('party', 'name', fn ($query) => $query->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant']))
+                    ->label(__('Assistant'))
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
+                SelectFilter::make('experts')
+                    ->relationship('matter.mainExpertsOnly', 'name')
+                    ->label(__('Experts'))
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
 
-        SelectFilter::make('matter.type')
-            ->relationship('matter.type', 'name')
-            ->preload()
-            ->label(__('Matter Type'))
-            ->options(\App\Models\Type::pluck('name', 'id'))
-            ->searchable()
-            ->multiple(),
-        SelectFilter::make('status')
-            ->label(__('Status'))
-            ->options([
-                'in_progress' => __('In Progress'),
-                'initial_report' => __('Initial Report'),
-                'final_report' => __('Final Report'),
-            ])
-            ->query(function (Builder $query, array $data) {
-                // If nothing is selected, don't modify the query
-                if (empty($data['values'])) {
-                    return $query;
-                }
+                SelectFilter::make('matter.type')
+                    ->relationship('matter.type', 'name')
+                    ->preload()
+                    ->label(__('Matter Type'))
+                    ->options(Type::pluck('name', 'id'))
+                    ->searchable()
+                    ->multiple(),
+                SelectFilter::make('status')
+                    ->label(__('Status'))
+                    ->options([
+                        'in_progress' => __('In Progress'),
+                        'initial_report' => __('Initial Report'),
+                        'final_report' => __('Final Report'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        // If nothing is selected, don't modify the query
+                        if (empty($data['values'])) {
+                            return $query;
+                        }
 
-                return $query->where(function (Builder $subQuery) use ($data) {
-                    foreach ($data['values'] as $value) {
-                        $subQuery->orWhere(function (Builder $innerQuery) use ($value) {
-                            match ($value) {
-                                'in_progress' => $innerQuery->whereHas('matter', fn($m) => $m->whereNull('final_report_at')->whereNull('initial_report_at')
-                                ),
-                                'initial_report' => $innerQuery->whereHas('matter', fn($m) => $m->whereNull('final_report_at')->whereNotNull('initial_report_at')
-                                ),
-                                'final_report' => $innerQuery->whereHas('matter', fn($m) => $m->whereNotNull('final_report_at')->whereNotNull('initial_report_at')
-                                ),
-                                default => $innerQuery,
-                            };
+                        return $query->where(function (Builder $subQuery) use ($data) {
+                            foreach ($data['values'] as $value) {
+                                $subQuery->orWhere(function (Builder $innerQuery) use ($value) {
+                                    match ($value) {
+                                        'in_progress' => $innerQuery->whereHas('matter', fn ($m) => $m->whereNull('final_report_at')->whereNull('initial_report_at')
+                                        ),
+                                        'initial_report' => $innerQuery->whereHas('matter', fn ($m) => $m->whereNull('final_report_at')->whereNotNull('initial_report_at')
+                                        ),
+                                        'final_report' => $innerQuery->whereHas('matter', fn ($m) => $m->whereNotNull('final_report_at')->whereNotNull('initial_report_at')
+                                        ),
+                                        default => $innerQuery,
+                                    };
+                                });
+                            }
                         });
-                    }
-                });
-            })
-            ->multiple(),
-        Filter::make('matter.initial_report_at')
-            ->indicator('initial_report_at')
-            ->label(__('Initial Report Date'))
-            ->schema([
-                Section::make(__('Initial Report Date'))->schema([
-                    DatePicker::make('initial_from')->label(__('From')),
-                    DatePicker::make('initial_until')->label(__('Until')),
-                ])->columnSpanFull(),
-            ])
-            ->query(function (Builder $query, array $data) {
-                $query
-                    ->when($data['initial_from'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('initial_report_at', '>=', $data['initial_from'])
-                    )
-                    )
-                    ->when($data['initial_until'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('initial_report_at', '<=', $data['initial_until'])
-                    )
-                    );
-            })
-            ->indicator('initial_report_at')
-            ->columns(2),
+                    })
+                    ->multiple(),
+                Filter::make('matter.initial_report_at')
+                    ->indicator('initial_report_at')
+                    ->label(__('Initial Report Date'))
+                    ->schema([
+                        Section::make(__('Initial Report Date'))->schema([
+                            DatePicker::make('initial_from')->label(__('From')),
+                            DatePicker::make('initial_until')->label(__('Until')),
+                        ])->columnSpanFull(),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query
+                            ->when($data['initial_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '>=', $data['initial_from'])
+                            )
+                            )
+                            ->when($data['initial_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '<=', $data['initial_until'])
+                            )
+                            );
+                    })
+                    ->indicator('initial_report_at')
+                    ->columns(2),
 
-        Filter::make('matter.final_report_at')
-            ->indicator('final_report_at')
-            ->label(__('Final Report Date'))
-            ->schema([
-                Section::make(__('Final Report Date'))->schema([
-                    DatePicker::make('final_from')->label(__('From')),
-                    DatePicker::make('final_until')->label(__('Until')),
-                ])->columnSpanFull(),
-            ])
-            ->query(function (Builder $query, array $data) {
-                $query
-                    ->when($data['final_from'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])
-                    )
-                    )
-                    ->when($data['final_until'], fn($q) => $q->whereHas('matter', fn($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])
-                    )
-                    );
-            })
-            ->columns(2),
+                Filter::make('matter.final_report_at')
+                    ->indicator('final_report_at')
+                    ->label(__('Final Report Date'))
+                    ->schema([
+                        Section::make(__('Final Report Date'))->schema([
+                            DatePicker::make('final_from')->label(__('From')),
+                            DatePicker::make('final_until')->label(__('Until')),
+                        ])->columnSpanFull(),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query
+                            ->when($data['final_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])
+                            )
+                            )
+                            ->when($data['final_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])
+                            )
+                            );
+                    })
+                    ->columns(2),
 
-    ])
-        ->filtersFormColumns(2)
-        ->toolbarActions([
-            \Filament\Actions\ExportAction::make()
-                ->exporter(AssistantMattersExporter::class)
-                ->label(__('Export'))
-                ->color('warning')
-                ->columnMappingColumns(3)
-                ->icon('heroicon-o-arrow-down-tray'),
-        ]);
+            ])
+            ->filtersFormColumns(2)
+            ->toolbarActions([
+                ExportAction::make()
+                    ->exporter(AssistantMattersExporter::class)
+                    ->label(__('Export'))
+                    ->color('warning')
+                    ->columnMappingColumns(3)
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ]);
     }
 
     // ── Query ─────────────────────────────────────────────────────────────────
@@ -306,11 +307,11 @@ class AssistantMattersReport extends Page implements HasTable
                 'experts',
                 'matter' => function ($query) {
                     $query->with(['court', 'type', 'notes']);
-                }
+                },
             ])
             ->whereHas('matter') // Ensures we don't list assistants without a valid matter
             ->orderBy(
-                \App\Models\Party::select('name')
+                Party::select('name')
                     ->whereColumn('parties.id', 'matter_party.party_id')
                     ->limit(1)
             );

@@ -33,7 +33,7 @@ class ConfirmMatterReceivingForUnacceptedMail extends Command
             ->where('type', RequestType::CHANGE_DISTRIBUTED_DATE->value)
             ->whereDate('created_at', '<=', now()->subDays(1))
             ->update([
-            'status' => RequestStatus::APPROVED->value,
+                'status' => RequestStatus::APPROVED->value,
                 'approved_at' => now(),
                 'approved_comment' => __('Auto-generated: Matter received date confirmed.'),
             ]);

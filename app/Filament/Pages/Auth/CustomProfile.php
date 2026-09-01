@@ -3,19 +3,12 @@
 namespace App\Filament\Pages\Auth;
 
 use Filament\Auth\Pages\EditProfile;
-use Filament\Auth\Pages\Login;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use SensitiveParameter;
-
 
 class CustomProfile extends EditProfile
 {
-
     public function hasLogo(): bool
     {
         return true;
@@ -36,7 +29,7 @@ class CustomProfile extends EditProfile
                 ->required(),
             Toggle::make('notify_by_whatsapp')
                 ->label(__('Notify by Whatsapp'))
-                ->visible(fn() => auth()->user()->hasAnyRole(['super-admin', 'super_admin']))
+                ->visible(fn () => auth()->user()->hasAnyRole(['super-admin', 'super_admin']))
                 ->required(),
             Toggle::make('notify_by_email')
                 ->label(__('Notify by Email'))
@@ -47,5 +40,4 @@ class CustomProfile extends EditProfile
             $this->getCurrentPasswordFormComponent(),
         ]);
     }
-
 }

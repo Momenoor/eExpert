@@ -30,12 +30,12 @@ class SendFilamentActionNotifications
         $record = $event->record;
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
         $matter = $this->resolveMatter($record);
-        if (!$matter) {
+        if (! $matter) {
             return;
         }
 
@@ -78,7 +78,7 @@ class SendFilamentActionNotifications
         $recipients = collect();
 
         // 1. All users with role admin or superadmin
-        $admins = User::role(['admin', 'super-admin','super_admin'])->get();
+        $admins = User::role(['admin', 'super-admin', 'super_admin'])->get();
         $recipients = $recipients->merge($admins);
 
         // 2. Notify role accountant only if action related to fee or allocation
@@ -137,6 +137,7 @@ class SendFilamentActionNotifications
     {
         $actionLabel = $event->action->getLabel() ?: $event->action->getName();
         $matterNumber = $matter->number ?: $matter->id;
+
         return "Action on Matter #{$matterNumber}: {$actionLabel}";
     }
 

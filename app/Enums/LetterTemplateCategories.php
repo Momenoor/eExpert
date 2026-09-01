@@ -6,7 +6,7 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Support\Htmlable;
 
-enum LetterTemplateCategories: string implements HasLabel,HasColor
+enum LetterTemplateCategories: string implements HasColor, HasLabel
 {
     case LETTER = 'letter';
     case COURT_NOTICES = 'court_notices';
@@ -17,7 +17,7 @@ enum LetterTemplateCategories: string implements HasLabel,HasColor
 
     public function getColor(): string|array|null
     {
-       return match ($this) {
+        return match ($this) {
             self::LETTER => 'success',
             self::COURT_NOTICES => 'warning',
             self::MEETING_NOTICES => 'info',

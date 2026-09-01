@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Http;
 
 class OutlookCalendarService
 {
-
     public function getUserEmail(): string
     {
         return config('services.outlook.user_email');
@@ -27,7 +26,7 @@ class OutlookCalendarService
             ]);
 
             if ($response->failed()) {
-                throw new \RuntimeException('Failed to get Outlook access token: ' . $response->body());
+                throw new \RuntimeException('Failed to get Outlook access token: '.$response->body());
             }
 
             return $response->json('access_token');
@@ -57,7 +56,7 @@ class OutlookCalendarService
             ],
         ];
 
-        if (!empty($eventData['is_teams_meeting'])) {
+        if (! empty($eventData['is_teams_meeting'])) {
             $payload['isOnlineMeeting'] = true;
             $payload['onlineMeetingProvider'] = 'teamsForBusiness';
         }
@@ -66,7 +65,7 @@ class OutlookCalendarService
             ->post("https://graph.microsoft.com/v1.0/users/{$this->getUserEmail()}/events", $payload);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Failed to create Outlook event: ' . $response->body());
+            throw new \RuntimeException('Failed to create Outlook event: '.$response->body());
         }
 
         return $response->json();
@@ -102,7 +101,7 @@ class OutlookCalendarService
             ]);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Failed to update Outlook event: ' . $response->body());
+            throw new \RuntimeException('Failed to update Outlook event: '.$response->body());
         }
 
         return $response->json();
@@ -119,7 +118,7 @@ class OutlookCalendarService
             );
 
         if ($response->failed() && $response->status() !== 404) {
-            throw new \RuntimeException('Outlook event deletion failed: ' . $response->json('error.message'));
+            throw new \RuntimeException('Outlook event deletion failed: '.$response->json('error.message'));
         }
     }
 
@@ -135,13 +134,14 @@ class OutlookCalendarService
             '$top' => 50,
         ];
         if ($from) {
-            $params['$filter'] = "start/dateTime ge '" . $from->toIso8601String() . "'";
+            $params['$filter'] = "start/dateTime ge '".$from->toIso8601String()."'";
         }
 
         $response = Http::withToken($this->getAccessToken())->get($url, $params);
         if ($response->failed()) {
-            throw new \RuntimeException('Failed to import Outlook events: ' . $response->body());
+            throw new \RuntimeException('Failed to import Outlook events: '.$response->body());
         }
+
         return $response->json('value');
     }
 }

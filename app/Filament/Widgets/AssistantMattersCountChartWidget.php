@@ -3,29 +3,28 @@
 namespace App\Filament\Widgets;
 
 use App\Models\MatterParty;
-use Filament\Widgets\ChartWidget;
 use Filament\Support\RawJs;
+use Filament\Widgets\ChartWidget;
 
 class AssistantMattersCountChartWidget extends ChartWidget
 {
     protected ?string $heading = 'Assistant Matters Count Chart';
 
-//    protected ?string $pollingInterval = null;
+    //    protected ?string $pollingInterval = null;
 
     public function getHeading(): string
     {
         return __('Assistant Matters Count');
     }
 
-
     protected function getData(): array
     {
         $assistants = MatterParty::query()
             ->where('matter_party.role', 'expert')  // ✅ Added missing role filter
             ->where('matter_party.type', 'assistant')
-            ->whereHas('party', fn($q) => $q->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
+            ->whereHas('party', fn ($q) => $q->whereJsonContains('role', ['role' => 'expert', 'type' => 'assistant'])
             )
-            ->whereHas('matter', fn($q) => $q->whereNull('final_report_memo_date')
+            ->whereHas('matter', fn ($q) => $q->whereNull('final_report_memo_date')
                 ->whereNull('final_report_at')
             )
             ->with('party:id,name')
@@ -38,7 +37,6 @@ class AssistantMattersCountChartWidget extends ChartWidget
             '#8b5cf6', '#06b6d4', '#f97316', '#84cc16',
             '#ec4899', '#14b8a6',
         ]); // cycle repeats if more than 10 assistants
-
 
         return [
             'datasets' => [
@@ -54,19 +52,19 @@ class AssistantMattersCountChartWidget extends ChartWidget
                     'animation' => [
                         'duration' => 1000,
                         'easing' => 'easeOutQuart',
-                    ]
+                    ],
                 ],
 
             ],
             'labels' => array_values(
-                $assistants->map(fn($group) => $group->first()->party->name)->toArray()
+                $assistants->map(fn ($group) => $group->first()->party->name)->toArray()
             ),
         ];
     }
 
     protected function getOptions(): RawJs
     {
-        return RawJs::make(<<<JS
+        return RawJs::make(<<<'JS'
             {
             onHover: (event, elements) => {
                     event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
@@ -96,6 +94,4 @@ class AssistantMattersCountChartWidget extends ChartWidget
     {
         return 'bar';
     }
-
-
 }

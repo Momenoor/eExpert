@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\LetterTemplates\Schemas;
 
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;

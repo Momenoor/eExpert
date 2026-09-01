@@ -3,12 +3,8 @@
 namespace App\Filament\Resources\MatterRequests\Schemas;
 
 use App\Enums\RequestStatus;
-
-use App\Filament\Actions\Request\ApproveRequestAction;
-use App\Filament\Actions\Request\RejectRequestAction;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\IconEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -37,8 +33,8 @@ class MatterRequestInfolist
                                             ->weight(FontWeight::Bold)
                                             ->color('primary')
                                             ->icon('heroicon-m-hashtag')
-                                            ->url(fn($record) => route('filament.admin.resources.matters.view', $record->matter_id))
-                                            ->formatStateUsing(fn($state) => "{$state->number}/{$state->year}"),
+                                            ->url(fn ($record) => route('filament.admin.resources.matters.view', $record->matter_id))
+                                            ->formatStateUsing(fn ($state) => "{$state->number}/{$state->year}"),
                                         TextEntry::make('requestBy.display_name')
                                             ->label(__('Request By')),
                                         Grid::make(2)->schema([
@@ -66,7 +62,7 @@ class MatterRequestInfolist
                             ->schema([
                                 Section::make(__('Approval Details'))
                                     ->icon('heroicon-m-check-badge')
-                                    ->collapsed(fn($record) => $record->status !== RequestStatus::APPROVED) // Auto-expand if approved
+                                    ->collapsed(fn ($record) => $record->status !== RequestStatus::APPROVED) // Auto-expand if approved
                                     ->schema([
                                         TextEntry::make('approvedBy.name')
                                             ->label(__('Handled By'))
@@ -106,20 +102,20 @@ class MatterRequestInfolist
                                     ->hiddenLabel()
                                     ->columns(5)
                                     ->columnSpanFull()
-                                    ->visible(fn($record) => $record->attachments->isNotEmpty())
+                                    ->visible(fn ($record) => $record->attachments->isNotEmpty())
                                     ->schema([
                                         TextEntry::make('name')
                                             ->label(__('Name'))
                                             ->color('primary')
                                             ->icon('heroicon-o-document-text')
-                                            ->url(fn($record) => Storage::disk('public')->url($record->path))
+                                            ->url(fn ($record) => Storage::disk('public')->url($record->path))
                                             ->openUrlInNewTab()
                                             ->alignJustify()
                                             ->columnSpan(2),
                                         TextEntry::make('size')
                                             ->label(__('Size'))
                                             ->numeric()
-                                            ->formatStateUsing(fn($state) => number_format($state / (1024 * 1024), 2))
+                                            ->formatStateUsing(fn ($state) => number_format($state / (1024 * 1024), 2))
                                             ->suffix('MB'),
                                         TextEntry::make('created_at')
                                             ->label(__('Created At'))
@@ -129,10 +125,9 @@ class MatterRequestInfolist
                                             ->label(__('Last Activity'))
                                             ->since()
                                             ->dateTimeTooltip(),
-                                    ])
-                            ])
+                                    ]),
+                            ]),
                     ]),
             ]);
     }
-
 }

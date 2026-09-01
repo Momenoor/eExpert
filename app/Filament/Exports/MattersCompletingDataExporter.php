@@ -35,8 +35,8 @@ class MattersCompletingDataExporter extends Exporter
             ExportColumn::make('final_report_at'),
             ExportColumn::make('court.name'),
             ExportColumn::make('experts')
-                ->getStateUsing(fn($record) => $record->indexedExperts
-                    ->map(fn($mp) => sprintf(
+                ->getStateUsing(fn ($record) => $record->indexedExperts
+                    ->map(fn ($mp) => sprintf(
                         '%s #%d — %s',
                         __($mp->type ? ucfirst(str_replace('-', ' ', $mp->type)) : ''),
                         $mp->role_index,
@@ -64,7 +64,7 @@ class MattersCompletingDataExporter extends Exporter
 
     public function makeXlsxRow(array $values, ?Style $style = null): Row
     {
-        $styleMerger = new StyleMerger();
+        $styleMerger = new StyleMerger;
         $cells = [];
         foreach (array_keys($this->columnMap) as $columnIndex => $column) {
             $cellStyle = match ($column) {
@@ -111,13 +111,12 @@ class MattersCompletingDataExporter extends Exporter
             ->setCellVerticalAlignment(CellVerticalAlignment::CENTER);
     }
 
-
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'Your matter export has completed and ' . Number::format($export->successful_rows) . ' ' . str('row')->plural($export->successful_rows) . ' exported.';
+        $body = 'Your matter export has completed and '.Number::format($export->successful_rows).' '.str('row')->plural($export->successful_rows).' exported.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . Number::format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' failed to export.';
+            $body .= ' '.Number::format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' failed to export.';
         }
 
         return $body;

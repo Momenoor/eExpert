@@ -16,8 +16,7 @@ class userAlertNotification extends Notification
         public readonly string $title,
         public readonly string $body = '',
         public readonly string $status = 'info',
-    )
-    {
+    ) {
         //
     }
 
@@ -37,8 +36,8 @@ class userAlertNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'title'  => $this->title,
-            'body'   => $this->body,
+            'title' => $this->title,
+            'body' => $this->body,
             'status' => $this->status,
         ];
     }

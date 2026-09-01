@@ -67,7 +67,7 @@ return [
         'DM Sans',
         'Nunito Sans',
         'Roboto',
-        'Boutros MBC Dinkum'
+        'Boutros MBC Dinkum',
     ],
 
     /*

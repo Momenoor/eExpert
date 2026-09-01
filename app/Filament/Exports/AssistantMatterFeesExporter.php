@@ -29,7 +29,7 @@ class AssistantMatterFeesExporter extends Exporter
         return [
             ExportColumn::make('matter.reference')
                 ->label(__('Matter'))
-                ->getStateUsing(fn($record) => $record->matter->year . '/' . $record->matter->number),
+                ->getStateUsing(fn ($record) => $record->matter->year.'/'.$record->matter->number),
 
             ExportColumn::make('matter.court.name')
                 ->label(__('Court')),
@@ -45,11 +45,11 @@ class AssistantMatterFeesExporter extends Exporter
 
             ExportColumn::make('total_matter_fees')
                 ->label(__('Total Matter Fees'))
-                ->getStateUsing(fn($record) => number_format($record->total_matter_fees ?? 0, 2)),
+                ->getStateUsing(fn ($record) => number_format($record->total_matter_fees ?? 0, 2)),
 
             ExportColumn::make('divided_fees')
                 ->label(__('Divided Fees'))
-                ->getStateUsing(fn($record) => number_format(
+                ->getStateUsing(fn ($record) => number_format(
                     ($record->assistants_count > 0) ? ($record->total_matter_fees / $record->assistants_count) : 0, 2
                 )),
         ];
@@ -60,7 +60,7 @@ class AssistantMatterFeesExporter extends Exporter
         $body = trans_choice('export_completed', $export->successful_rows, ['count' => Number::format($export->successful_rows)]);
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . trans_choice('export_failed', $failedRowsCount, ['count' => Number::format($failedRowsCount)]);
+            $body .= ' '.trans_choice('export_failed', $failedRowsCount, ['count' => Number::format($failedRowsCount)]);
         }
 
         return $body;
@@ -91,7 +91,7 @@ class AssistantMatterFeesExporter extends Exporter
 
     public function getXlsxWriterOptions(): ?Options
     {
-        $options = new Options();
+        $options = new Options;
         $options->setColumnWidth(15, 1);  // Matter
         $options->setColumnWidth(22, 2);  // Court
         $options->setColumnWidth(18, 3);  // Type
@@ -110,7 +110,7 @@ class AssistantMatterFeesExporter extends Exporter
      */
     public function configureXlsxWriterBeforeClose(Writer $writer): Writer
     {
-        $sheetView = new SheetView();
+        $sheetView = new SheetView;
         $sheetView->setFreezeRow(2);
         $sheetView->setRightToLeft(app()->getLocale() == 'ar');
 
@@ -120,10 +120,12 @@ class AssistantMatterFeesExporter extends Exporter
 
         return $writer;
     }
+
     public static function getChunkSize(): int
     {
         return 4000; // Try lowering this to ease memory pressure per job loop
     }
+
     public static function modifyQuery(Builder $query): Builder
     {
         return $query->with([
@@ -131,11 +133,12 @@ class AssistantMatterFeesExporter extends Exporter
             'matter.type',
             'party',
         ])
-        ->withSum(['matter_fees as total_matter_fees' => function ($q) {
-            $q->where('type', '!=', FeeType::VAT->value);
-        }], 'amount')
-        ->withCount(['matter_assistants as assistants_count']);
+            ->withSum(['matter_fees as total_matter_fees' => function ($q) {
+                $q->where('type', '!=', FeeType::VAT->value);
+            }], 'amount')
+            ->withCount(['matter_assistants as assistants_count']);
     }
+
     public function getFormats(): array
     {
         return [

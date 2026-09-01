@@ -7,7 +7,6 @@ use App\Models\BulkMailRecipient;
 use App\Services\BulkMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -21,11 +20,9 @@ class BulkMailMessage extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public BulkMailCampaign  $campaign,
+        public BulkMailCampaign $campaign,
         public BulkMailRecipient $recipient
-    )
-    {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
@@ -47,8 +44,9 @@ class BulkMailMessage extends Mailable
     {
         $html = $this->campaign->renderBody($this->recipient);
         if (BulkMailService::containsArabic($html)) {
-            $html = '<div dir="rtl">' . $html . '</div>';
+            $html = '<div dir="rtl">'.$html.'</div>';
         }
+
         return new Content(
             htmlString: new HtmlString($html),
         );
@@ -59,7 +57,7 @@ class BulkMailMessage extends Mailable
         $attachments = [];
 
         if ($this->campaign->has_attachment && $this->campaign->attachment_path) {
-            $disk  = 'public';
+            $disk = 'public';
             $paths = is_array($this->campaign->attachment_path)
                 ? $this->campaign->attachment_path
                 : json_decode($this->campaign->attachment_path, true) ?? [];

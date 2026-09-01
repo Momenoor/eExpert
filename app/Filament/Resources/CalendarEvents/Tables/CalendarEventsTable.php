@@ -10,8 +10,6 @@ use App\Filament\Resources\CalendarEvents\Schemas\CalendarEventBulkInfolist;
 use App\Filament\Resources\CalendarEvents\Schemas\CalendarEventForm;
 use App\Filament\Resources\CalendarEvents\Schemas\CalendarEventInfolist;
 use App\Models\CalendarEvent;
-use App\Services\OutlookCalendarService;
-use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -19,8 +17,8 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -42,8 +40,8 @@ class CalendarEventsTable
                     ->label(__('Title'))
                     ->searchable()
                     ->sortable()
-                    ->weight(\Filament\Support\Enums\FontWeight::SemiBold)
-                    ->description(fn($record) => $record->location ?: null),
+                    ->weight(FontWeight::SemiBold)
+                    ->description(fn ($record) => $record->location ?: null),
 
                 TextColumn::make('matters')
                     ->label(__('Matter'))
@@ -57,19 +55,19 @@ class CalendarEventsTable
 
                 TextColumn::make('type')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'single' => 'primary',
                         'bulk' => 'warning',
                     }),
                 TextColumn::make('matter.number')
                     ->label(__('Matter'))
-                    ->getStateUsing(fn($record) => $record->matter
-                        ? $record->matter->year . '/' . $record->matter->number
+                    ->getStateUsing(fn ($record) => $record->matter
+                        ? $record->matter->year.'/'.$record->matter->number
                         : '—'
                     )
                     ->searchable()
                     ->sortable()
-                    ->visible(fn($record) => $record?->type === 'single'),
+                    ->visible(fn ($record) => $record?->type === 'single'),
                 TextColumn::make('start_datetime')
                     ->label(__('Start At'))
                     ->timezone('Asia/Muscat')
@@ -89,8 +87,8 @@ class CalendarEventsTable
                 TextColumn::make('online_meeting_url')
                     ->label(__('Link'))
                     ->icon(Heroicon::VideoCamera)
-                    ->formatStateUsing(fn($state) => $state ? __('Join') : '—')
-                    ->url(fn($record) => $record->online_meeting_url)
+                    ->formatStateUsing(fn ($state) => $state ? __('Join') : '—')
+                    ->url(fn ($record) => $record->online_meeting_url)
                     ->color('info')
                     ->openUrlInNewTab(),
 
@@ -102,7 +100,7 @@ class CalendarEventsTable
             ->filters([
                 Filter::make('upcoming')
                     ->label(__('Upcoming'))
-                    ->query(fn(Builder $query) => $query->where('start_datetime', '>=', now()))
+                    ->query(fn (Builder $query) => $query->where('start_datetime', '>=', now()))
                     ->default(),
                 SelectFilter::make('type')
                     ->label(__('Type'))
@@ -116,17 +114,17 @@ class CalendarEventsTable
             ])
             ->headerActions([
                 CreateSingleCalendarEventAction::make('createSingle')
-                    ->visible(fn() => auth()->user()->can('CreateSingle:CalendarEvent')),
+                    ->visible(fn () => auth()->user()->can('CreateSingle:CalendarEvent')),
                 CreateBulkCalendarEventAction::make('createBulk')
-                    ->visible(fn() => auth()->user()->can('CreateBulk:CalendarEvent')),
+                    ->visible(fn () => auth()->user()->can('CreateBulk:CalendarEvent')),
                 ImportFromOutlookAction::make('import')
-                    ->visible(fn() => auth()->user()->can('ImportFromOutlook:CalendarEvent')),
+                    ->visible(fn () => auth()->user()->can('ImportFromOutlook:CalendarEvent')),
             ])
             ->recordActions([
                 SyncToOutlookAction::make()
-                    ->visible(fn($record) => $record instanceof CalendarEvent && auth()->user()->can('SyncToOutlook:CalendarEvent') && !$record->synced_to_outlook),
-                ViewAction::make()->schema(fn(Schema $schema,$record) => $record->type == 'single' ? CalendarEventInfolist::configure($schema) : CalendarEventBulkInfolist::configure($schema))->iconButton(),
-                EditAction::make()->iconButton()->schema(fn(Schema $schema) => CalendarEventForm::configure($schema)),
+                    ->visible(fn ($record) => $record instanceof CalendarEvent && auth()->user()->can('SyncToOutlook:CalendarEvent') && ! $record->synced_to_outlook),
+                ViewAction::make()->schema(fn (Schema $schema, $record) => $record->type == 'single' ? CalendarEventInfolist::configure($schema) : CalendarEventBulkInfolist::configure($schema))->iconButton(),
+                EditAction::make()->iconButton()->schema(fn (Schema $schema) => CalendarEventForm::configure($schema)),
                 DeleteAction::make()->iconButton(),
             ])
             ->toolbarActions([
