@@ -35,7 +35,7 @@ return [
      * ---------------------------------------------
      * The navigation sort of the resource.
      */
-    'navigation_sort' => 9,
+    'navigation_sort' => 1,
 
     /**
      * ---------------------------------------------

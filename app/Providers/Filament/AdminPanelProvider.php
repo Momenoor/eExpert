@@ -98,7 +98,8 @@ class AdminPanelProvider extends PanelProvider
                 //                FilamentPopupPlugin::make(),
                 //                FilamentInboxPlugin::make(),
                 //                FilamentCronManagerPlugin::make(),
-                FilamentUsersPlugin::make(),
+                FilamentUsersPlugin::make()
+                ->useAvatar(),
                 FilamentShieldPlugin::make(),
                 FilamentFullCalendarPlugin::make()
                     ->timezone(config('app.timezone'))
