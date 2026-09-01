@@ -20,7 +20,7 @@ return [
     */
     'resource' => [
         'class' => ActivityLogResource::class,
-        'group' => null,
+        'group' => 'Settings',
         'sort' => null,
         'default_sort_column' => 'created_at',
         'default_sort_direction' => 'desc',
@@ -38,6 +38,7 @@ return [
     ],
 
     'activity_logger_taps' => [
+        SetActivityContextTap::class,
         SetActivityContextTap::class,
     ],
 
@@ -262,8 +263,8 @@ return [
     |
     */
     'widgets' => [
-        'enabled' => false,
-        'dashboard' => false,
+        'enabled' => true,
+        'dashboard' => true,
         'widgets' => [
             ActivityChartWidget::class,
             LatestActivityWidget::class,
@@ -336,7 +337,7 @@ return [
     |
     */
     'dashboard' => [
-        'enabled' => false,
+        'enabled' => true,
         'title' => null, // null uses translation key
         'navigation_group' => null, // null uses resource group
         'navigation_sort' => 0,
