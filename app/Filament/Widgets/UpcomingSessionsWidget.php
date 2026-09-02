@@ -19,7 +19,14 @@ class UpcomingSessionsWidget extends TableWidget
 {
     protected static ?int $sort = 2;
 
-    protected int|string|array $columnSpan = 'full';
+    // Half the dashboard's row (1 of 2 columns at 'md', 3 of 6 at 'xl'), so
+    // this sits beside CalendarWidget instead of claiming the whole row —
+    // CalendarWidget carries the matching span.
+    protected int|string|array $columnSpan = [
+        'default' => 1,
+        'md' => 1,
+        'xl' => 3,
+    ];
 
     public static function canView(): bool
     {
@@ -59,11 +66,14 @@ class UpcomingSessionsWidget extends TableWidget
                     // "Today · 14:00" reads faster than a full date plus a
                     // second line saying "in 3 days" underneath it.
                     ->badge()
+                    // translatedFormat(), not format(): PHP's own format() is
+                    // locale-blind and always renders "Sep" even when Carbon's
+                    // locale is Arabic — only translatedFormat() reads it.
                     ->formatStateUsing(fn (Matter $record) => $record->next_session_date?->isToday()
-                        ? __('Today').' · '.$record->next_session_date->format('H:i')
+                        ? __('Today').' · '.$record->next_session_date->translatedFormat('H:i')
                         : ($record->next_session_date?->isTomorrow()
-                            ? __('Tomorrow').' · '.$record->next_session_date->format('H:i')
-                            : $record->next_session_date?->format('d M · H:i')))
+                            ? __('Tomorrow').' · '.$record->next_session_date->translatedFormat('H:i')
+                            : $record->next_session_date?->translatedFormat('d M · H:i')))
                     ->color(fn (Matter $record) => match (true) {
                         $record->next_session_date?->isToday() => 'danger',
                         $record->next_session_date?->isTomorrow() => 'warning',

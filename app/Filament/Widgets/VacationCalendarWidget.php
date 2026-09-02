@@ -18,7 +18,14 @@ class VacationCalendarWidget extends FullCalendarWidget
 
     public Model|string|null $model = PartyLeave::class;
 
-    protected int|string|array $columnSpan = 1;
+    // A third of the dashboard's row at 'xl' (2 of 6 columns), so this
+    // sits alongside the other two small widgets on one row instead of
+    // pairing up two at a time.
+    protected int|string|array $columnSpan = [
+        'default' => 1,
+        'md' => 1,
+        'xl' => 2,
+    ];
 
     public function fetchEvents(array $info): array
     {

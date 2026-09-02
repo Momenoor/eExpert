@@ -22,7 +22,12 @@ class CalendarWidget extends FullCalendarWidget
 
     public Model|string|null $model = CalendarEvent::class;
 
-    protected int|string|array $columnSpan = 1;
+    // Matches UpcomingSessionsWidget's span so the two sit side by side.
+    protected int|string|array $columnSpan = [
+        'default' => 1,
+        'md' => 1,
+        'xl' => 3,
+    ];
 
     /**
      * @throws ConnectionException
