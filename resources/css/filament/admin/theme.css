@@ -162,3 +162,24 @@ html {
 :where(.dark, .dark *) .fi-wi-chart-grid-color {
     color: rgb(255 255 255 / 10%);
 }
+
+/*
+ * Dashboard widget tables, compacted unconditionally.
+ *
+ * The app already has a compact-table class, but it only takes effect below
+ * 1280px (see the @media rule above) — meant for the Matters index handling
+ * a narrow viewport, not for a dashboard glance widget that should read
+ * compact on an ordinary desktop too.
+ */
+.fi-dashboard-compact-table .fi-ta-cell {
+    padding-block: 0.375rem;
+}
+
+.fi-dashboard-compact-table .fi-ta-text-item,
+.fi-dashboard-compact-table .fi-ta-text {
+    padding-inline: 0;
+}
+
+.fi-dashboard-compact-table .fi-ta-header-cell {
+    padding-block: 0.375rem;
+}

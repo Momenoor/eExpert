@@ -41,18 +41,34 @@ class UpcomingSessionsWidget extends TableWidget
             ->heading(__('Upcoming Sessions'))
             ->description(__('Hearings scheduled in the next 14 days'))
             ->query($this->getTableQuery())
-            ->defaultPaginationPageOption(10)
+            // Unconditionally tighter, not the app's usual .custom-compact-table
+            // (that class only kicks in below 1280px, so on an ordinary desktop
+            // it does nothing) — a dashboard glance widget should read compact
+            // at any width, not just on narrow screens.
+            ->extraAttributes(['class' => 'fi-dashboard-compact-table'])
+            ->paginated([5, 10, 25])
+            ->defaultPaginationPageOption(5)
             ->emptyStateHeading(__('No sessions scheduled'))
             ->emptyStateDescription(__('Nothing is listed for the next 14 days.'))
             ->emptyStateIcon('heroicon-o-calendar-days')
             ->columns([
                 TextColumn::make('next_session_date')
                     ->label(__('Session'))
-                    ->dateTime('D, d M Y — H:i')
-                    ->description(fn (Matter $record) => $record->next_session_date
-                        ? $record->next_session_date->diffForHumans()
-                        : null)
-                    ->color(fn (Matter $record) => $record->next_session_date?->isToday() ? 'danger' : null)
+                    // Weekday spelled out and a separate relative-time line both
+                    // cost vertical space for a fact that fits one short badge:
+                    // "Today · 14:00" reads faster than a full date plus a
+                    // second line saying "in 3 days" underneath it.
+                    ->badge()
+                    ->formatStateUsing(fn (Matter $record) => $record->next_session_date?->isToday()
+                        ? __('Today').' · '.$record->next_session_date->format('H:i')
+                        : ($record->next_session_date?->isTomorrow()
+                            ? __('Tomorrow').' · '.$record->next_session_date->format('H:i')
+                            : $record->next_session_date?->format('d M · H:i')))
+                    ->color(fn (Matter $record) => match (true) {
+                        $record->next_session_date?->isToday() => 'danger',
+                        $record->next_session_date?->isTomorrow() => 'warning',
+                        default => 'gray',
+                    })
                     ->sortable(),
 
                 TextColumn::make('reference')
