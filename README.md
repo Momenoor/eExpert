@@ -1,4 +1,4 @@
-# JPA Emirates
+# eExpert
 
 A legal case management and enterprise operations platform built with **Laravel 13** and **Filament PHP v5**. The application provides end-to-end management for legal matters, court tracking, party allocations, human resources (payroll, employee loans, leave requests), incentive calculation engines, bulk email campaigns, calendar synchronization via Microsoft Graph, and role-based access control.
 
