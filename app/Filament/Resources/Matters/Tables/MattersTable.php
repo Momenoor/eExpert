@@ -462,6 +462,21 @@ class MattersTable
                     })
                     ->columnSpan(3),
 
+                // Both plain toggles (no schema), matching the AttentionNeededWidget
+                // dashboard stats exactly so each stat's ->url() can link straight
+                // into the filtered list behind its own count.
+                Filter::make('awaiting_final_report')
+                    ->label(__('Awaiting final report'))
+                    ->query(fn (Builder $query) => $query
+                        ->whereNotNull('final_report_memo_date')
+                        ->whereNull('final_report_at')),
+
+                Filter::make('unassigned')
+                    ->label(__('Unassigned, still open'))
+                    ->query(fn (Builder $query) => $query
+                        ->whereDoesntHave('assistantsOnly')
+                        ->whereNull('final_report_at')),
+
             ])
             ->filtersFormColumns(6)
             ->filtersLayout(FiltersLayout::Modal)

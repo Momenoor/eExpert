@@ -18,6 +18,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -268,6 +269,7 @@ class MyIncentiveReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('share_amount', 'desc')
             ->emptyStateHeading(__('Nothing to show yet'))
             ->emptyStateDescription(__('You have no matters in a finalized incentive calculation.'))
@@ -365,6 +367,7 @@ class MyIncentiveReport extends Page implements HasTable
                     // column filter on top.
                     ->query(fn (Builder $query) => $query),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::Medium)
             ->headerActions([
                 Action::make('print')

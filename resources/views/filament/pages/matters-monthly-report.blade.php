@@ -1,5 +1,5 @@
-<x-filament-panels::page>
+<x-report-layout>
     <div>
         {{ $this->table }}
     </div>
-</x-filament-panels::page>
+</x-report-layout>

@@ -2,8 +2,10 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\CalendarEvents\Schemas\CalendarEventForm;
 use App\Models\CalendarEvent;
 use App\Models\Matter;
+use Filament\Actions\Action;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\ConnectionException;
@@ -39,7 +41,7 @@ class CalendarWidget extends FullCalendarWidget
             ->where('start_datetime', '>=', $info['start'])
             ->where('end_datetime', '<=', $info['end'])
             ->get()
-            ->map(fn ($event) => [
+            ->map(fn($event) => [
                 'id' => $event->id,
                 'title' => $event->title,
                 'start' => $event->start_datetime,
@@ -49,7 +51,7 @@ class CalendarWidget extends FullCalendarWidget
                     'location' => $event->location,
                     'description' => $event->description,
                     // Pass the matter numbers for the tooltip
-                    'matters' => $event->matters->map(fn ($m) => "{$m->number}/{$m->year}")->implode(', '),
+                    'matters' => $event->matters->map(fn($m) => "{$m->number}/{$m->year}")->implode(', '),
                 ],
             ])
             ->toArray();
@@ -81,6 +83,11 @@ class CalendarWidget extends FullCalendarWidget
         ];
     }
 
+    public function getFormSchema(): array
+    {
+        return CalendarEventForm::getFormSchema();
+    }
+
     protected function headerActions(): array
     {
         return [
@@ -91,17 +98,23 @@ class CalendarWidget extends FullCalendarWidget
     {
         return [
             Actions\EditAction::make()
-                ->mountUsing(
-                    fn (Schema $form, array $arguments) => $form->fill([
-                        'title' => $arguments['event']['title'] ?? null,
-                        'start_at' => $arguments['event']['start'] ?? null,
-                        'end_at' => $arguments['event']['end'] ?? null,
-                        'location' => $arguments['event']['extendedProps']['location'] ?? null,
-                        'description' => $arguments['event']['extendedProps']['description'] ?? null,
-                    ])
-                ),
-            Actions\DeleteAction::make(),
+                ->modalHeading(__('Edit Calendar Event'))
+                ->modalSubmitActionLabel(__('Save'))
+                ->modalCancelActionLabel(__('Cancel'))
+                ->visible(auth()->user()->can('Update:CalendarEvent')),
+            Actions\DeleteAction::make()
+                ->modalHeading(__('Delete Calendar Event'))
+                ->modalSubmitActionLabel(__('Delete'))
+                ->modalCancelActionLabel(__('Cancel'))
+                ->requiresConfirmation()
+                ->visible(auth()->user()->can('Delete:CalendarEvent')),
         ];
+    }
+
+    protected function viewAction(): Action
+    {
+        return Actions\ViewAction::make()
+            ->modalHeading(__('Calendar Event Details'));
     }
 
     protected function getOptions(): array

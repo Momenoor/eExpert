@@ -1,3 +1,3 @@
-<x-filament-panels::page>
+<x-report-layout>
     {{ $this->table }}
-</x-filament-panels::page>
+</x-report-layout>

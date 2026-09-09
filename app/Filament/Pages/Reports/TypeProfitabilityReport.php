@@ -15,6 +15,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -94,6 +95,7 @@ class TypeProfitabilityReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('revenue_billed', 'desc')
             ->emptyStateHeading(__('No matter types'))
             ->emptyStateIcon('heroicon-o-presentation-chart-line')
@@ -196,8 +198,8 @@ class TypeProfitabilityReport extends Page implements HasTable
                             ->when($from, fn ($q) => $q->whereDate('matters.distributed_at', '>=', $from->toDateString()))
                             ->when($until, fn ($q) => $q->whereDate('matters.distributed_at', '<=', $until->toDateString()))
                     ),
-                ),
-            ])
+                )->columnSpan(3),
+            ])->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::Medium)
             ->headerActions([
                 ReportPrintAction::make(),

@@ -19,6 +19,7 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,7 +63,7 @@ class AssistantMattersReport extends Page implements HasTable
             ->query(fn () => $this->getTableQuery())
             ->striped()
             ->extraAttributes(['class' => 'custom-compact-table [&_table]:text-xs'])
-            ->defaultPaginationPageOption(25)
+            ->paginated(false)
             ->columns([
 
                 // ── Matter Reference ──────────────────────────────────────
@@ -177,15 +178,26 @@ class AssistantMattersReport extends Page implements HasTable
 
             ])
             ->filters([
-                SelectFilter::make('party.name')
-                    ->relationship('party', 'name', fn ($query) => $query->withRole('expert', 'assistant'))
+                SelectFilter::make('party_id')
                     ->label(__('Assistant'))
+                    ->options(fn () => Party::withRole('expert', 'assistant')->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->preload()
                     ->multiple(),
                 SelectFilter::make('experts')
-                    ->relationship('matter.mainExpertsOnly', 'name')
                     ->label(__('Experts'))
+                    ->options(fn () => Party::withRole('expert', 'certified')->orderBy('name')->pluck('name', 'id'))
+                    ->query(fn (Builder $query, array $data) => $query->when(
+                        $data['values'] ?? $data['value'] ?? null,
+                        function ($q, $expertIds) {
+                            $ids = is_array($expertIds) ? array_filter($expertIds) : array_filter([$expertIds]);
+                            if (empty($ids)) {
+                                return $q;
+                            }
+
+                            return $q->whereHas('matter.parties', fn ($p) => $p->whereIn('parties.id', $ids));
+                        }
+                    ))
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -234,7 +246,7 @@ class AssistantMattersReport extends Page implements HasTable
                     applyUsing: fn (Builder $query, $from, $until) => $query
                         ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '>=', $from->toDateString())))
                         ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '<=', $until->toDateString()))),
-                ),
+                )->columnSpan(3),
 
                 ReportDateRangeFilter::make(
                     column: 'final_report_at',
@@ -243,8 +255,9 @@ class AssistantMattersReport extends Page implements HasTable
                     applyUsing: fn (Builder $query, $from, $until) => $query
                         ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $from->toDateString())))
                         ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $until->toDateString()))),
-                ),
+                )->columnSpan(3),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormColumns(2)
             ->headerActions([
                 ReportPrintAction::make(),

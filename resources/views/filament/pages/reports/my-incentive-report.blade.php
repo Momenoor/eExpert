@@ -3,7 +3,7 @@
     $extra = $this->periodTotals();
 @endphp
 
-<x-filament-panels::page>
+<x-report-layout>
     @if ($calculation)
         <x-filament::section
             :heading="$calculation->name"
@@ -64,4 +64,4 @@
     @endif
 
     {{ $this->table }}
-</x-filament-panels::page>
+</x-report-layout>

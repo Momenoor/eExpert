@@ -42,6 +42,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'notify_by_email',
         'notify_by_whatsapp',
         'profile_photo_path',
+        'last_seen_at',
     ];
 
     protected $with = [

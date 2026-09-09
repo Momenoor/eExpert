@@ -1,5 +1,17 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
+/*
+ * The calendar plugin's own stylesheet — including its dark-mode CSS variable
+ * overrides for borders, buttons and event colors — is never registered as a
+ * panel asset by the package itself (only its Alpine JS component is; see
+ * FilamentFullCalendarServiceProvider::getAssets()). Its own README says as
+ * much: a custom theme has to @import this manually. Without it, FullCalendar
+ * renders with its own un-themed defaults — a white grid with black text and
+ * light borders — regardless of the panel's theme, which is what made it look
+ * broken specifically in dark mode.
+ */
+@import '../../../../vendor/saade/filament-fullcalendar/resources/css/filament-fullcalendar.css';
+
 @source '../../../../app/Filament/**/*';
 @source '../../../../app/Helpers/**/*';
 @source '../../../../resources/views/filament/**/*';
@@ -155,12 +167,47 @@ html {
     color: rgb(0 0 0 / 10%);
 }
 
+/*
+ * The other two of the four markers — a chart's own default dataset fill/
+ * border when a widget doesn't set its own (only some of the widgets in this
+ * app set explicit per-dataset colours; any that don't fell back to these).
+ * Same oklch problem, just never covered by the fix above: Tailwind's
+ * text-gray-100/dark:text-gray-800 (bg) and text-gray-400 (border, same in
+ * both themes per the framework's own default) restated in rgb.
+ */
+.fi-wi-chart-bg-color {
+    color: rgb(243 244 246);
+}
+
+.fi-wi-chart-border-color {
+    color: rgb(156 163 175);
+}
+
 :where(.dark, .dark *) .fi-wi-chart-text-color {
     color: #9ca3af;
 }
 
 :where(.dark, .dark *) .fi-wi-chart-grid-color {
     color: rgb(255 255 255 / 10%);
+}
+
+:where(.dark, .dark *) .fi-wi-chart-bg-color {
+    color: rgb(31 41 55);
+}
+
+/*
+ * Calendar list-view row hover, dark mode.
+ *
+ * FullCalendar's own core CSS hardcodes `--fc-list-event-hover-bg-color:
+ * #f5f5f5` at :root with no dark variant, and neither the calendar plugin's
+ * stylesheet above nor Filament touches it. The calendar's default view here
+ * is listWeek (see CalendarWidget::config()), so every row hover painted a
+ * near-white background under dark-mode text that was styled light to read
+ * against the panel's own dark background — background and text landing on
+ * the same end of the scale made the hovered row's text unreadable.
+ */
+:where(.dark, .dark *) .filament-fullcalendar {
+    --fc-list-event-hover-bg-color: color-mix(in oklab, var(--color-white) 8%, transparent);
 }
 
 /*
@@ -191,29 +238,119 @@ html {
  * printed page just the report instead of the whole panel chrome around it.
  */
 @media print {
+    aside,
+    nav,
+    header,
     .fi-sidebar,
+    .fi-main-sidebar,
     .fi-topbar,
+    .fi-breadcrumbs,
+    .fi-header,
+    .fi-page-header,
     .fi-header-actions-ctn,
+    .fi-layout-sidebar-toggle-btn-ctn,
+    .fi-sidebar-close-overlay,
     .fi-ta-header-toolbar,
     .fi-ta-filters,
     .fi-ta-filters-trigger-action-ctn,
     .fi-ta-actions,
     .fi-ta-col-wrp-actions,
-    .fi-pagination {
+    .fi-ta-selection-cell,
+    .fi-ta-selection-checkbox,
+    .fi-ta-selection-checkbox-column,
+    .fi-ta-filter-indicators,
+    .fi-pagination,
+    .fi-announcement,
+    .fi-wi-chart,
+    #chat-widget,
+    .no-print {
         display: none !important;
+    }
+
+    .report-print-header {
+        display: block !important;
+    }
+
+    body,
+    html {
+        background: #ffffff !important;
+        color: #111827 !important;
+        font-size: 10pt !important;
     }
 
     .fi-main,
     .fi-main-ctn,
     .fi-page,
-    .fi-page-content {
+    .fi-page-content,
+    .fi-page-sub-header-ctn,
+    .fi-page-header-ctn {
         margin: 0 !important;
         padding: 0 !important;
         max-width: none !important;
+        width: 100% !important;
     }
 
     .fi-ta-ctn {
         box-shadow: none !important;
         border: none !important;
+        background: transparent !important;
+        overflow: visible !important;
+    }
+
+    .fi-ta-content {
+        overflow: visible !important;
+    }
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+    }
+
+    thead {
+        display: table-header-group !important;
+    }
+
+    /*
+     * A sortable column's header isn't plain text — Filament wraps it in a
+     * <button> (the click-to-sort control; see fi-ta-header-cell-sort-btn in
+     * the table package's own index.blade.php). `thead { display:
+     * table-header-group }` above is what makes browsers repeat the header
+     * row on every printed page, but a <button> is a replaced form control,
+     * and browsers only paint one instance of a form control across a
+     * multi-page print rather than repeating it like reflowable text — so
+     * only the non-sortable columns (plain text) were surviving onto page 2
+     * onward. `display: contents` drops the button's own box entirely while
+     * its label and sort-icon children stay in the DOM as direct children of
+     * the <th>, which repeats them like ordinary text because that's what
+     * they now are.
+     */
+    .fi-ta-header-cell-sort-btn {
+        display: contents !important;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    th,
+    td {
+        border: 1px solid #d1d5db !important;
+        padding: 4px 6px !important;
+        color: #111827 !important;
+        background-color: transparent !important;
+    }
+
+    th {
+        background-color: #f3f4f6 !important;
+        font-weight: 700 !important;
+    }
+
+    .fi-badge {
+        border: 1px solid #9ca3af !important;
+        background: transparent !important;
+        color: #111827 !important;
+        box-shadow: none !important;
     }
 }

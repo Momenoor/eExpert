@@ -1,4 +1,4 @@
-<x-filament-panels::page>
+<x-report-layout>
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         @foreach ($this->getHeaderWidgets() as $widget)
             @livewire($widget)
@@ -55,4 +55,4 @@
             Livewire.hook('morph.updated', attach);
         });
     </script>
-</x-filament-panels::page>
+</x-report-layout>

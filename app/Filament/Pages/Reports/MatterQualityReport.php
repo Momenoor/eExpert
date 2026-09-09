@@ -22,6 +22,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -98,6 +99,7 @@ class MatterQualityReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('review_count', 'desc')
             ->emptyStateHeading(__('No quality issues recorded'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -213,8 +215,8 @@ class MatterQualityReport extends Page implements HasTable
                     column: 'final_report_at',
                     label: __('Final Report Date'),
                     name: 'final_report_between',
-                ),
-            ])
+                )->columnSpan(3),
+            ])->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::ExtraLarge)
             ->persistSearchInSession()
             ->headerActions([

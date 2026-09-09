@@ -64,6 +64,7 @@ class AssistantMatterCountTableWidget extends TableWidget
     public function table(Table $table): Table
     {
         return $table
+            ->paginated(false)
             // Add a dynamic heading so the user knows why the table changed
             ->heading(fn () => $this->selectedAssistantName
                 ? __('Matters for: :name', ['name' => $this->selectedAssistantName])

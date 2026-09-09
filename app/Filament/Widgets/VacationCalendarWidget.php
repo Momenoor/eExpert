@@ -2,8 +2,12 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\PartyLeaves\Schemas\PartyLeaveForm;
 use App\Models\PartyLeave;
+use Filament\Actions\Action;
+use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
+use Saade\FilamentFullCalendar\Actions;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class VacationCalendarWidget extends FullCalendarWidget
@@ -34,7 +38,7 @@ class VacationCalendarWidget extends FullCalendarWidget
             ->where('start_date', '<=', $info['end'])
             ->where('end_date', '>=', $info['start'])
             ->get()
-            ->map(fn (PartyLeave $leave) => [
+            ->map(fn(PartyLeave $leave) => [
                 'id' => $leave->id,
                 'title' => $leave->party?->name ?? '—',
                 'start' => $leave->start_date->toDateString(),
@@ -77,6 +81,11 @@ class VacationCalendarWidget extends FullCalendarWidget
         ];
     }
 
+    public function getFormSchema(): array
+    {
+        return PartyLeaveForm::getFormSchema();
+    }
+
     protected function headerActions(): array
     {
         return [];
@@ -84,6 +93,24 @@ class VacationCalendarWidget extends FullCalendarWidget
 
     protected function modalActions(): array
     {
-        return [];
+        return [
+            Actions\EditAction::make()
+                ->modalHeading(__('Edit Leave'))
+                ->modalSubmitActionLabel(__('Save'))
+                ->modalCancelActionLabel(__('Cancel'))
+                ->visible(auth()->user()->can('Update:PartyLeave')),
+            Actions\DeleteAction::make()
+                ->modalHeading(__('Delete Leave'))
+                ->modalSubmitActionLabel(__('Delete'))
+                ->modalCancelActionLabel(__('Cancel'))
+                ->requiresConfirmation()
+                ->visible(auth()->user()->can('Delete:PartyLeave')),
+        ];
+    }
+
+    protected function viewAction(): Action
+    {
+        return Actions\ViewAction::make()
+            ->modalHeading(__('Leave Details'));
     }
 }

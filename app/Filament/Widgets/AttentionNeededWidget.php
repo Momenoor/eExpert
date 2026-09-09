@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\RequestStatus;
+use App\Filament\Resources\MatterRequests\MatterRequestResource;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
 use App\Models\MatterRequest;
@@ -60,22 +61,44 @@ class AttentionNeededWidget extends StatsOverviewWidget
                 ->description(__('Hearings in the next 7 days'))
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color($sessionsSoon > 0 ? 'info' : 'gray')
-                ->url(MatterResource::getUrl('index')),
+                ->url(MatterResource::getUrl('index', [
+                    'filters' => [
+                        'next_session_date' => [
+                            'next_session_from' => now()->startOfDay()->toDateString(),
+                            'next_session_until' => now()->addDays(7)->endOfDay()->toDateString(),
+                        ],
+                    ],
+                ])),
 
             Stat::make(__('Awaiting Final Report'), $awaitingFinalReport)
                 ->description(__('Memo approved, report not submitted'))
                 ->descriptionIcon('heroicon-m-document-text')
-                ->color($awaitingFinalReport > 0 ? 'warning' : 'success'),
+                ->color($awaitingFinalReport > 0 ? 'warning' : 'success')
+                ->url(MatterResource::getUrl('index', [
+                    'filters' => [
+                        'awaiting_final_report' => ['isActive' => true],
+                    ],
+                ])),
 
             Stat::make(__('Open Requests'), $pendingRequests)
                 ->description(__('Pending or disputed'))
                 ->descriptionIcon('heroicon-m-inbox-arrow-down')
-                ->color($pendingRequests > 0 ? 'warning' : 'success'),
+                ->color($pendingRequests > 0 ? 'warning' : 'success')
+                ->url(MatterRequestResource::getUrl('index', [
+                    'filters' => [
+                        'status' => ['values' => [RequestStatus::PENDING->value, RequestStatus::DISPUTED->value]],
+                    ],
+                ])),
 
             Stat::make(__('Unassigned Matters'), $unassigned)
                 ->description(__('Open with no assistant'))
                 ->descriptionIcon('heroicon-m-user-minus')
-                ->color($unassigned > 0 ? 'danger' : 'success'),
+                ->color($unassigned > 0 ? 'danger' : 'success')
+                ->url(MatterResource::getUrl('index', [
+                    'filters' => [
+                        'unassigned' => ['isActive' => true],
+                    ],
+                ])),
         ];
     }
 }

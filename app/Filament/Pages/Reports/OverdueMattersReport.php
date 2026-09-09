@@ -22,6 +22,7 @@ use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -123,6 +124,7 @@ class OverdueMattersReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('days_open', 'desc')
             ->emptyStateHeading(__('Nothing overdue'))
             ->emptyStateDescription(__('No open matter matches these filters.'))
@@ -186,7 +188,7 @@ class OverdueMattersReport extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
-                ReportDateRangeFilter::make('matters.distributed_at', __('Assigned')),
+                ReportDateRangeFilter::make('matters.distributed_at', __('Distributed At'))->columnSpan(3),
 
                 SelectFilter::make('age')
                     ->label(__('Age'))
@@ -227,6 +229,7 @@ class OverdueMattersReport extends Page implements HasTable
                         fn ($q, $partyId) => $q->whereHas('assistantsOnly', fn ($a) => $a->where('party_id', $partyId))
                     )),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::ExtraLarge)
             ->persistSearchInSession()
             ->headerActions([

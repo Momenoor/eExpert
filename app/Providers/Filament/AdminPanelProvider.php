@@ -29,6 +29,7 @@ use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
 use Filament\Support\Facades\FilamentTimezone;
 use Filament\Support\Facades\FilamentView;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -143,6 +144,8 @@ class AdminPanelProvider extends PanelProvider
     public function boot(): void
     {
         Select::configureUsing(fn (Select $select) => $select->native(false));
+        SelectFilter::configureUsing(fn (SelectFilter $select) => $select->native(false));
+
         UserForm::register([
             TextInput::make('display_name')->label(__('Display name'))->required(),
             Select::make('party')->label(__('Party'))->searchable()->relationship('party', 'name'),

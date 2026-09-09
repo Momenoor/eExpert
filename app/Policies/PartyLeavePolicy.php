@@ -17,7 +17,7 @@ class PartyLeavePolicy
         return $authUser->can('ViewAny:PartyLeave');
     }
 
-    public function view(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function view(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('View:PartyLeave');
     }
@@ -27,22 +27,22 @@ class PartyLeavePolicy
         return $authUser->can('Create:PartyLeave');
     }
 
-    public function update(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function update(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('Update:PartyLeave');
     }
 
-    public function delete(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function delete(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('Delete:PartyLeave');
     }
 
-    public function restore(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function restore(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('Restore:PartyLeave');
     }
 
-    public function forceDelete(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function forceDelete(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('ForceDelete:PartyLeave');
     }
@@ -57,7 +57,7 @@ class PartyLeavePolicy
         return $authUser->can('RestoreAny:PartyLeave');
     }
 
-    public function replicate(AuthUser $authUser, PartyLeave $partyLeave): bool
+    public function replicate(AuthUser $authUser, ?PartyLeave $partyLeave = null): bool
     {
         return $authUser->can('Replicate:PartyLeave');
     }

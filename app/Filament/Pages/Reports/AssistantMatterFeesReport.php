@@ -16,6 +16,7 @@ use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,6 +51,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
 
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->columns([
                 TextColumn::make('matter.reference')
                     ->label(__('Matter'))
@@ -101,8 +103,9 @@ class AssistantMatterFeesReport extends Page implements HasTable
                     applyUsing: fn (Builder $query, $from, $until) => $query
                         ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $from->toDateString())))
                         ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $until->toDateString()))),
-                ),
-            ])
+                )
+                    ->columnSpan(3),
+            ])->filtersLayout(FiltersLayout::AboveContent)
             ->queryStringIdentifier('final_report')
             ->persistSearchInSession()
             ->filtersFormWidth(Width::ExtraLarge)

@@ -20,7 +20,7 @@ class TrackUserLastSeen
     {
         $user = Auth::user();
 
-        if ($user && (! $user->last_seen_at || $user->last_seen_at->lt(now()->subSeconds(30)))) {
+        if ($user && (! $user->last_seen_at || $user->last_seen_at->lt(now()->subSeconds(10)))) {
             $user->forceFill(['last_seen_at' => now()])->saveQuietly();
         }
 

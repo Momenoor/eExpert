@@ -17,7 +17,7 @@ class CalendarEventPolicy
         return $authUser->can('ViewAny:CalendarEvent');
     }
 
-    public function view(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function view(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('View:CalendarEvent');
     }
@@ -27,22 +27,22 @@ class CalendarEventPolicy
         return $authUser->can('Create:CalendarEvent');
     }
 
-    public function update(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function update(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('Update:CalendarEvent');
     }
 
-    public function delete(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function delete(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('Delete:CalendarEvent');
     }
 
-    public function restore(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function restore(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('Restore:CalendarEvent');
     }
 
-    public function forceDelete(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function forceDelete(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('ForceDelete:CalendarEvent');
     }
@@ -57,7 +57,7 @@ class CalendarEventPolicy
         return $authUser->can('RestoreAny:CalendarEvent');
     }
 
-    public function replicate(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function replicate(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('Replicate:CalendarEvent');
     }
@@ -67,22 +67,22 @@ class CalendarEventPolicy
         return $authUser->can('Reorder:CalendarEvent');
     }
 
-    public function createSingle(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function createSingle(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('CreateSingle:CalendarEvent');
     }
 
-    public function createBulk(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function createBulk(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('CreateBulk:CalendarEvent');
     }
 
-    public function importFromOutlook(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function importFromOutlook(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('ImportFromOutlook:CalendarEvent');
     }
 
-    public function syncToOutlook(AuthUser $authUser, CalendarEvent $calendarEvent): bool
+    public function syncToOutlook(AuthUser $authUser, ?CalendarEvent $calendarEvent = null): bool
     {
         return $authUser->can('SyncToOutlook:CalendarEvent');
     }

@@ -16,6 +16,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -72,6 +73,7 @@ class VatSummaryReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('date', 'desc')
             ->emptyStateHeading(__('No VAT recorded'))
             ->emptyStateDescription(__('No VAT fee falls in this period.'))
@@ -132,7 +134,7 @@ class VatSummaryReport extends Page implements HasTable
                     column: 'fees.date',
                     label: __('Period'),
                     name: 'period',
-                ),
+                )->columnSpan(3),
 
                 Filter::make('uncollected_only')
                     ->label(__('Not fully collected'))
@@ -140,6 +142,7 @@ class VatSummaryReport extends Page implements HasTable
                         'fees.amount > COALESCE((SELECT SUM(a.amount) FROM allocations a WHERE a.fee_id = fees.id), 0) + 0.005'
                     )),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
                 ReportPrintAction::make(),

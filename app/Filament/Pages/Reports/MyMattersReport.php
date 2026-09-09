@@ -14,6 +14,7 @@ use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,6 +86,7 @@ class MyMattersReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('next_session_date', 'asc')
             ->emptyStateHeading(__('Nothing assigned to you'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -176,8 +178,9 @@ class MyMattersReport extends Page implements HasTable
                     ->query(fn (Builder $query) => $query->whereNotNull('next_session_date')
                         ->whereBetween('next_session_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])),
 
-                ReportDateRangeFilter::make('matters.distributed_at', __('Assigned')),
+                ReportDateRangeFilter::make('matters.distributed_at', __('Distributed At'))->columnSpan(3),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::Medium)
             ->headerActions([
                 ReportPrintAction::make(),

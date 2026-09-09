@@ -16,6 +16,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -130,6 +131,7 @@ class DeductionsReconciliationReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('deductions_total', 'desc')
             ->emptyStateHeading(__('Nothing to reconcile'))
             ->emptyStateDescription(__('No matter matches these filters.'))
@@ -228,8 +230,8 @@ class DeductionsReconciliationReport extends Page implements HasTable
                     applyUsing: fn (Builder $query, $from, $until) => $query
                         ->when($from, fn ($q) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '>=', $from->toDateString())))
                         ->when($until, fn ($q) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '<=', $until->toDateString()))),
-                ),
-            ])
+                )->columnSpan(3),
+            ])->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
                 ReportPrintAction::make(),

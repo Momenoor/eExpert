@@ -53,6 +53,7 @@ class MattersMonthlyReport extends Page implements HasTable
     {
         return $table
             ->query(fn () => $this->getTableQuery())
+            ->paginated(false)
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('period')
@@ -99,6 +100,7 @@ class MattersMonthlyReport extends Page implements HasTable
                     ->placeholder(__('All Assistants'))
                     ->query(fn (Builder $query) => $query),
                 SelectFilter::make('court')
+                    ->label(__('Court'))
                     ->relationship('court', 'name')
                     ->searchable()
                     ->preload()
@@ -116,9 +118,10 @@ class MattersMonthlyReport extends Page implements HasTable
                     ->query(fn (Builder $query) => $query),
                 ReportDateRangeFilter::make(
                     column: 'distributed_at',
-                    label: __('Received Date'),
+                    label: __('Distributed At'),
                     name: 'distributed_at',
-                )->query(fn (Builder $query) => $query),
+                )->query(fn (Builder $query) => $query)
+                    ->columnSpan(3),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->headerActions([
