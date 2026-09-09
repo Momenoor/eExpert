@@ -10,6 +10,7 @@ use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;
 use App\Models\IncentiveLine;
 use App\Services\IncentiveCalculatorService;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -26,15 +27,8 @@ use Livewire\Attributes\On;
 
 class IncentiveSummaryTableWidget extends TableWidget
 {
-    /**
-     * This widget shows payroll figures for every assistant.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('View:IncentiveCalculation') ?? false;
-    }
-
     use HasMultiWordSearch;
+    use HasWidgetShield;
 
     protected int|string|array $columnSpan = 'full';
 

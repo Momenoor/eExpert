@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Incentive\MatterTypeIncentiveConfigs\MatterTypeIncentiveConfigResource;
 use App\Models\MatterTypeIncentiveConfig;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Tables\Columns\TextColumn;
@@ -13,14 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class IncentiveTypeConfigsOverviewWidget extends TableWidget
 {
-    /**
-     * These widgets expose incentive configuration, which is payroll data.
-     * Without this they rendered for anyone who could reach the page.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:MatterTypeIncentiveConfig') ?? false;
-    }
+    use HasWidgetShield;
 
     protected int|string|array $columnSpan = 'full';
 

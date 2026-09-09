@@ -20,10 +20,11 @@ class CalendarWidgetTest extends TestCase
     {
         parent::setUp();
 
+        Permission::findOrCreate('View:CalendarWidget', 'web');
         Permission::findOrCreate('ViewAny:CalendarEvent', 'web');
 
         $this->admin = User::factory()->create();
-        $this->admin->givePermissionTo('ViewAny:CalendarEvent');
+        $this->admin->givePermissionTo(['View:CalendarWidget', 'ViewAny:CalendarEvent']);
         $this->actingAs($this->admin);
     }
 

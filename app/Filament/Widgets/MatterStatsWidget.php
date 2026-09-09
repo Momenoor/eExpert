@@ -5,23 +5,21 @@ namespace App\Filament\Widgets;
 use App\Enums\MatterCollectionStatus;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class MatterStatsWidget extends StatsOverviewWidget
 {
+    use HasWidgetShield;
+
     // 'full', not a fixed 2: that number was correct only back when the
     // dashboard's own grid was 2 columns wide. This widget lays its own 4
     // stat cards out internally (getColumns() below), so it needs the whole
     // row regardless of how many columns the dashboard grid has, or its 4
     // cards get squeezed into whatever fraction a fixed span leaves it.
     protected int|string|array $columnSpan = 'full';
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
-    }
 
     public function getColumns(): int|array
     {

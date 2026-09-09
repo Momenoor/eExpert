@@ -3,19 +3,14 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Matter;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
 use Flowframe\Trend\TrendValue;
 
 class MattersPerYearWidget extends ChartWidget
 {
-    /**
-     * Matter volume is operational data.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
-    }
+    use HasWidgetShield;
 
     // A third of the dashboard's row at 'xl' (2 of 6 columns), so this
     // sits alongside the other two small widgets on one row instead of

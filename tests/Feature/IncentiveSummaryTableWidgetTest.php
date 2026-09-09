@@ -44,14 +44,15 @@ class IncentiveSummaryTableWidgetTest extends TestCase
 
     /**
      * A user who may see the widget but not change anything. The widget shows
-     * payroll figures for every assistant, so it requires View:IncentiveCalculation.
+     * payroll figures for every assistant, so it requires View:IncentiveSummaryTableWidget.
      */
     private function actingAsIncentiveViewer(): User
     {
+        Permission::firstOrCreate(['name' => 'View:IncentiveSummaryTableWidget', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'View:IncentiveCalculation', 'guard_name' => 'web']);
 
         $user = User::factory()->create();
-        $user->givePermissionTo('View:IncentiveCalculation');
+        $user->givePermissionTo(['View:IncentiveSummaryTableWidget', 'View:IncentiveCalculation']);
         $this->actingAs($user);
 
         return $user;

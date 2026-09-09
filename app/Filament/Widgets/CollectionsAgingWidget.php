@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CollectionsAgingWidget extends ChartWidget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = 1;
 
     // A third of the dashboard's row at 'xl' (2 of 6 columns), so this
@@ -45,14 +48,6 @@ class CollectionsAgingWidget extends ChartWidget
     public function getHeading(): string
     {
         return __('Collections Aging');
-    }
-
-    public static function canView(): bool
-    {
-        $user = auth()->user();
-
-        return ($user?->can('CollectFee:Matter') ?? false)
-            || ($user?->can('ViewAny:IncentiveCalculation') ?? false);
     }
 
     protected function getData(): array

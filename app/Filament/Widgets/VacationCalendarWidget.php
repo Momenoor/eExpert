@@ -4,21 +4,15 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\PartyLeaves\Schemas\PartyLeaveForm;
 use App\Models\PartyLeave;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Actions\Action;
-use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Saade\FilamentFullCalendar\Actions;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class VacationCalendarWidget extends FullCalendarWidget
 {
-    /**
-     * Who is on leave is staff data.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:PartyLeave') ?? false;
-    }
+    use HasWidgetShield;
 
     public Model|string|null $model = PartyLeave::class;
 
@@ -38,7 +32,7 @@ class VacationCalendarWidget extends FullCalendarWidget
             ->where('start_date', '<=', $info['end'])
             ->where('end_date', '>=', $info['start'])
             ->get()
-            ->map(fn(PartyLeave $leave) => [
+            ->map(fn (PartyLeave $leave) => [
                 'id' => $leave->id,
                 'title' => $leave->party?->name ?? '—',
                 'start' => $leave->start_date->toDateString(),

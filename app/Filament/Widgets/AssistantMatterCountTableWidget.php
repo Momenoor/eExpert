@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\MatterParty;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Actions\Action;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
@@ -14,13 +15,7 @@ use Livewire\Attributes\On;
 
 class AssistantMatterCountTableWidget extends TableWidget
 {
-    /**
-     * Per-assistant workload.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
-    }
+    use HasWidgetShield;
 
     public ?int $selectedPartyId = null; // Store the ID
 

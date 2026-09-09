@@ -7,6 +7,7 @@ use App\Filament\Resources\MatterRequests\MatterRequestResource;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
 use App\Models\MatterRequest;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -19,6 +20,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class AttentionNeededWidget extends StatsOverviewWidget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = -2;
 
     protected int|string|array $columnSpan = 'full';
@@ -26,11 +29,6 @@ class AttentionNeededWidget extends StatsOverviewWidget
     public function getColumns(): int|array
     {
         return 4;
-    }
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('View:AttentionNeededWidget') ?? false;
     }
 
     protected function getStats(): array

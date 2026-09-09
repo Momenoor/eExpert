@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class UpcomingSessionsWidget extends TableWidget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = 2;
 
     // Half the dashboard's row (1 of 2 columns at 'md', 3 of 6 at 'xl'), so
@@ -27,11 +30,6 @@ class UpcomingSessionsWidget extends TableWidget
         'md' => 1,
         'xl' => 3,
     ];
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
-    }
 
     protected function getTableQuery(): Builder
     {

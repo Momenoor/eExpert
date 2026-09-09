@@ -5,8 +5,8 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\CalendarEvents\Schemas\CalendarEventForm;
 use App\Models\CalendarEvent;
 use App\Models\Matter;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Actions\Action;
-use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\ConnectionException;
 use Saade\FilamentFullCalendar\Actions;
@@ -14,13 +14,7 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
-    /**
-     * Calendar entries can name matters and parties.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:CalendarEvent') ?? false;
-    }
+    use HasWidgetShield;
 
     public Model|string|null $model = CalendarEvent::class;
 
@@ -41,7 +35,7 @@ class CalendarWidget extends FullCalendarWidget
             ->where('start_datetime', '>=', $info['start'])
             ->where('end_datetime', '<=', $info['end'])
             ->get()
-            ->map(fn($event) => [
+            ->map(fn ($event) => [
                 'id' => $event->id,
                 'title' => $event->title,
                 'start' => $event->start_datetime,
@@ -51,7 +45,7 @@ class CalendarWidget extends FullCalendarWidget
                     'location' => $event->location,
                     'description' => $event->description,
                     // Pass the matter numbers for the tooltip
-                    'matters' => $event->matters->map(fn($m) => "{$m->number}/{$m->year}")->implode(', '),
+                    'matters' => $event->matters->map(fn ($m) => "{$m->number}/{$m->year}")->implode(', '),
                 ],
             ])
             ->toArray();

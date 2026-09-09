@@ -21,10 +21,11 @@ class VacationCalendarWidgetTest extends TestCase
     {
         parent::setUp();
 
+        Permission::findOrCreate('View:VacationCalendarWidget', 'web');
         Permission::findOrCreate('ViewAny:PartyLeave', 'web');
 
         $this->admin = User::factory()->create();
-        $this->admin->givePermissionTo('ViewAny:PartyLeave');
+        $this->admin->givePermissionTo(['View:VacationCalendarWidget', 'ViewAny:PartyLeave']);
         $this->actingAs($this->admin);
     }
 

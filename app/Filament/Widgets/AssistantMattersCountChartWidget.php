@@ -3,18 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\MatterParty;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Support\RawJs;
 use Filament\Widgets\ChartWidget;
 
 class AssistantMattersCountChartWidget extends ChartWidget
 {
-    /**
-     * Per-assistant workload.
-     */
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
-    }
+    use HasWidgetShield;
 
     protected ?string $heading = 'Assistant Matters Count Chart';
 
