@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\FilamentActionEvent;
-use App\Listeners\SendFilamentActionNotifications;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Foundation\Events\LocaleUpdated;
@@ -25,11 +23,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Event::listen(
-            FilamentActionEvent::class,
-            SendFilamentActionNotifications::class,
-        );
-
         // The language switcher's middleware calls App::setLocale() on every
         // request, which only changes __()/trans() — it never touches Carbon's
         // OWN locale. Filament's ->date()/->dateTime() column helpers format

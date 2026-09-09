@@ -56,9 +56,14 @@ class FeeDataMaintenance extends Page
         return __('Settings');
     }
 
+    /**
+     * A plain page permission rather than a role check — Shield's Gate::before
+     * already grants this unconditionally to whoever holds the super-admin
+     * role.
+     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['super-admin', 'super_admin']) ?? false;
+        return auth()->user()?->can('View:FeeDataMaintenance') ?? false;
     }
 
     private function repairs(): FeeDataRepairService

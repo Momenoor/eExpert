@@ -7,8 +7,10 @@ use AlizHarb\ActivityLog\RelationManagers\ActivitiesRelationManager;
 use App\Filament\Pages\Auth\CustomLogin;
 use App\Filament\Pages\Auth\CustomProfile;
 use App\Http\Middleware\CheckSystemOffline;
+use App\Http\Middleware\RedirectToInstaller;
 use App\Models\Setting;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use BezhanSalleh\FilamentShield\Support\Utils;
 use CraftForge\FilamentLanguageSwitcher\FilamentLanguageSwitcherPlugin;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\FileUpload;
@@ -72,6 +74,12 @@ class AdminPanelProvider extends PanelProvider
                 fn () => Blade::render('@livewire(\'font-size-slider\')')
             )
             ->middleware([
+                // First, and ahead of everything session/auth-related — the
+                // panel's own middleware list runs independently of the app's
+                // `web` group, so the installer redirect has to be repeated
+                // here or `/admin` on an unmigrated database would hit a raw
+                // connection error instead of the wizard.
+                RedirectToInstaller::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -85,11 +93,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make(__('Communication')),
-                NavigationGroup::make(__('Finance')),
+                NavigationGroup::make(__('Financial')),
+                NavigationGroup::make(__('Human Resources')),
                 NavigationGroup::make(__('Reports')),
                 NavigationGroup::make(__('Settings')),
                 NavigationGroup::make(__('Filament Shield')),
-                NavigationGroup::make(__('System')),
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -99,7 +107,7 @@ class AdminPanelProvider extends PanelProvider
                 //                FilamentInboxPlugin::make(),
                 //                FilamentCronManagerPlugin::make(),
                 FilamentUsersPlugin::make()
-                ->useAvatar(),
+                    ->useAvatar(),
                 FilamentShieldPlugin::make(),
                 FilamentFullCalendarPlugin::make()
                     ->timezone(config('app.timezone'))
@@ -132,22 +140,11 @@ class AdminPanelProvider extends PanelProvider
 
     public function boot(): void
     {
-        //        Action::configureUsing(function (Action $action) {
-        //            $action->after(function (Action $action, ?Model $record = null, array $data = []) {
-        //                FilamentActionEvent::dispatch($action, $record, $data);
-        //            });
-        //        });
-        //        BulkAction::configureUsing(function (BulkAction $action) {
-        //            $action->after(function (BulkAction $action, ?Model $record = null, array $data = []) {
-        //                FilamentActionEvent::dispatch($action, $record, $data);
-        //            });
-        //        });
-
         Select::configureUsing(fn (Select $select) => $select->native(false));
         UserForm::register([
             TextInput::make('display_name')->label(__('Display name'))->required(),
             Select::make('party')->label(__('Party'))->searchable()->relationship('party', 'name'),
-            Toggle::make('notify_by_whatsapp')->label(__('Notify by Whatsapp'))->visible(fn () => auth()->user()->hasAnyRole(['super-admin', 'super_admin']))->default(fn () => (bool) Setting::get('default_notify_by_whatsapp', false))->required(),
+            Toggle::make('notify_by_whatsapp')->label(__('Notify by Whatsapp'))->visible(fn () => auth()->user()->hasRole(Utils::getSuperAdminName()))->default(fn () => (bool) Setting::get('default_notify_by_whatsapp', false))->required(),
             Toggle::make('notify_by_email')->label(__('Notify by Email'))->default(fn () => (bool) Setting::get('default_notify_by_email', true))->required(),
         ]);
         Table::configureUsing(fn (Table $table) => $table->striped()->stackedOnMobile());

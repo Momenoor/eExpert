@@ -30,6 +30,16 @@ class PartyFactory extends Factory
         ]);
     }
 
+    /**
+     * A party on the payroll — the role the payroll and leave modules filter on.
+     */
+    public function employee(): static
+    {
+        return $this->state(fn () => [
+            'role' => ['role' => ['employee'], 'type' => []],
+        ]);
+    }
+
     public function certifiedExpert(): static
     {
         return $this->state(fn () => [

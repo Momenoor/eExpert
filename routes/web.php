@@ -5,6 +5,8 @@ use App\Http\Controllers\BulkMailController;
 use App\Http\Controllers\IncentiveCalculationAssistantPrintController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\MatterReceivedNotificationController;
+use App\Http\Controllers\PayrollJournalVoucherPrintController;
+use App\Livewire\Installer\InstallWizard;
 use App\Models\Attachment;
 use App\Models\BulkMailRecipient;
 use App\Models\Setting;
@@ -13,6 +15,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Named `installer.*` deliberately — RedirectToInstaller bypasses any route
+// whose name matches that prefix, so nothing here can end up redirecting to
+// itself.
+Route::get('/install', InstallWizard::class)
+    ->middleware('installer.guard')
+    ->name('installer.show');
 
 Route::get('/mail/unsubscribe/{token}', function ($token) {
     $recipient = BulkMailRecipient::where('unsubscribe_token', $token)->firstOrFail();
@@ -48,6 +57,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('incentive/calculations/{calculation}/print/{party}', IncentiveCalculationAssistantPrintController::class)
         ->name('incentive.calculation.print.assistant')
+        ->middleware(['auth']);
+
+    Route::get('payroll/runs/{run}/journal-voucher/print', PayrollJournalVoucherPrintController::class)
+        ->name('payroll.run.journal-voucher.print')
         ->middleware(['auth']);
 
 });

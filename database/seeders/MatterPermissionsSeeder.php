@@ -49,6 +49,7 @@ class MatterPermissionsSeeder extends Seeder
 
     private const ROLE_PERMISSIONS = [
         'super_admin' => '*',
+        'super-admin' => '*',
         'admin' => [
             'ViewAny:Matter', 'View:Matter', 'Create:Matter', 'Update:Matter',
             'Delete:Matter', 'ForceDelete:Matter', 'ForceDeleteAny:Matter',

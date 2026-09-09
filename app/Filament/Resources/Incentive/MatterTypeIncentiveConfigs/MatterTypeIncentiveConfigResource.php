@@ -36,7 +36,7 @@ class MatterTypeIncentiveConfigResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Finance');
+        return __('Financial');
     }
 
     /**
@@ -51,7 +51,7 @@ class MatterTypeIncentiveConfigResource extends Resource
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'calculation_type';
 

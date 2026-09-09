@@ -48,9 +48,14 @@ class AccessControlMaintenance extends Page
         return __('Settings');
     }
 
+    /**
+     * A plain page permission rather than a role check — Shield's Gate::before
+     * already grants this unconditionally to whoever holds the super-admin
+     * role.
+     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['super-admin', 'super_admin']) ?? false;
+        return auth()->user()?->can('View:AccessControlMaintenance') ?? false;
     }
 
     private function repairs(): AccessControlRepairService
@@ -68,7 +73,7 @@ class AccessControlMaintenance extends Page
 
         return $schema->components([
             Section::make(__('Super Administrator Roles'))
-                ->description(__('Shield registers no gate for the super admin role here (define_via_gate is off), so a super admin can only do what is explicitly granted. Two such roles exist and they have drifted apart.'))
+                ->description(__('Shield now grants "super-admin" every ability unconditionally via Gate::before. The "super_admin" role below is what an earlier configuration pointed at before that was corrected — it has no users, and its permission count is shown only so it can be recognised as the historical duplicate rather than a second live administrator role.'))
                 ->icon(Heroicon::OutlinedShieldExclamation)
                 ->columns(2)
                 ->schema([

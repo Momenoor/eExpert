@@ -19,7 +19,7 @@ class AssistantMattersCount extends Page
 
     protected static string|null|UnitEnum $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 8;
 
     public static function getNavigationGroup(): string|UnitEnum|null
     {

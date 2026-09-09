@@ -36,7 +36,7 @@ class AssistantMattersReport extends Page implements HasTable
 
     protected static string|null|UnitEnum $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 6;
 
     protected array $queryString = [
         'tableFilters',

@@ -39,7 +39,7 @@ class AssistantPerformanceReport extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 9;
 
     protected string $view = 'filament.pages.assistant-performance-report';
 

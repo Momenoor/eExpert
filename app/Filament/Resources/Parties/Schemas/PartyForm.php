@@ -51,10 +51,11 @@ class PartyForm
                                 'party' => __('Party'),
                                 'expert' => __('Expert'),
                                 'representative' => __('Representative'),
+                                'employee' => __('Employee'),
                             ])
                             ->default(['party'])
                             ->required()
-                            ->columns(3)
+                            ->columns(4)
                             ->columnSpanFull()
                             ->live(),
                         CheckboxList::make('role.type')

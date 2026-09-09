@@ -58,7 +58,7 @@ class FeeCollectionAgingReport extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 10;
 
     protected string $view = 'filament.pages.fee-collection-aging-report';
 

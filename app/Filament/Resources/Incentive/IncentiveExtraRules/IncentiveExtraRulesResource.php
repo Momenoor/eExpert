@@ -34,7 +34,7 @@ class IncentiveExtraRulesResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Finance');
+        return __('Financial');
     }
 
     /**
@@ -49,7 +49,7 @@ class IncentiveExtraRulesResource extends Resource
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-plus-circle';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $recordTitleAttribute = 'extra_percentage';
 

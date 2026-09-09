@@ -117,10 +117,12 @@ class SettingTest extends TestCase
 
     public function test_offline_middleware_allows_admins_when_offline(): void
     {
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        // 'super-admin' (hyphenated) is the role name Shield's config actually
+        // points at — see config/filament-shield.php.
+        Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
 
         $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
+        $admin->assignRole('super-admin');
 
         Setting::set('app_offline', true);
         Setting::set('offline_allow_admins', true);
@@ -200,14 +202,14 @@ class SettingTest extends TestCase
 
     public function test_can_simulate_filament_login_when_offline(): void
     {
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
 
         $user = User::factory()->create([
             'email' => 'admin@domain.com',
             'name' => 'adminuser',
             'password' => bcrypt('password123'),
         ]);
-        $user->assignRole('super_admin');
+        $user->assignRole('super-admin');
 
         Setting::set('app_offline', true);
         Setting::set('offline_allow_admins', true);

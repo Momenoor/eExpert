@@ -25,13 +25,14 @@ class AccessControlRepairService
     /**
      * Roles that are meant to be super administrators.
      *
-     * The database carries two: `super_admin`, which the Shield config names and
-     * which has no users, and `super-admin`, which the actual administrators
-     * hold. They have drifted apart — the underscore one collected the custom
-     * abilities, the hyphen one the standard ones. Because
-     * `super_admin.define_via_gate` is false, Shield registers no Gate::before
-     * for either, so neither gets anything implicitly: whatever a super admin
-     * can do, it can do because the permission is attached.
+     * The database carries two: `super_admin`, which an earlier config pointed
+     * at and which has no users, and `super-admin`, which the actual
+     * administrators hold. Shield's config now names `super-admin` and defines
+     * it via Gate::before, so that role's users pass every ability check
+     * unconditionally — the missing-permission count below is no longer a
+     * functional gap for them, only a historical one. `super_admin` is kept in
+     * this list purely so it stays visible as the orphaned duplicate rather
+     * than disappearing from view entirely.
      *
      * @return Collection<int, Role>
      */

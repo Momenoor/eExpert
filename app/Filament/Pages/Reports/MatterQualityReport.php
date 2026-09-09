@@ -48,7 +48,7 @@ class MatterQualityReport extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.matter-quality-report';
 
@@ -66,6 +66,7 @@ class MatterQualityReport extends Page implements HasTable
     {
         return __('Quality & Rework');
     }
+
     public function getTablePluralModelLabel(): string
     {
         return __('matters');

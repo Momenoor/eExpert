@@ -29,7 +29,7 @@ class CreateRequestAction extends Action
         $this
             ->label(__('Add Request'))
             ->icon('heroicon-o-plus')
-            ->visible(fn ($record) => auth()->user()->can('CreateMatterRequest:MatterRequest') || auth()->user()->can('CreateRequest:Matter'))
+            ->visible(fn ($record) => auth()->user()->can('Create:MatterRequest') || auth()->user()->can('CreateRequest:Matter'))
             ->modalHeading(__('Submit New Request'))
             ->successNotificationTitle(__('Request submitted successfully.'))
             ->action(function (array $data, $record, $component) {

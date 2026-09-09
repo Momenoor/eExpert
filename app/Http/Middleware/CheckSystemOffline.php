@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use BezhanSalleh\FilamentShield\Support\Utils;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -54,7 +55,7 @@ class CheckSystemOffline
             $allowAdmins = (bool) Setting::get('offline_allow_admins', true);
 
             if ($allowAdmins && (
-                (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['super-admin', 'super_admin', 'admin'])) ||
+                (method_exists($user, 'hasAnyRole') && $user->hasAnyRole([Utils::getSuperAdminName(), 'admin'])) ||
                 ($user->is_admin ?? false)
             )) {
                 return $next($request);

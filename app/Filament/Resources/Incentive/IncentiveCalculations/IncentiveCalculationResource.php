@@ -42,7 +42,7 @@ class IncentiveCalculationResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Finance');
+        return __('Financial');
     }
 
     public static function form(Schema $schema): Schema

@@ -42,19 +42,15 @@ class SystemSettings extends Page
         return __('System Settings');
     }
 
+    /**
+     * A plain page permission rather than a role check — Shield's Gate::before
+     * already grants this unconditionally to whoever holds the super-admin
+     * role, so nobody else needs to be granted View:SystemSettings for this
+     * page to behave exactly as it did when access was hardcoded to that role.
+     */
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        if (method_exists($user, 'hasAnyRole')) {
-            return $user->hasAnyRole(['super-admin', 'super_admin']);
-        }
-
-        return (bool) ($user->is_admin ?? false);
+        return auth()->user()?->can('View:SystemSettings') ?? false;
     }
 
     public function mount(): void

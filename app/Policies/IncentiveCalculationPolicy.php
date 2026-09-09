@@ -81,5 +81,4 @@ class IncentiveCalculationPolicy
     {
         return $authUser->can('Print:IncentiveCalculation');
     }
-
 }

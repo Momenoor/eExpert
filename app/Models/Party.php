@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -170,11 +171,57 @@ class Party extends Model
         return $this->hasMany(PartyLeave::class);
     }
 
+    public function employeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
+    public function salaryComponents(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryComponent::class);
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function leaveEntitlements(): HasMany
+    {
+        return $this->hasMany(LeaveEntitlement::class);
+    }
+
+    public function loans(): HasMany
+    {
+        return $this->hasMany(EmployeeLoan::class);
+    }
+
+    public function payslips(): HasMany
+    {
+        return $this->hasMany(Payslip::class);
+    }
+
+    public function eosgAccruals(): HasMany
+    {
+        return $this->hasMany(EosgAccrual::class);
+    }
+
     public function isExpert(): bool
     {
         // The accessor ensures 'role' is an array with a 'role' key.
         // We check if 'expert' exists inside that subarray.
         return isset($this->role['role']) && in_array('expert', (array) $this->role['role']);
+    }
+
+    /**
+     * Whether this party is on the payroll.
+     *
+     * Mirrors isExpert(): the accessor has already flattened the stored array of
+     * role objects into a single array of role names.
+     */
+    public function isEmployee(): bool
+    {
+        return isset($this->role['role']) && in_array('employee', (array) $this->role['role']);
     }
 
     public function user(): BelongsTo

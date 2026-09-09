@@ -43,10 +43,16 @@ parameters:
 			path: app/Filament/Imports/BulkMailRecipientImporter.php
 
 		-
-			message: '#^Access to an undefined property App\\Filament\\Pages\\IncentiveConfiguration\:\:\$form\.$#'
+			message: '#^Access to an undefined property App\\Filament\\Pages\\FinancialConfiguration\:\:\$incentiveForm\.$#'
 			identifier: property.notFound
 			count: 2
-			path: app/Filament/Pages/IncentiveConfiguration.php
+			path: app/Filament/Pages/FinancialConfiguration.php
+
+		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\FinancialConfiguration\:\:\$payrollForm\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Pages/FinancialConfiguration.php
 
 		-
 			message: '#^Access to an undefined property App\\Filament\\Pages\\SystemSettings\:\:\$form\.$#'
@@ -419,18 +425,6 @@ parameters:
 			identifier: property.notFound
 			count: 7
 			path: app/Jobs/SendBulkMailBatch.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Listeners/SendFilamentActionNotifications.php
-
-		-
-			message: '#^Method App\\Listeners\\SendFilamentActionNotifications\:\:resolveMatter\(\) should return App\\Models\\Matter\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Listeners/SendFilamentActionNotifications.php
 
 		-
 			message: '#^Access to an undefined property App\\Livewire\\FontSizeSlider\:\:\$form\.$#'

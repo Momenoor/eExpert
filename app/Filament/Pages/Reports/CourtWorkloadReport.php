@@ -33,7 +33,7 @@ class CourtWorkloadReport extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.pages.court-workload-report';
 
@@ -51,6 +51,7 @@ class CourtWorkloadReport extends Page implements HasTable
     {
         return __('Court Workload');
     }
+
     public function getTablePluralModelLabel(): string
     {
         return __('courts');

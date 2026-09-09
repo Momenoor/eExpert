@@ -29,11 +29,22 @@ class MatterRequestTest extends TestCase
     {
         parent::setUp();
 
-        // This system's request-type actions gate almost everything behind
-        // Spatie ability checks; bypass them here the same way TypeResourceTest
-        // does, so tests exercise the request-type logic itself, not permissions.
+        Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+    }
+
+    /**
+     * This system's request-type actions gate almost everything behind Spatie
+     * ability checks; bypass them the same way TypeResourceTest does, so a
+     * test exercises the request-type logic itself, not permissions.
+     *
+     * Called per test rather than from setUp(): Gate::before callbacks
+     * accumulate and the first non-null answer wins, so a permissive one
+     * registered unconditionally would make the one test in this file that
+     * asserts a DENIAL unable to observe it at all.
+     */
+    private function allowEverything(): void
+    {
         Gate::before(fn () => true);
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
     private function makeMatter(array $overrides = []): Matter
@@ -55,6 +66,8 @@ class MatterRequestTest extends TestCase
 
     public function test_change_difficulty_prepares_extra_and_approving_updates_the_matter(): void
     {
+        $this->allowEverything();
+
         $matter = $this->makeMatter(['difficulty' => MatterDifficulty::EASY]);
         $user = User::factory()->create();
 
@@ -83,6 +96,8 @@ class MatterRequestTest extends TestCase
 
     public function test_change_difficulty_reject_leaves_the_matter_untouched(): void
     {
+        $this->allowEverything();
+
         $matter = $this->makeMatter(['difficulty' => MatterDifficulty::EASY]);
         $user = User::factory()->create();
 
@@ -103,6 +118,8 @@ class MatterRequestTest extends TestCase
 
     public function test_review_report_requires_attachments_and_increments_review_count_once(): void
     {
+        $this->allowEverything();
+
         $matter = $this->makeMatter(['review_count' => 0]);
         $user = User::factory()->create();
 
@@ -132,6 +149,8 @@ class MatterRequestTest extends TestCase
 
     public function test_change_distributed_date_extra_is_populated_on_create_and_applied_on_approve(): void
     {
+        $this->allowEverything();
+
         // Regression: before the refactor, CreateRequestAction never exposed a
         // form field for this type, so extra['proposed_distributed_at'] was
         // never set and approving the request silently did nothing.
@@ -168,7 +187,7 @@ class MatterRequestTest extends TestCase
         $requester = User::factory()->create();
         $stranger = User::factory()->create();
         $superAdmin = User::factory()->create();
-        $superAdmin->assignRole('super_admin');
+        $superAdmin->assignRole('super-admin');
 
         $request = MatterRequest::create([
             'matter_id' => $matter->id,
@@ -196,6 +215,8 @@ class MatterRequestTest extends TestCase
 
     public function test_confirm_report_approve_sets_final_report_memo_date_and_requires_attachments_on_reject(): void
     {
+        $this->allowEverything();
+
         $matter = $this->makeMatter();
         $user = User::factory()->create();
 
@@ -217,6 +238,8 @@ class MatterRequestTest extends TestCase
 
     public function test_approve_request_action_applies_the_change_distributed_date_side_effect_end_to_end(): void
     {
+        $this->allowEverything();
+
         $matter = $this->makeMatter(['distributed_at' => '2026-01-01']);
         $requester = User::factory()->create();
 
@@ -241,6 +264,8 @@ class MatterRequestTest extends TestCase
 
     public function test_auto_confirm_command_applies_the_proposed_date_and_leaves_recent_requests_alone(): void
     {
+        $this->allowEverything();
+
         // Regression: the scheduled command used a mass update() that flipped the
         // status columns only, so the auto-approval never applied the proposed
         // date to the matter and never notified anyone -- it did strictly less

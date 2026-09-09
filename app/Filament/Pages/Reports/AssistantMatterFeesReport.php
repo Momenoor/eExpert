@@ -29,7 +29,7 @@ class AssistantMatterFeesReport extends Page implements HasTable
 
     protected static string|null|\UnitEnum $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 7;
 
     protected string $view = 'filament.pages.assistant-matter-fees-report';
 

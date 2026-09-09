@@ -55,6 +55,6 @@ return [
 
     'activity_logger_taps' => [
         SetActivityContextTap::class,
-        \AlizHarb\ActivityLog\Taps\SetActivityContextTap::class,
+        SetActivityContextTap::class,
     ],
 ];

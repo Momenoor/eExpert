@@ -14,8 +14,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            MatterPermissionsSeeder::class,
-        ]);
+        // Kept as a single call to the seeder the installer itself runs, so a
+        // plain `php artisan migrate --seed` in local development ends up with
+        // exactly the same essential data a real deployment gets — nothing
+        // dev-only has been added here, so there is currently no difference,
+        // but the indirection means one never silently drifts from the other.
+        $this->call(ProductionDatabaseSeeder::class);
     }
 }

@@ -502,6 +502,44 @@ class IncentiveCalculatorService
     /**
      * Return a per-assistant summary collection for display / export.
      */
+    /**
+     * What each assistant is owed by a calculation, keyed by party id.
+     *
+     * The same figure as getAssistantSummary()'s `total`, obtained as one
+     * aggregate instead of by hydrating every line, matter, court, type and
+     * deduction. Payroll runs this for a whole office once a month and needs
+     * only the number; the summary exists to be read on screen and carries the
+     * per-matter workings with it.
+     *
+     * The two are asserted equal by test, because a payroll figure that quietly
+     * disagrees with the statement the assistant was shown is worse than either
+     * being wrong on its own.
+     *
+     * @return Collection<int, float>
+     */
+    public function payableByParty(Model $calculation): Collection
+    {
+        // Aliased rather than plucked straight off a raw expression: pluck reads
+        // the column by name from the result row, and an unaliased SUM() has no
+        // name to read.
+        $earned = IncentiveAssistantLine::query()
+            ->join('incentive_lines', 'incentive_lines.id', '=', 'incentive_assistant_lines.incentive_line_id')
+            ->where('incentive_lines.incentive_calculation_id', $calculation->getKey())
+            ->groupBy('incentive_assistant_lines.party_id')
+            ->selectRaw('incentive_assistant_lines.party_id as party_id')
+            ->selectRaw('SUM(incentive_assistant_lines.total_amount) as earned')
+            ->pluck('earned', 'party_id');
+
+        $deductions = IncentiveAssistantExtra::query()
+            ->where('incentive_calculation_id', $calculation->getKey())
+            ->pluck('fixed_deduction', 'party_id');
+
+        return $earned->map(fn ($total, $partyId): float => max(
+            0.0,
+            round((float) $total - (float) ($deductions[$partyId] ?? 0), 2),
+        ));
+    }
+
     public function getAssistantSummary(Model $calculation): Collection
     {
         // Per-matter fee/base totals across ALL of a matter's incentive

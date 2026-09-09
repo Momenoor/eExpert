@@ -39,6 +39,18 @@ return [
         'replicate' => 'استنساخ',
         'reorder' => 'إعادة ترتيب',
 
+        // Resource actions & approvals.
+        'send' => 'إرسال',
+        'approve' => 'اعتماد',
+        'print' => 'طباعة',
+        'generate' => 'توليد',
+        'hr_approve' => 'اعتماد الموارد البشرية',
+        'finance_approve' => 'اعتماد المالية',
+        'disburse' => 'صرف',
+        'view_journal_voucher' => 'عرض قيد اليومية',
+        'run_calculation' => 'تشغيل الاحتساب',
+        'finalize' => 'اعتماد نهائي',
+
         // Matter — scope.
         'view_own' => 'عرض ملفاته فقط',
         'view_trashed' => 'عرض المحذوفات',
@@ -61,6 +73,8 @@ return [
         'create_request' => 'إنشاء طلب',
         'approve_request' => 'اعتماد الطلب',
         'reject_request' => 'رفض الطلب',
+        'create_matter_request' => 'إنشاء طلب قضية',
+        'edit_request' => 'تعديل طلب',
 
         // Matter — fees and collections.
         'create_fee' => 'إضافة أتعاب',
@@ -80,6 +94,16 @@ return [
         'import_from_outlook' => 'استيراد من Outlook',
         'sync_to_outlook' => 'المزامنة مع Outlook',
 
+        // Custom permissions.
+        'create_matter_request_matter_request' => 'إنشاء طلب قضية',
+        'edit_request_matter_request' => 'تعديل طلب قضية',
+        'delete_any_bulk_mail_campaign' => 'حذف حملات البريد الجماعي',
+        'send_bulk_mail_campaign' => 'إرسال حملة البريد الجماعي',
+        'delete_any_bulk_mail_campaign_bulk_mail_campaign' => 'حذف حملات البريد الجماعي',
+        'send_bulk_mail_campaign_bulk_mail_campaign' => 'إرسال حملة البريد الجماعي',
+        'delete_any_incentive_meta_adjustment' => 'حذف تعديلات الحافز',
+        'delete_any_letter_template' => 'حذف قوالب الخطابات',
+
         // Pages.
         'view_admin_dashboard' => 'لوحة التحكم',
         'view_assistant_matter_fees_report' => 'تقرير أتعاب المساعدين',
@@ -94,15 +118,26 @@ return [
         'view_incentive_configuration' => 'تهيئة الحافز',
         'view_matter_quality_report' => 'الجودة وإعادة العمل',
         'view_matters_monthly_report' => 'تقرير القضايا الشهري',
+        'view_my_incentive' => 'حافزي',
         'view_my_matters_report' => 'قضاياي',
         'view_overdue_matters_report' => 'القضايا المتأخرة',
+        'view_permission_maintenance' => 'صيانة الصلاحيات',
         'view_system_settings' => 'إعدادات النظام',
         'view_type_profitability_report' => 'الربحية حسب نوع القضية',
         'view_vat_summary_report' => 'ملخص ضريبة القيمة المضافة',
+        'view_audit_dashboard' => 'لوحة تدقيق العمليات',
+        'view_activity_logs' => 'سجل الأنشطة',
+        'view_failed_import_rows' => 'صفوف الاستيراد الفاشلة',
+        'view_import_matters' => 'استيراد القضايا',
 
         // Widgets.
+        'view_activity_chart_widget' => 'النشاط عبر الوقت',
+        'view_activity_heatmap_widget' => 'الخريطة الحرارية للنشاط',
+        'view_activity_over_time_widget' => 'النشاط عبر الوقت',
+        'view_activity_stats_widget' => 'إحصائيات النشاط',
         'view_assistant_matter_count_table_widget' => 'جدول عدد ملفات المساعدين',
         'view_assistant_matters_count_chart_widget' => 'رسم عدد ملفات المساعدين',
+        'view_assistant_matter_count_chart_widget' => 'رسم عدد ملفات المساعدين',
         'view_attention_needed_widget' => 'يتطلب الانتباه',
         'view_calendar_widget' => 'التقويم',
         'view_collections_aging_widget' => 'تقادم التحصيل',
@@ -110,6 +145,8 @@ return [
         'view_incentive_meta_adjustments_overview_widget' => 'نظرة عامة على تعديلات الحافز',
         'view_incentive_summary_table_widget' => 'جدول ملخص الحافز',
         'view_incentive_type_configs_overview_widget' => 'نظرة عامة على إعدادات الحافز حسب النوع',
+        'view_latest_activities_widget' => 'آخر الأنشطة',
+        'view_latest_activity_widget' => 'آخر الأنشطة',
         'view_matter_stats_widget' => 'إحصائيات القضايا',
         'view_matters_per_year_widget' => 'القضايا المستلمة سنويًا',
         'view_upcoming_sessions_widget' => 'الجلسات القادمة',

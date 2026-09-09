@@ -27,14 +27,19 @@ class PartyLeaveResource extends Resource
         return __('Leaves / Vacations');
     }
 
+    /**
+     * The ledger every approved request lands in, and that the incentive
+     * calculator prorates monthly quotas from. Named for what it is so it is not
+     * mistaken for the request queue that now sits above it.
+     */
     public static function getNavigationLabel(): string
     {
-        return __('Leaves / Vacations');
+        return __('Leave Ledger');
     }
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Finance');
+        return __('Human Resources');
     }
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-calendar-days';

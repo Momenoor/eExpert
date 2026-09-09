@@ -30,8 +30,14 @@ class ChangeDistributedAtRequestService extends BaseRequestService
 
     public function canBeApproved(User $user): bool
     {
+        // Update:MatterRequest rather than a role check — the sibling
+        // BaseRequestService::canBeActedOnBy() already treats that permission
+        // as the elevated-approval ability for ordinary requests, and Shield's
+        // Gate::before makes it true unconditionally for super-admins, so this
+        // stays behaviourally identical to the hardcoded role check it replaces
+        // while using the same permission both classes now agree on.
         return $this->request->status === RequestStatus::PENDING
-            && (auth()->id() === $this->request->request_by || $user->hasAnyRole('super-admin', 'super_admin'));
+            && (auth()->id() === $this->request->request_by || $user->can('Update:MatterRequest'));
     }
 
     public function canBeRejected(User $user): bool

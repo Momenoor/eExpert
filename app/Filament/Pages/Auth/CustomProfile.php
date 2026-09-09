@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Auth;
 
+use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Auth\Pages\EditProfile;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -29,7 +30,7 @@ class CustomProfile extends EditProfile
                 ->required(),
             Toggle::make('notify_by_whatsapp')
                 ->label(__('Notify by Whatsapp'))
-                ->visible(fn () => auth()->user()->hasAnyRole(['super-admin', 'super_admin']))
+                ->visible(fn () => auth()->user()->hasRole(Utils::getSuperAdminName()))
                 ->required(),
             Toggle::make('notify_by_email')
                 ->label(__('Notify by Email'))

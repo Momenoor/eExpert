@@ -39,7 +39,7 @@ class BulkMailCampaignPolicy
 
     public function deleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('DeleteAny:BulkMailCampaign') || $authUser->can('delete_any_bulk_mail_campaign');
+        return $authUser->can('DeleteAny:BulkMailCampaign');
     }
 
     public function restore(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
@@ -74,6 +74,6 @@ class BulkMailCampaignPolicy
 
     public function send(AuthUser $authUser, BulkMailCampaign $bulkMailCampaign): bool
     {
-        return $authUser->can('Send:BulkMailCampaign') || $authUser->can('send_bulk_mail_campaign');
+        return $authUser->can('Send:BulkMailCampaign');
     }
 }

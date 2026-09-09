@@ -1,59 +1,352 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# JPA Emirates
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A legal case management and enterprise operations platform built with **Laravel 13** and **Filament PHP v5**. The application provides end-to-end management for legal matters, court tracking, party allocations, human resources (payroll, employee loans, leave requests), incentive calculation engines, bulk email campaigns, calendar synchronization via Microsoft Graph, and role-based access control.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Table of Contents
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [System Requirements](#system-requirements)
+- [Installation & Setup](#installation--setup)
+- [Running the Application](#running-the-application)
+- [Entry Points & Routing](#entry-points--routing)
+- [Available Scripts](#available-scripts)
+- [Environment Variables](#environment-variables)
+- [Testing](#testing)
+- [Project Structure](#project-structure)
+- [License](#license)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Overview
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+**JPA Emirates** is tailored for legal firms and legal operations within the UAE. It streamlines case lifecycles, automates commission and incentive calculations for legal assistants and consultants, handles multi-currency and AED-centric accounting/payroll runs with journal voucher exports, and provides bilingual support (Arabic default, English fallback).
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Key Features
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **Legal Matter Management**: Comprehensive tracking of legal matters, courts, claim types, statuses, document attachments, and dynamic matter metadata.
+- **Party & Allocation Tracking**: Management of plaintiffs, defendants, assignees, and party leaves.
+- **Workflow & Matter Requests**: Request approval lifecycle (e.g., received date disputes, date changes) with signed email links and in-app notifications.
+- **HR & Payroll Engine**:
+  - Employee profiles and salary component definitions.
+  - Leave entitlement calculation and leave request workflows.
+  - Employee loan management with monthly installment tracking.
+  - End of Service Gratuity (EOSG) accruals.
+  - Payroll runs with automated payslip generation and printable journal vouchers.
+- **Incentive Calculation Engine**: Multi-tiered incentive calculation based on matter types, custom extra rules, and assistant allocations with printable statements.
+- **Bulk Email Campaigns**: Targeted campaigns with tracking, recipient management, preview generation, and unsubscribe workflows.
+- **Calendar & Third-Party Integrations**: FullCalendar view, Microsoft Graph calendar sync and mailer integration, plus WhatsApp notifications.
+- **Security & Access Control**: Granular permissions and role-based access control via Filament Shield, user impersonation, and detailed activity auditing.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Tech Stack
 
-## Contributing
+| Component | Technology / Library | Version |
+|---|---|---|
+| **Language** | PHP | `^8.5` |
+| **Backend Framework** | Laravel | `^13.0` |
+| **Admin UI Framework** | Filament PHP | `^5.0` |
+| **Frontend / Reactive** | Livewire & Alpine.js | `^4.0` |
+| **CSS Framework** | Tailwind CSS | `^4.0` |
+| **Asset Bundler** | Vite | `^7.0` |
+| **Package Managers** | Composer & npm | Latest |
+| **Testing Framework** | PHPUnit | `^12.0` |
+| **Code Formatter** | Laravel Pint | `^1.24` |
+| **Static Analysis** | Larastan / PHPStan | `^3.10` |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## System Requirements
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **PHP**: `>= 8.5` with extensions:
+  - `ext-pdo` / `ext-pdo_mysql`
+  - `ext-zip`
+  - `ext-mbstring`
+  - `ext-openssl`
+  - `ext-curl`
+  - `ext-bcmath`
+  - `ext-intl`
+  - `ext-fileinfo`
+- **Composer**: `>= 2.2`
+- **Node.js**: `>= 20.x` and **npm**: `>= 10.x`
+- **Database**: MySQL `>= 8.0`, MariaDB `>= 10.4`, or SQLite (local/testing)
+- **Web Server**: Nginx, Apache, Laravel Sail, or Laragon / Valet
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url> jpa-emirates
+cd jpa-emirates
+```
+
+### 2. Automated Setup (Quick Start)
+
+You can run Composer's automated setup script which installs dependencies, creates the `.env` file, generates the application key, runs migrations, and builds frontend assets:
+
+```bash
+composer run setup
+```
+
+---
+
+### 3. Manual Step-by-Step Installation
+
+If you prefer to configure each step manually:
+
+#### A. Install PHP & JavaScript Dependencies
+
+```bash
+composer install
+npm install
+```
+
+#### B. Environment Configuration
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Edit `.env` to configure your database connection, mail settings, and application URLs.
+
+#### C. Run Database Migrations & Seeders
+
+```bash
+php artisan migrate --seed
+```
+
+*Note: You can also use the interactive web installer by accessing `/install` in your browser.*
+
+#### D. Create Storage Symlink
+
+```bash
+php artisan storage:link
+```
+
+#### E. Build Frontend Assets
+
+```bash
+npm run build
+```
+
+---
+
+## Running the Application
+
+### Option 1: All-in-One Development Command
+
+Run the web server, queue listener, Laravel Pail log stream, and Vite bundler concurrently:
+
+```bash
+composer run dev
+```
+
+### Option 2: Running Services Individually
+
+Start each component in a separate terminal:
+
+```bash
+# Terminal 1: Laravel Web Server
+php artisan serve
+
+# Terminal 2: Vite Dev Server (Hot Module Reloading)
+npm run dev
+
+# Terminal 3: Queue Worker
+php artisan queue:work
+
+# Terminal 4 (Optional): Real-time Log Tailing
+php artisan pail
+```
+
+---
+
+## Entry Points & Routing
+
+### Web & Admin Interfaces
+
+| Route / URI | Description | Access |
+|---|---|---|
+| `/` | Application root (redirects to admin/login) | Public |
+| `/login` | Authentication entry point (redirects to Filament login) | Public |
+| `/admin` | Filament Admin Panel dashboard & resources | Authenticated / Roles |
+| `/install` | Web setup & installation wizard | Installer Guard |
+| `/admin/system-down` | Custom maintenance / system-down page | Public |
+
+### Functional Endpoints
+
+| Route / URI | Description | Access |
+|---|---|---|
+| `admin/matter/{matter}/received-date/accept/{matterRequest}` | Accept matter assigned date | Signed URL |
+| `admin/matter/{matter}/received-date/dispute/{matterRequest}` | Dispute matter assigned date | Signed URL |
+| `bulk-mail/preview/{campaign}/{recipient}` | Preview bulk email template for recipient | Authenticated |
+| `mail/unsubscribe/{token}` | Bulk email unsubscribe handler | Public |
+| `attachments/{attachment}/download` | Secure matter attachment download | Authenticated |
+| `incentive/calculations/{calculation}/print` | Print incentive calculation sheet | Authenticated |
+| `incentive/calculations/{calculation}/print/{party}` | Print assistant-specific incentive statement | Authenticated |
+| `payroll/runs/{run}/journal-voucher/print` | Print payroll journal voucher (PDF) | Authenticated |
+
+### Scheduled Console Commands
+
+- `mail:send-bulk-campaigns`: Scheduled daily at `08:00` (timezone `Asia/Dubai`) via `routes/console.php`.
+
+---
+
+## Available Scripts
+
+### Composer Scripts
+
+| Command | Description |
+|---|---|
+| `composer run setup` | Full bootstrap: installs packages, creates `.env`, generates app key, migrates DB, and builds assets |
+| `composer run dev` | Runs `serve`, `queue:listen`, `pail`, and `vite` concurrently using `concurrently` |
+| `composer run test` | Clears configuration cache and runs the test suite |
+| `composer run post-autoload-dump` | Auto-discovers packages and runs `filament:upgrade` |
+
+### NPM Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Starts the Vite development server with Tailwind CSS v4 support |
+| `npm run build` | Compiles and minifies frontend assets for production |
+
+### Code Quality & Analysis
+
+```bash
+# Format PHP code with Laravel Pint
+vendor/bin/pint --dirty --format agent
+
+# Run static analysis with PHPStan / Larastan
+vendor/bin/phpstan analyse
+```
+
+---
+
+## Environment Variables
+
+Key configuration variables defined in `.env.example`:
+
+### Application & Localization
+
+| Variable | Description | Default |
+|---|---|---|
+| `APP_NAME` | Name of the application | `JPA Emirates` |
+| `APP_ENV` | Environment (`local`, `production`, `testing`) | `local` |
+| `APP_KEY` | 32-character encryption key | Generated |
+| `APP_DEBUG` | Enable/disable debug mode | `true` |
+| `APP_URL` | Base application URL | `http://localhost` |
+| `APP_LOCALE` | Default locale | `ar` |
+| `APP_FALLBACK_LOCALE` | Fallback locale | `en` |
+| `APP_CURRENCY` | Default currency code | `AED` |
+| `APP_TIMEZONE` | Default timezone | `Asia/Muscat` |
+
+### Database & Storage
+
+| Variable | Description | Default |
+|---|---|---|
+| `DB_CONNECTION` | Database driver (`mysql`, `sqlite`, etc.) | `mysql` |
+| `DB_HOST` | Database host | `127.0.0.1` |
+| `DB_PORT` | Database port | `3306` |
+| `DB_DATABASE` | Database name | - |
+| `DB_USERNAME` | Database user | - |
+| `DB_PASSWORD` | Database password | - |
+| `FILESYSTEM_DISK` | Storage driver (`local`, `public`, `s3`) | `local` |
+| `QUEUE_CONNECTION` | Queue driver (`database`, `redis`, `sync`) | `database` |
+
+### Third-Party Integrations
+
+| Variable | Description |
+|---|---|
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Microsoft Azure AD App Credentials |
+| `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Azure Tenant ID & OAuth Redirect URI |
+| `MICROSOFT_CALENDAR_EMAIL` | Outlook calendar target account email |
+| `MICROSOFT_GRAPH_*` | Microsoft Graph API mailer credentials |
+| `WHATSAPP_TOKEN` / `WHATSAPP_FROM` / `WHATSAPP_PHONE_ID` | WhatsApp Business API credentials for notification dispatch |
+
+> **TODO**: Configure external service credentials (Microsoft Graph, WhatsApp API, AWS S3) in staging/production environments.
+
+---
+
+## Testing
+
+The application uses **PHPUnit 12** for feature and unit tests.
+
+### Running Tests
+
+```bash
+# Run all tests
+php artisan test --compact
+
+# Run tests via Composer script
+composer test
+
+# Run a specific test suite or file
+php artisan test --compact tests/Feature/IncentiveCalculatorServiceTest.php
+
+# Run a filtered test method
+php artisan test --compact --filter=test_calculates_incentive_correctly
+```
+
+---
+
+## Project Structure
+
+```
+jpa-emirates/
+├── app/
+│   ├── Console/Commands/        # Custom Artisan commands (bulk mail, sync, etc.)
+│   ├── Enums/                   # Enums for statuses, types, and priorities
+│   ├── Filament/                # Filament v5 admin panel structure
+│   │   ├── Actions/             # Reusable custom actions
+│   │   ├── Pages/               # Custom Filament pages & dashboard
+│   │   ├── Resources/           # Domain resources (Matters, Payroll, Leaves, etc.)
+│   │   │   └── [Resource]/
+│   │   │       ├── Schemas/     # Separated form schema definitions
+│   │   │       ├── Tables/      # Separated table definitions
+│   │   │       └── Pages/       # List, Create, Edit, View pages
+│   │   └── Widgets/             # Dashboard and resource widgets
+│   ├── Http/
+│   │   ├── Controllers/         # Document printing, downloads & signed links
+│   │   └── Middleware/          # Maintenance & installation guards
+│   ├── Models/                  # Eloquent models (Matter, PayrollRun, Employee, etc.)
+│   ├── Policies/                # Authorization policies (Filament Shield)
+│   ├── Providers/
+│   │   ├── AppServiceProvider.php
+│   │   └── Filament/AdminPanelProvider.php
+│   └── Services/                # Business logic services (Incentives, Payroll, WhatsApp)
+├── config/                      # Application configuration files
+├── database/
+│   ├── factories/               # Model factories for testing and seeding
+│   ├── migrations/              # Database migration files
+│   └── seeders/                 # Database seeders (Shield permissions, default data)
+├── lang/                        # Localization files (`ar.json`, `en.json`, vendor translations)
+├── public/                      # Web root / compiled public assets
+├── resources/
+│   ├── css/                     # Tailwind CSS v4 styling
+│   ├── js/                      # Frontend JavaScript
+│   └── views/                   # Blade templates & printable documents
+├── routes/
+│   ├── console.php              # Scheduled commands & console routes
+│   └── web.php                  # Web and signed link routes
+└── tests/
+    ├── Feature/                 # Feature tests for resources, services, and widgets
+    └── Unit/                    # Unit tests
+```
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is licensed under the [MIT License](LICENSE) (or organizational proprietary terms where applicable).
+
+> **TODO**: Confirm legal distribution terms and licensing specifics with project stakeholders.

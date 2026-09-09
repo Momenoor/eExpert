@@ -10,6 +10,7 @@ use App\Models\Matter;
 use App\Models\MatterRequest;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
@@ -87,7 +88,11 @@ abstract class BaseRequestService
 
     private function canBeActedOnBy(User $user, string $matterPermission): bool
     {
-        if (! ($user->can('EditRequest:MatterRequest') || $user->can($matterPermission) || $user->hasAnyRole('super-admin', 'super_admin'))) {
+        // No role check needed here: Shield's Gate::before already makes both
+        // of these can() calls true unconditionally for the super-admin role,
+        // so a hardcoded hasAnyRole(['super-admin', 'super_admin']) fallback
+        // would only ever fire for a case these two permissions already cover.
+        if (! ($user->can('Update:MatterRequest') || $user->can($matterPermission))) {
             return false;
         }
 
@@ -173,7 +178,11 @@ abstract class BaseRequestService
     public function onCreateNotify(): void
     {
         try {
-            $users = User::role(['admin', 'super-admin', 'super_admin'])->get();
+            // Not an authorization decision — Gate::before has nothing to say
+            // about "which users hold this role" — so this still names the
+            // role, but through Shield's own configured name rather than a
+            // hardcoded literal that has to be kept in sync with it by hand.
+            $users = User::role(['admin', Utils::getSuperAdminName()])->get();
             $this->notify(
                 __('Request Created'),
                 __('A new :type request has been created, for matter #:number / :year', [

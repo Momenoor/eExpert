@@ -36,7 +36,7 @@ class TypeProfitabilityReport extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 13;
 
     protected string $view = 'filament.pages.type-profitability-report';
 

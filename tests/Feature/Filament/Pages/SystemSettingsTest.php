@@ -22,13 +22,28 @@ class SystemSettingsTest extends TestCase
     {
         parent::setUp();
 
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        // 'super-admin' (hyphenated) is the role name Shield's config actually
+        // points at — see config/filament-shield.php.
+        Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
 
         $this->admin = User::factory()->create();
-        $this->admin->assignRole('super_admin');
+        $this->admin->assignRole('super-admin');
         $this->actingAs($this->admin);
 
         Filament::setCurrentPanel('admin');
+    }
+
+    protected function tearDown(): void
+    {
+        // Setting's in-memory runtime cache is a static property that outlives
+        // RefreshDatabase's per-test rollback. test_can_fill_and_save_settings
+        // sets app_offline to true and then reads it back, which re-warms that
+        // cache with the offline flag on — left uncleared, every test running
+        // afterward in the same process finds the app "offline" regardless of
+        // what the database actually holds.
+        Setting::clearCache();
+
+        parent::tearDown();
     }
 
     public function test_can_render_system_settings_page(): void

@@ -1,8 +1,15 @@
 <?php
 
 declare(strict_types=1);
+use App\Filament\Resources\BulkMailCampaigns\BulkMailCampaignResource;
 use App\Filament\Resources\CalendarEvents\CalendarEventResource;
+use App\Filament\Resources\EmployeeLoans\EmployeeLoanResource;
+use App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource;
+use App\Filament\Resources\Incentive\IncentiveMetaAdjustments\IncentiveMetaAdjustmentResource;
+use App\Filament\Resources\LeaveRequests\LeaveRequestResource;
+use App\Filament\Resources\LetterTemplates\LetterTemplateResource;
 use App\Filament\Resources\Matters\MatterResource;
+use App\Filament\Resources\PayrollRuns\PayrollRunResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
@@ -72,8 +79,24 @@ return [
 
     'super_admin' => [
         'enabled' => true,
-        'name' => 'super_admin',
-        'define_via_gate' => false,
+        // 'super-admin' (hyphenated), not 'super_admin'. The two roles drifted
+        // apart in this database — 'super_admin' is what earlier config pointed
+        // at and has zero users; 'super-admin' is what the real administrators
+        // actually hold. Pointing Shield at the role people are actually on,
+        // rather than migrating two live user accounts onto a different role,
+        // is the safe direction for that fix — a config value is reversible, a
+        // live role reassignment is not.
+        'name' => 'super-admin',
+        // Was false: every one of this role's 387 permissions had to be granted
+        // explicitly (via AllPermissionsSeeder), and the two spellings drifted
+        // to different permission counts as a result (see
+        // AccessControlRepairService). Gate::before is Shield's own built-in
+        // bypass — true here means a user holding 'super-admin' passes every
+        // ability check unconditionally, which is what "super administrator"
+        // is supposed to mean, and it is what lets every hardcoded
+        // hasAnyRole(['super-admin', 'super_admin']) check scattered through
+        // this app collapse into a single ordinary permission check.
+        'define_via_gate' => true,
         'intercept_gate' => 'before',
     ],
 
@@ -171,6 +194,26 @@ return [
     'resources' => [
         'subject' => 'model',
         'manage' => [
+            // Abilities beyond Shield's standard prefixes. Anything a policy
+            // checks but that is NOT listed here is invisible to the role
+            // editor — and because that editor SYNCS a role's permissions, it
+            // silently strips every unlisted grant the next time anyone saves a
+            // role. That is not hypothetical: the payroll module's five approval
+            // abilities were granted by seeder and wiped nineteen seconds before
+            // the first payroll run, which is why nobody could press Generate.
+            EmployeeLoanResource::class => [
+                'approve',
+            ],
+            LeaveRequestResource::class => [
+                'approve',
+            ],
+            PayrollRunResource::class => [
+                'generate',
+                'hrApprove',
+                'financeApprove',
+                'disburse',
+                'viewJournalVoucher',
+            ],
             RoleResource::class => [
                 'viewAny',
                 'view',
@@ -221,9 +264,21 @@ return [
                 'syncToOutlook',
             ],
 
-            App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource::class => [
-                'Print',
-            ]
+            IncentiveCalculationResource::class => [
+                'runCalculation',
+                'finalize',
+                'print',
+            ],
+            BulkMailCampaignResource::class => [
+                'deleteAny',
+                'send',
+            ],
+            IncentiveMetaAdjustmentResource::class => [
+                'deleteAny',
+            ],
+            LetterTemplateResource::class => [
+                'deleteAny',
+            ],
         ],
         'exclude' => [
             //
@@ -280,7 +335,9 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        // No custom permissions needed - all permissions follow their resource, page, or widget.
+    ],
 
     /*
     |--------------------------------------------------------------------------
