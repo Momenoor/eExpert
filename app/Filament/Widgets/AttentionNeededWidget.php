@@ -30,7 +30,7 @@ class AttentionNeededWidget extends StatsOverviewWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->can('ViewAny:Matter') ?? false;
+        return auth()->user()?->can('View:AttentionNeededWidget') ?? false;
     }
 
     protected function getStats(): array
