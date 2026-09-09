@@ -3,13 +3,14 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -19,7 +20,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * Every matter carrying a deduction fee, and whether its money reconciles.
@@ -41,16 +41,11 @@ class DeductionsReconciliationReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-scale';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 12;
 
     protected string $view = 'filament.pages.deductions-reconciliation-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -226,20 +221,19 @@ class DeductionsReconciliationReport extends Page implements HasTable
                         fn ($q, $type) => $q->whereHas('fees', fn ($f) => $f->where('type', $type))
                     )),
 
-                Filter::make('billed_between')
-                    ->label(__('Fee Date'))
-                    ->schema([
-                        Section::make(__('Fee Date'))->schema([
-                            DatePicker::make('from')->label(__('From')),
-                            DatePicker::make('until')->label(__('Until')),
-                        ])->columns(2),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn ($q, $v) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '>=', $v)))
-                        ->when($data['until'] ?? null, fn ($q, $v) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '<=', $v)))
-                    ),
+                ReportDateRangeFilter::make(
+                    column: 'fees.date',
+                    label: __('Fee Date'),
+                    name: 'billed_between',
+                    applyUsing: fn (Builder $query, $from, $until) => $query
+                        ->when($from, fn ($q) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '>=', $from->toDateString())))
+                        ->when($until, fn ($q) => $q->whereHas('fees', fn ($f) => $f->whereDate('date', '<=', $until->toDateString()))),
+                ),
             ])
             ->filtersFormWidth(Width::ExtraLarge)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('deductions_reconciliation');
     }
 }

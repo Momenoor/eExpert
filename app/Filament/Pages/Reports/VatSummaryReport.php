@@ -3,13 +3,14 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Fee;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -18,7 +19,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * VAT charged and collected, per fee, for a filing period.
@@ -38,16 +38,11 @@ class VatSummaryReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-receipt-percent';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 11;
 
     protected string $view = 'filament.pages.vat-summary-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -133,25 +128,11 @@ class VatSummaryReport extends Page implements HasTable
                     ->badge(),
             ])
             ->filters([
-                Filter::make('period')
-                    ->label(__('Period'))
-                    ->schema([
-                        Section::make(__('Period'))->schema([
-                            DatePicker::make('from')->label(__('From')),
-                            DatePicker::make('until')->label(__('Until')),
-                        ])->columns(2),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn ($q, $v) => $q->whereDate('fees.date', '>=', $v))
-                        ->when($data['until'] ?? null, fn ($q, $v) => $q->whereDate('fees.date', '<=', $v))
-                    )
-                    ->indicateUsing(function (array $data) {
-                        if (! ($data['from'] ?? null) && ! ($data['until'] ?? null)) {
-                            return null;
-                        }
-
-                        return __('Period').': '.($data['from'] ?? '…').' → '.($data['until'] ?? '…');
-                    }),
+                ReportDateRangeFilter::make(
+                    column: 'fees.date',
+                    label: __('Period'),
+                    name: 'period',
+                ),
 
                 Filter::make('uncollected_only')
                     ->label(__('Not fully collected'))
@@ -160,6 +141,9 @@ class VatSummaryReport extends Page implements HasTable
                     )),
             ])
             ->filtersFormWidth(Width::ExtraLarge)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('vat_summary');
     }
 }

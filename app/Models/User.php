@@ -69,7 +69,19 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'font_size' => 'integer',
         'notify_by_email' => 'boolean',
         'notify_by_whatsapp' => 'boolean',
+        'last_seen_at' => 'datetime',
     ];
+
+    /**
+     * "Online" is a 60-second window on last_seen_at (itself throttled to a
+     * 30-second write cadence by TrackUserLastSeen), not a live socket
+     * presence check — good enough for a colored dot in the chat widget
+     * without the extra machinery of a presence channel.
+     */
+    public function isOnline(): bool
+    {
+        return (bool) $this->last_seen_at?->gt(now()->subSeconds(60));
+    }
 
     /**
      * The Party record this user acts as (assistant, expert, etc.).

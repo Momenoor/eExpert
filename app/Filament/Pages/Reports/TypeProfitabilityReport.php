@@ -3,7 +3,10 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Models\Type;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Pages\Page;
@@ -15,7 +18,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * Which categories of work actually pay.
@@ -34,16 +36,11 @@ class TypeProfitabilityReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 13;
 
     protected string $view = 'filament.pages.type-profitability-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -187,8 +184,24 @@ class TypeProfitabilityReport extends Page implements HasTable
                 Filter::make('active_only')
                     ->label(__('Active types only'))
                     ->query(fn (Builder $query) => $query->where('active', true)),
+
+                // Same caveat as the other aggregate-by-entity reports: this
+                // narrows WHICH types appear, not the lifetime totals shown.
+                ReportDateRangeFilter::make(
+                    column: 'matters.distributed_at',
+                    label: __('Matter Distributed'),
+                    applyUsing: fn (Builder $query, $from, $until) => $query->whereHas(
+                        'matters',
+                        fn ($q) => $q
+                            ->when($from, fn ($q) => $q->whereDate('matters.distributed_at', '>=', $from->toDateString()))
+                            ->when($until, fn ($q) => $q->whereDate('matters.distributed_at', '<=', $until->toDateString()))
+                    ),
+                ),
             ])
             ->filtersFormWidth(Width::Medium)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('type_profitability');
     }
 }

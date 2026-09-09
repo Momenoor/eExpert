@@ -132,7 +132,7 @@ class ReportFiltersTest extends TestCase
         $old = $this->owingMatter(200);
 
         Livewire::test(FeeCollectionAgingReport::class)
-            ->filterTable('billed_between', ['billed_from' => now()->subDays(30)->toDateString()])
+            ->filterTable('billed_between', ['from' => now()->subDays(30)->toDateString()])
             ->assertCanSeeTableRecords([$recent])
             ->assertCanNotSeeTableRecords([$old]);
     }
@@ -450,7 +450,7 @@ class ReportFiltersTest extends TestCase
             'type' => $type->id,
             // A matter with no fees settles to NO_FEES; the model recomputes it.
             'collection_status' => ['no_fees'],
-            'distributed_at' => ['received_from' => '2023-01-01', 'received_until' => '2023-06-30'],
+            'distributed_at' => ['from' => '2023-01-01', 'until' => '2023-06-30'],
         ];
 
         foreach ($cases as $filter => $value) {

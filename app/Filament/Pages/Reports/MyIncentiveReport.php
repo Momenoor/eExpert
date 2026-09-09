@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Reports;
 
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
@@ -21,7 +22,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use UnitEnum;
 
 /**
  * An assistant's own incentive, one calculation at a time.
@@ -45,7 +45,7 @@ class MyIncentiveReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 1;
 
@@ -73,11 +73,6 @@ class MyIncentiveReport extends Page implements HasTable
     public function getTitle(): string
     {
         return __('My Incentive');
-    }
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
     }
 
     /**

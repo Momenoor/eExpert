@@ -2,17 +2,18 @@
 
 namespace App\Filament\Pages\Reports;
 
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
 use App\Models\Matter;
 use App\Models\Party;
 use App\Models\Type;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use App\Support\Sql;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -23,7 +24,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use UnitEnum;
 
 /**
  * What is owed, what came in, what is still outstanding, and how overdue it is.
@@ -56,16 +56,11 @@ class FeeCollectionAgingReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 10;
 
     protected string $view = 'filament.pages.fee-collection-aging-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -245,21 +240,17 @@ class FeeCollectionAgingReport extends Page implements HasTable
                         )
                     )),
 
-                Filter::make('billed_between')
-                    ->label(__('First Billed'))
-                    ->schema([
-                        Section::make(__('First Billed'))->schema([
-                            DatePicker::make('billed_from')->label(__('From')),
-                            DatePicker::make('billed_until')->label(__('Until')),
-                        ])->columns(2),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['billed_from'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '>=', $v))
-                        ->when($data['billed_until'] ?? null, fn ($q, $v) => $q->whereDate('billed.first_billed', '<=', $v))
-                    ),
+                ReportDateRangeFilter::make(
+                    column: 'billed.first_billed',
+                    label: __('First Billed'),
+                    name: 'billed_between',
+                ),
             ])
             ->filtersFormWidth(Width::ExtraLarge)
             ->persistSearchInSession()
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('fee_aging');
     }
 }

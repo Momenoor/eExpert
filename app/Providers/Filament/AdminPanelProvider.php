@@ -8,6 +8,7 @@ use App\Filament\Pages\Auth\CustomLogin;
 use App\Filament\Pages\Auth\CustomProfile;
 use App\Http\Middleware\CheckSystemOffline;
 use App\Http\Middleware\RedirectToInstaller;
+use App\Http\Middleware\TrackUserLastSeen;
 use App\Models\Setting;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BezhanSalleh\FilamentShield\Support\Utils;
@@ -68,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ->profile(CustomProfile::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->renderHook(
                 PanelsRenderHook::USER_MENU_PROFILE_AFTER,
@@ -90,12 +92,12 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 CheckSystemOffline::class,
+                TrackUserLastSeen::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make(__('Communication')),
                 NavigationGroup::make(__('Financial')),
                 NavigationGroup::make(__('Human Resources')),
-                NavigationGroup::make(__('Reports')),
                 NavigationGroup::make(__('Settings')),
                 NavigationGroup::make(__('Filament Shield')),
             ])
@@ -173,6 +175,24 @@ class AdminPanelProvider extends PanelProvider
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn (): string => Blade::render("@livewire('notification-poller')")
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            function (): string {
+                if (! Auth::check()) {
+                    return '';
+                }
+
+                // Not shown on the Chat page itself — that page already embeds
+                // the same component full-screen, so the floating bubble would
+                // just be a redundant second copy of it sitting on top.
+                if (request()->routeIs('filament.admin.pages.chat')) {
+                    return '';
+                }
+
+                return Blade::render("@livewire('chat-widget', ['mode' => 'popup'])");
+            }
         );
 
         FilamentView::registerRenderHook(

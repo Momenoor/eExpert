@@ -3,7 +3,10 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Models\Court;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Pages\Page;
@@ -15,7 +18,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * Where the work comes from, and how much of it is still open.
@@ -31,16 +33,11 @@ class CourtWorkloadReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-library';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.pages.court-workload-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -161,8 +158,26 @@ class CourtWorkloadReport extends Page implements HasTable
                         'matters',
                         fn ($q) => $q->whereNull('final_report_at')
                     )),
+
+                // Same caveat as AssistantPerformanceReport's own date
+                // filter: this narrows WHICH courts appear (only those with a
+                // matter distributed in range), it does not re-scope the
+                // lifetime totals shown for the courts that do.
+                ReportDateRangeFilter::make(
+                    column: 'matters.distributed_at',
+                    label: __('Matter Distributed'),
+                    applyUsing: fn (Builder $query, $from, $until) => $query->whereHas(
+                        'matters',
+                        fn ($q) => $q
+                            ->when($from, fn ($q) => $q->whereDate('matters.distributed_at', '>=', $from->toDateString()))
+                            ->when($until, fn ($q) => $q->whereDate('matters.distributed_at', '<=', $until->toDateString()))
+                    ),
+                ),
             ])
             ->filtersFormWidth(Width::Medium)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('court_workload');
     }
 }

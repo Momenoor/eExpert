@@ -3,18 +3,19 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\MatterDifficulty;
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
 use App\Models\Matter;
 use App\Models\Party;
 use App\Models\Type;
 use App\Services\IncentiveCalculatorService;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Carbon\Carbon;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Summarizers\Sum;
@@ -25,7 +26,6 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * Rework and quality signals per matter.
@@ -46,16 +46,11 @@ class MatterQualityReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.matter-quality-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -214,21 +209,17 @@ class MatterQualityReport extends Page implements HasTable
                         fn ($q, $partyId) => $q->whereHas('assistantsOnly', fn ($a) => $a->where('party_id', $partyId))
                     )),
 
-                Filter::make('final_report_between')
-                    ->label(__('Final Report Date'))
-                    ->schema([
-                        Section::make(__('Final Report Date'))->schema([
-                            DatePicker::make('from')->label(__('From')),
-                            DatePicker::make('until')->label(__('Until')),
-                        ])->columns(2),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn ($q, $v) => $q->whereDate('final_report_at', '>=', $v))
-                        ->when($data['until'] ?? null, fn ($q, $v) => $q->whereDate('final_report_at', '<=', $v))
-                    ),
+                ReportDateRangeFilter::make(
+                    column: 'final_report_at',
+                    label: __('Final Report Date'),
+                    name: 'final_report_between',
+                ),
             ])
             ->filtersFormWidth(Width::ExtraLarge)
             ->persistSearchInSession()
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('quality');
     }
 }

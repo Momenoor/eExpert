@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Reports;
 
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Court;
 use App\Models\Matter;
@@ -10,6 +11,8 @@ use App\Models\Party;
 use App\Models\PartyLeave;
 use App\Models\Type;
 use App\Services\IncentiveCalculatorService;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use App\Support\Sql;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -24,7 +27,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use UnitEnum;
 
 /**
  * Open matters ranked by how long they have been sitting with an assistant.
@@ -44,7 +46,7 @@ class OverdueMattersReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 3;
 
@@ -55,11 +57,6 @@ class OverdueMattersReport extends Page implements HasTable
 
     /** @var array<int, int|null> */
     private array $firstAssistantCache = [];
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -189,6 +186,8 @@ class OverdueMattersReport extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
+                ReportDateRangeFilter::make('matters.distributed_at', __('Assigned')),
+
                 SelectFilter::make('age')
                     ->label(__('Age'))
                     ->options([
@@ -230,6 +229,9 @@ class OverdueMattersReport extends Page implements HasTable
             ])
             ->filtersFormWidth(Width::ExtraLarge)
             ->persistSearchInSession()
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('overdue');
     }
 }

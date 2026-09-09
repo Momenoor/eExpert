@@ -3,19 +3,19 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Filament\Exports\AssistantMatterFeesExporter;
 use App\Models\MatterParty;
 use App\Models\Party;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\ExportAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,18 +27,13 @@ class AssistantMatterFeesReport extends Page implements HasTable
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-document-chart-bar';
 
-    protected static string|null|\UnitEnum $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 7;
 
     protected string $view = 'filament.pages.assistant-matter-fees-report';
 
     protected static ?string $navigationLabel = 'Assistant Fees Report';
-
-    public static function getNavigationGroup(): string|null|\UnitEnum
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -99,24 +94,20 @@ class AssistantMatterFeesReport extends Page implements HasTable
                         ->pluck('name', 'id')
                     )
                     ->searchable(),
-                Filter::make('final_report_at')
-                    ->label(__('Final Report Date'))
-                    ->schema([
-                        Section::make(__('Final Report Date'))->schema([
-                            DatePicker::make('final_from')->label(__('From')),
-                            DatePicker::make('final_until')->label(__('Until')),
-                        ])->columns(2),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        $query
-                            ->when($data['final_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])))
-                            ->when($data['final_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])));
-                    })->indicateUsing(fn ($data) => ($data['final_from'] || $data['final_until'] ? __('Final Report Date').' '.($data['final_from'] ? __('From:').$data['final_from'] : '').($data['final_until'] ? ' '.__('Until:').$data['final_until'] : '') : '')),
+                ReportDateRangeFilter::make(
+                    column: 'final_report_at',
+                    label: __('Final Report Date'),
+                    name: 'final_report_at',
+                    applyUsing: fn (Builder $query, $from, $until) => $query
+                        ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $from->toDateString())))
+                        ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $until->toDateString()))),
+                ),
             ])
             ->queryStringIdentifier('final_report')
             ->persistSearchInSession()
             ->filtersFormWidth(Width::ExtraLarge)
             ->headerActions([
+                ReportPrintAction::make(),
                 ExportAction::make()
                     ->exporter(AssistantMatterFeesExporter::class)
                     ->fileDisk('public')

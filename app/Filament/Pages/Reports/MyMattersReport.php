@@ -2,8 +2,11 @@
 
 namespace App\Filament\Pages\Reports;
 
+use App\Filament\Clusters\Reports;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\Matter;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use App\Support\Sql;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -14,7 +17,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * An assistant's own workload and deadlines.
@@ -32,16 +34,11 @@ class MyMattersReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-briefcase';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 0;
 
     protected string $view = 'filament.pages.my-matters-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -178,8 +175,13 @@ class MyMattersReport extends Page implements HasTable
                     ->label(__('Session within 7 days'))
                     ->query(fn (Builder $query) => $query->whereNotNull('next_session_date')
                         ->whereBetween('next_session_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])),
+
+                ReportDateRangeFilter::make('matters.distributed_at', __('Assigned')),
             ])
             ->filtersFormWidth(Width::Medium)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('my_matters');
     }
 }

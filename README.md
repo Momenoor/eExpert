@@ -1,6 +1,6 @@
-# JPA Emirates
+# eExpert
 
-A legal case management and enterprise operations platform built with **Laravel 13** and **Filament PHP v5**. The application provides end-to-end management for legal matters, court tracking, party allocations, human resources (payroll, employee loans, leave requests), incentive calculation engines, bulk email campaigns, calendar synchronization via Microsoft Graph, and role-based access control.
+A legal case management and enterprise operations platform built with **Laravel 13** and **Filament PHP v5**. The application provides end-to-end management for legal matters, court tracking, party allocations, human resources (payroll, employee loans, leave requests), incentive calculation engines, bulk email campaigns, internal live chat, calendar synchronization via Microsoft Graph, and role-based access control.
 
 ---
 
@@ -23,24 +23,38 @@ A legal case management and enterprise operations platform built with **Laravel 
 
 ## Overview
 
-**JPA Emirates** is tailored for legal firms and legal operations within the UAE. It streamlines case lifecycles, automates commission and incentive calculations for legal assistants and consultants, handles multi-currency and AED-centric accounting/payroll runs with journal voucher exports, and provides bilingual support (Arabic default, English fallback).
+**eExpert** is tailored for legal firms and corporate legal operations within the UAE. It streamlines case lifecycles, automates commission and incentive calculations for legal assistants and consultants, handles multi-currency and AED-centric accounting/payroll runs with journal voucher exports, enables team collaboration with integrated live chat and user avatars, and provides full bilingual support (Arabic default, English fallback).
 
 ---
 
 ## Key Features
 
 - **Legal Matter Management**: Comprehensive tracking of legal matters, courts, claim types, statuses, document attachments, and dynamic matter metadata.
-- **Party & Allocation Tracking**: Management of plaintiffs, defendants, assignees, and party leaves.
+- **Party & Allocation Tracking**: Management of plaintiffs, defendants, assignees, experts, and party leaves.
+- **Real-Time Live Chat**:
+  - Integrated in-app live messaging between team members (`ChatWidget` & full-page `/admin/chat`).
+  - Unread message counters, instant message broadcasting (`ChatMessageSent`), and responsive chat UI.
+- **User Avatars & Profile Customization**:
+  - Custom avatar upload support via `FilamentUsersPlugin` and `CustomProfile`.
+  - Consistent avatar display across the navigation bar, user management, and live chat conversations.
 - **Workflow & Matter Requests**: Request approval lifecycle (e.g., received date disputes, date changes) with signed email links and in-app notifications.
 - **HR & Payroll Engine**:
-  - Employee profiles and salary component definitions.
-  - Leave entitlement calculation and leave request workflows.
-  - Employee loan management with monthly installment tracking.
+  - Employee profiles with custom salary component definitions.
+  - Leave entitlement calculation and multi-stage leave request workflows.
+  - Employee loan management with monthly installment tracking and payroll deduction.
   - End of Service Gratuity (EOSG) accruals.
   - Payroll runs with automated payslip generation and printable journal vouchers.
 - **Incentive Calculation Engine**: Multi-tiered incentive calculation based on matter types, custom extra rules, and assistant allocations with printable statements.
+- **Advanced Analytics & Reporting Suite**:
+  - **Operational Reports**: Overdue Matters, Court Workload, Matter Quality, and Monthly Matters.
+  - **Financial Reports**: Fee Collection Aging, VAT Summary, Type Profitability, and Deductions Reconciliation.
+  - **Performance & Incentive Reports**: Assistant Performance, Assistant Matter Fees, Assistant Matters Count, My Matters, and My Incentives.
 - **Bulk Email Campaigns**: Targeted campaigns with tracking, recipient management, preview generation, and unsubscribe workflows.
 - **Calendar & Third-Party Integrations**: FullCalendar view, Microsoft Graph calendar sync and mailer integration, plus WhatsApp notifications.
+- **Maintenance & Diagnostics Tools**:
+  - **Access Control Maintenance**: Real-time audit and repair tool for Spatie/Shield permissions and roles.
+  - **Fee Data Maintenance**: Sanity validation and correction of matter financial figures.
+  - **Difficulty Adjustment**: Automated difficulty level normalization across legal matters.
 - **Security & Access Control**: Granular permissions and role-based access control via Filament Shield, user impersonation, and detailed activity auditing.
 
 ---
@@ -85,8 +99,8 @@ A legal case management and enterprise operations platform built with **Laravel 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url> jpa-emirates
-cd jpa-emirates
+git clone <repository-url> e-expert
+cd e-expert
 ```
 
 ### 2. Automated Setup (Quick Start)
@@ -110,14 +124,25 @@ composer install
 npm install
 ```
 
-#### B. Environment Configuration
+#### B. Configure Environment
+
+Copy the example environment file and generate the application encryption key:
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Edit `.env` to configure your database connection, mail settings, and application URLs.
+Configure your database connection in `.env`:
+
+```ini
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=eexpert
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
 #### C. Run Database Migrations & Seeders
 
@@ -125,17 +150,16 @@ Edit `.env` to configure your database connection, mail settings, and applicatio
 php artisan migrate --seed
 ```
 
-*Note: You can also use the interactive web installer by accessing `/install` in your browser.*
+To seed comprehensive production baseline roles, permissions, and test data:
 
-#### D. Create Storage Symlink
+```bash
+php artisan db:seed --class=ProductionDatabaseSeeder
+```
+
+#### D. Link Storage & Build Frontend Assets
 
 ```bash
 php artisan storage:link
-```
-
-#### E. Build Frontend Assets
-
-```bash
 npm run build
 ```
 
@@ -143,62 +167,47 @@ npm run build
 
 ## Running the Application
 
-### Option 1: All-in-One Development Command
+### Development (Single Command)
 
-Run the web server, queue listener, Laravel Pail log stream, and Vite bundler concurrently:
+To run the Laravel backend server, Vite asset dev server, queue worker, and logs simultaneously:
 
 ```bash
 composer run dev
 ```
 
-### Option 2: Running Services Individually
+### Individual Development Runners
 
-Start each component in a separate terminal:
-
-```bash
-# Terminal 1: Laravel Web Server
-php artisan serve
-
-# Terminal 2: Vite Dev Server (Hot Module Reloading)
-npm run dev
-
-# Terminal 3: Queue Worker
-php artisan queue:work
-
-# Terminal 4 (Optional): Real-time Log Tailing
-php artisan pail
-```
+- **Laravel Backend Server:**
+  ```bash
+  php artisan serve
+  ```
+- **Vite Asset Watcher:**
+  ```bash
+  npm run dev
+  ```
+- **Queue Worker:**
+  ```bash
+  php artisan queue:work
+  ```
+- **Livewire Reverb / WebSocket Server (for real-time events):**
+  ```bash
+  php artisan reverb:start
+  ```
 
 ---
 
 ## Entry Points & Routing
 
-### Web & Admin Interfaces
-
-| Route / URI | Description | Access |
-|---|---|---|
-| `/` | Application root (redirects to admin/login) | Public |
-| `/login` | Authentication entry point (redirects to Filament login) | Public |
-| `/admin` | Filament Admin Panel dashboard & resources | Authenticated / Roles |
-| `/install` | Web setup & installation wizard | Installer Guard |
-| `/admin/system-down` | Custom maintenance / system-down page | Public |
-
-### Functional Endpoints
-
-| Route / URI | Description | Access |
-|---|---|---|
-| `admin/matter/{matter}/received-date/accept/{matterRequest}` | Accept matter assigned date | Signed URL |
-| `admin/matter/{matter}/received-date/dispute/{matterRequest}` | Dispute matter assigned date | Signed URL |
-| `bulk-mail/preview/{campaign}/{recipient}` | Preview bulk email template for recipient | Authenticated |
-| `mail/unsubscribe/{token}` | Bulk email unsubscribe handler | Public |
-| `attachments/{attachment}/download` | Secure matter attachment download | Authenticated |
-| `incentive/calculations/{calculation}/print` | Print incentive calculation sheet | Authenticated |
-| `incentive/calculations/{calculation}/print/{party}` | Print assistant-specific incentive statement | Authenticated |
-| `payroll/runs/{run}/journal-voucher/print` | Print payroll journal voucher (PDF) | Authenticated |
-
-### Scheduled Console Commands
-
-- `mail:send-bulk-campaigns`: Scheduled daily at `08:00` (timezone `Asia/Dubai`) via `routes/console.php`.
+- **Admin & Operations Panel**: `http://localhost:8000/admin`
+  - **Live Chat**: `http://localhost:8000/admin/chat`
+  - **Matters Management**: `http://localhost:8000/admin/matters`
+  - **Financial Configuration**: `http://localhost:8000/admin/financial-configuration`
+  - **Reports Hub**: `http://localhost:8000/admin/reports/*`
+  - **Access Control Maintenance**: `http://localhost:8000/admin/access-control-maintenance`
+- **Installation Wizard**: `http://localhost:8000/install` (Redirects automatically if not yet configured)
+- **Email Campaign Unsubscribe**: `http://localhost:8000/unsubscribe/{hash}`
+- **Signed Request Actions**: `http://localhost:8000/requests/{request}/approve` and `/reject`
+- **Scheduled Console Tasks**: Defined in `routes/console.php` (e.g. calendar synchronizations, campaign dispatches, overdue reminders).
 
 ---
 
@@ -208,93 +217,77 @@ php artisan pail
 
 | Command | Description |
 |---|---|
-| `composer run setup` | Full bootstrap: installs packages, creates `.env`, generates app key, migrates DB, and builds assets |
-| `composer run dev` | Runs `serve`, `queue:listen`, `pail`, and `vite` concurrently using `concurrently` |
-| `composer run test` | Clears configuration cache and runs the test suite |
-| `composer run post-autoload-dump` | Auto-discovers packages and runs `filament:upgrade` |
+| `composer run dev` | Runs PHP server, queue worker, and Vite dev server concurrently. |
+| `composer run setup` | Performs end-to-end installation (install deps, copy `.env`, generate key, migrate, build). |
+| `composer run test` | Runs the full PHPUnit test suite. |
 
 ### NPM Scripts
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Starts the Vite development server with Tailwind CSS v4 support |
-| `npm run build` | Compiles and minifies frontend assets for production |
+| `npm run dev` | Starts the Vite development server with hot-module replacement. |
+| `npm run build` | Compiles and minifies Tailwind CSS and JavaScript assets for production. |
 
-### Code Quality & Analysis
+### Code Quality & Static Analysis
 
-```bash
-# Format PHP code with Laravel Pint
-vendor/bin/pint --dirty --format agent
-
-# Run static analysis with PHPStan / Larastan
-vendor/bin/phpstan analyse
-```
+- **Format Code (Laravel Pint):**
+  ```bash
+  vendor/bin/pint --dirty --format agent
+  ```
+- **Static Analysis (PHPStan):**
+  ```bash
+  vendor/bin/phpstan analyse
+  ```
 
 ---
 
 ## Environment Variables
 
-Key configuration variables defined in `.env.example`:
+Key configuration variables in `.env.example`:
 
-### Application & Localization
-
-| Variable | Description | Default |
+| Variable | Description | Example / Default |
 |---|---|---|
-| `APP_NAME` | Name of the application | `JPA Emirates` |
-| `APP_ENV` | Environment (`local`, `production`, `testing`) | `local` |
-| `APP_KEY` | 32-character encryption key | Generated |
-| `APP_DEBUG` | Enable/disable debug mode | `true` |
-| `APP_URL` | Base application URL | `http://localhost` |
-| `APP_LOCALE` | Default locale | `ar` |
-| `APP_FALLBACK_LOCALE` | Fallback locale | `en` |
-| `APP_CURRENCY` | Default currency code | `AED` |
-| `APP_TIMEZONE` | Default timezone | `Asia/Muscat` |
-
-### Database & Storage
-
-| Variable | Description | Default |
-|---|---|---|
-| `DB_CONNECTION` | Database driver (`mysql`, `sqlite`, etc.) | `mysql` |
-| `DB_HOST` | Database host | `127.0.0.1` |
-| `DB_PORT` | Database port | `3306` |
-| `DB_DATABASE` | Database name | - |
-| `DB_USERNAME` | Database user | - |
-| `DB_PASSWORD` | Database password | - |
-| `FILESYSTEM_DISK` | Storage driver (`local`, `public`, `s3`) | `local` |
-| `QUEUE_CONNECTION` | Queue driver (`database`, `redis`, `sync`) | `database` |
-
-### Third-Party Integrations
-
-| Variable | Description |
-|---|---|
-| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Microsoft Azure AD App Credentials |
-| `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` | Azure Tenant ID & OAuth Redirect URI |
-| `MICROSOFT_CALENDAR_EMAIL` | Outlook calendar target account email |
-| `MICROSOFT_GRAPH_*` | Microsoft Graph API mailer credentials |
-| `WHATSAPP_TOKEN` / `WHATSAPP_FROM` / `WHATSAPP_PHONE_ID` | WhatsApp Business API credentials for notification dispatch |
-
-> **TODO**: Configure external service credentials (Microsoft Graph, WhatsApp API, AWS S3) in staging/production environments.
+| `APP_NAME` | Name of the application | `eExpert` |
+| `APP_ENV` | Application environment | `local` / `production` |
+| `APP_KEY` | Laravel encryption key | `base64:...` |
+| `APP_TIMEZONE` | Default timezone | `Asia/Dubai` |
+| `APP_LOCALE` | Primary language | `ar` |
+| `APP_FALLBACK_LOCALE` | Fallback language | `en` |
+| `DB_CONNECTION` | Database driver | `mysql` |
+| `BROADCAST_CONNECTION` | Broadcast driver (e.g., Reverb) | `reverb` / `log` |
+| `MICROSOFT_GRAPH_CLIENT_ID` | Azure App Client ID | `your-client-id` |
+| `MICROSOFT_GRAPH_CLIENT_SECRET` | Azure App Secret | `your-client-secret` |
+| `MICROSOFT_GRAPH_TENANT_ID` | Azure Active Directory Tenant ID | `your-tenant-id` |
+| `WHATSAPP_API_TOKEN` | WhatsApp Gateway API Token | `your-token` |
+| `AWS_ACCESS_KEY_ID` | S3 Storage Access Key | `your-aws-key` |
+| `AWS_BUCKET` | S3 Storage Bucket | `your-bucket` |
 
 ---
 
 ## Testing
 
-The application uses **PHPUnit 12** for feature and unit tests.
+The project uses **PHPUnit 12** exclusively for unit and feature testing.
 
-### Running Tests
+### Run All Tests
 
 ```bash
-# Run all tests
 php artisan test --compact
+```
 
-# Run tests via Composer script
-composer test
+### Run Specific Test Suites
 
-# Run a specific test suite or file
-php artisan test --compact tests/Feature/IncentiveCalculatorServiceTest.php
+```bash
+# Feature tests
+php artisan test --compact tests/Feature/
 
-# Run a filtered test method
-php artisan test --compact --filter=test_calculates_incentive_correctly
+# Filament resource & page tests
+php artisan test --compact tests/Feature/Filament/
+
+# Live chat tests
+php artisan test --compact tests/Feature/Filament/Pages/ChatTest.php
+
+# Filter by test method name
+php artisan test --compact --filter=test_can_render_list_page
 ```
 
 ---
@@ -302,51 +295,44 @@ php artisan test --compact --filter=test_calculates_incentive_correctly
 ## Project Structure
 
 ```
-jpa-emirates/
+e-expert/
 ├── app/
-│   ├── Console/Commands/        # Custom Artisan commands (bulk mail, sync, etc.)
-│   ├── Enums/                   # Enums for statuses, types, and priorities
-│   ├── Filament/                # Filament v5 admin panel structure
-│   │   ├── Actions/             # Reusable custom actions
-│   │   ├── Pages/               # Custom Filament pages & dashboard
-│   │   ├── Resources/           # Domain resources (Matters, Payroll, Leaves, etc.)
+│   ├── Events/                 # Domain & broadcast events (ChatMessageSent, MatterEvents)
+│   ├── Filament/               # Filament admin panel implementation
+│   │   ├── Pages/              # Custom Filament pages & Reports
+│   │   ├── Resources/          # Domain resources (Matters, Parties, Payroll, Users, etc.)
 │   │   │   └── [Resource]/
-│   │   │       ├── Schemas/     # Separated form schema definitions
-│   │   │       ├── Tables/      # Separated table definitions
-│   │   │       └── Pages/       # List, Create, Edit, View pages
-│   │   └── Widgets/             # Dashboard and resource widgets
+│   │   │       ├── Schemas/    # Form definitions (Separated architecture)
+│   │   │       ├── Tables/     # Table configurations
+│   │   │       └── Pages/      # List, Create, Edit, View sub-pages
+│   │   └── Widgets/            # Dashboard stats and chart widgets
 │   ├── Http/
-│   │   ├── Controllers/         # Document printing, downloads & signed links
-│   │   └── Middleware/          # Maintenance & installation guards
-│   ├── Models/                  # Eloquent models (Matter, PayrollRun, Employee, etc.)
-│   ├── Policies/                # Authorization policies (Filament Shield)
-│   ├── Providers/
-│   │   ├── AppServiceProvider.php
-│   │   └── Filament/AdminPanelProvider.php
-│   └── Services/                # Business logic services (Incentives, Payroll, WhatsApp)
-├── config/                      # Application configuration files
+│   │   ├── Controllers/        # Web controllers (Install, Unsubscribe, Actions)
+│   │   └── Middleware/         # Custom HTTP middleware (Offline, LastSeen, Installer)
+│   ├── Livewire/               # Standalone Livewire components (ChatWidget)
+│   ├── Models/                 # Eloquent models & business logic
+│   ├── Policies/               # Spatie & Shield authorization policies
+│   └── Services/               # Domain services (Incentives, Payroll, AccessControl, MS Graph)
+├── config/                     # Application & plugin configurations
 ├── database/
-│   ├── factories/               # Model factories for testing and seeding
-│   ├── migrations/              # Database migration files
-│   └── seeders/                 # Database seeders (Shield permissions, default data)
-├── lang/                        # Localization files (`ar.json`, `en.json`, vendor translations)
-├── public/                      # Web root / compiled public assets
+│   ├── factories/              # Model factories for testing
+│   ├── migrations/             # Database schema migrations
+│   └── seeders/                # Database seeders (ProductionDatabaseSeeder, Shield)
+├── lang/                       # Localization files (ar, en)
 ├── resources/
-│   ├── css/                     # Tailwind CSS v4 styling
-│   ├── js/                      # Frontend JavaScript
-│   └── views/                   # Blade templates & printable documents
+│   ├── css/                    # Tailwind CSS v4 & theme stylesheets
+│   ├── js/                     # Frontend scripts & Vite entry points
+│   └── views/                  # Blade templates, payslip prints, and emails
 ├── routes/
-│   ├── console.php              # Scheduled commands & console routes
-│   └── web.php                  # Web and signed link routes
+│   ├── console.php             # Scheduled Artisan commands
+│   └── web.php                 # Web and action routes
 └── tests/
-    ├── Feature/                 # Feature tests for resources, services, and widgets
-    └── Unit/                    # Unit tests
+    ├── Feature/                # Feature & integration tests
+    └── Unit/                   # Unit tests
 ```
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE) (or organizational proprietary terms where applicable).
-
-> **TODO**: Confirm legal distribution terms and licensing specifics with project stakeholders.
+This software is proprietary and confidential. All rights reserved.

@@ -183,3 +183,37 @@ html {
 .fi-dashboard-compact-table .fi-ta-header-cell {
     padding-block: 0.375rem;
 }
+
+/*
+ * Report print action (ReportPrintAction, applied to every report page's
+ * table headerActions()). It triggers a plain window.print() — there is no
+ * per-report print route to maintain — so this is what actually makes the
+ * printed page just the report instead of the whole panel chrome around it.
+ */
+@media print {
+    .fi-sidebar,
+    .fi-topbar,
+    .fi-header-actions-ctn,
+    .fi-ta-header-toolbar,
+    .fi-ta-filters,
+    .fi-ta-filters-trigger-action-ctn,
+    .fi-ta-actions,
+    .fi-ta-col-wrp-actions,
+    .fi-pagination {
+        display: none !important;
+    }
+
+    .fi-main,
+    .fi-main-ctn,
+    .fi-page,
+    .fi-page-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+    }
+
+    .fi-ta-ctn {
+        box-shadow: none !important;
+        border: none !important;
+    }
+}

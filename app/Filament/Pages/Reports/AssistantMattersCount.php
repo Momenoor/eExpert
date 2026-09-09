@@ -3,11 +3,12 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\MatterStatus;
+use App\Filament\Clusters\Reports;
 use App\Filament\Widgets\AssistantMatterCountTableWidget;
 use App\Filament\Widgets\AssistantMattersCountChartWidget;
+use App\Support\ReportPrintAction;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Pages\Page;
-use UnitEnum;
 
 class AssistantMattersCount extends Page
 {
@@ -17,14 +18,9 @@ class AssistantMattersCount extends Page
 
     protected static ?string $navigationLabel = 'Assistant Matters Count';
 
-    protected static string|null|UnitEnum $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 8;
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -46,6 +42,13 @@ class AssistantMattersCount extends Page
         return [
             AssistantMattersCountChartWidget::class,
             AssistantMatterCountTableWidget::class,
+        ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            ReportPrintAction::make(),
         ];
     }
 }

@@ -61,16 +61,16 @@ parameters:
 			path: app/Filament/Pages/SystemSettings.php
 
 		-
-			message: '#^Access to an undefined property App\\Filament\\Pages\\Chat\:\:\$activeConversation\.$#'
+			message: '#^Access to an undefined property App\\Livewire\\ChatWidget\:\:\$activeConversation\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Filament/Pages/Chat.php
+			path: app/Livewire/ChatWidget.php
 
 		-
-			message: '#^Access to an undefined property App\\Filament\\Pages\\Chat\:\:\$conversations\.$#'
+			message: '#^Access to an undefined property App\\Livewire\\ChatWidget\:\:\$conversations\.$#'
 			identifier: property.notFound
-			count: 1
-			path: app/Filament/Pages/Chat.php
+			count: 2
+			path: app/Livewire/ChatWidget.php
 
 		-
 			message: '#^Cannot access property \$id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'

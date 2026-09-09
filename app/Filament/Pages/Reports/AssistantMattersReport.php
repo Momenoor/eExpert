@@ -3,27 +3,26 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Filament\Exports\AssistantMattersExporter;
 use App\Filament\Resources\Matters\MatterResource;
 use App\Models\MatterParty;
 use App\Models\Party;
 use App\Models\Type;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\ExportAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
-use UnitEnum;
 
 class AssistantMattersReport extends Page implements HasTable
 {
@@ -34,7 +33,7 @@ class AssistantMattersReport extends Page implements HasTable
 
     protected static string|null|BackedEnum $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static string|null|UnitEnum $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 6;
 
@@ -44,11 +43,6 @@ class AssistantMattersReport extends Page implements HasTable
         'tableSortDirection',
         'tableSearch',
     ];
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -233,49 +227,28 @@ class AssistantMattersReport extends Page implements HasTable
                         });
                     })
                     ->multiple(),
-                Filter::make('matter.initial_report_at')
-                    ->indicator('initial_report_at')
-                    ->label(__('Initial Report Date'))
-                    ->schema([
-                        Section::make(__('Initial Report Date'))->schema([
-                            DatePicker::make('initial_from')->label(__('From')),
-                            DatePicker::make('initial_until')->label(__('Until')),
-                        ])->columnSpanFull(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        $query
-                            ->when($data['initial_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '>=', $data['initial_from'])
-                            )
-                            )
-                            ->when($data['initial_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '<=', $data['initial_until'])
-                            )
-                            );
-                    })
-                    ->indicator('initial_report_at')
-                    ->columns(2),
+                ReportDateRangeFilter::make(
+                    column: 'initial_report_at',
+                    label: __('Initial Report Date'),
+                    name: 'matter.initial_report_at',
+                    applyUsing: fn (Builder $query, $from, $until) => $query
+                        ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '>=', $from->toDateString())))
+                        ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('initial_report_at', '<=', $until->toDateString()))),
+                ),
 
-                Filter::make('matter.final_report_at')
-                    ->indicator('final_report_at')
-                    ->label(__('Final Report Date'))
-                    ->schema([
-                        Section::make(__('Final Report Date'))->schema([
-                            DatePicker::make('final_from')->label(__('From')),
-                            DatePicker::make('final_until')->label(__('Until')),
-                        ])->columnSpanFull(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        $query
-                            ->when($data['final_from'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $data['final_from'])
-                            )
-                            )
-                            ->when($data['final_until'], fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $data['final_until'])
-                            )
-                            );
-                    })
-                    ->columns(2),
-
+                ReportDateRangeFilter::make(
+                    column: 'final_report_at',
+                    label: __('Final Report Date'),
+                    name: 'matter.final_report_at',
+                    applyUsing: fn (Builder $query, $from, $until) => $query
+                        ->when($from, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '>=', $from->toDateString())))
+                        ->when($until, fn ($q) => $q->whereHas('matter', fn ($m) => $m->whereDate('final_report_at', '<=', $until->toDateString()))),
+                ),
             ])
             ->filtersFormColumns(2)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->toolbarActions([
                 ExportAction::make()
                     ->exporter(AssistantMattersExporter::class)

@@ -3,7 +3,10 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Enums\FeeType;
+use App\Filament\Clusters\Reports;
 use App\Models\Party;
+use App\Support\ReportDateRangeFilter;
+use App\Support\ReportPrintAction;
 use App\Support\Sql;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -16,7 +19,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use UnitEnum;
 
 /**
  * One row per assistant: workload, output, earnings and availability.
@@ -37,16 +39,11 @@ class AssistantPerformanceReport extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static ?string $cluster = Reports::class;
 
     protected static ?int $navigationSort = 9;
 
     protected string $view = 'filament.pages.assistant-performance-report';
-
-    public static function getNavigationGroup(): string|UnitEnum|null
-    {
-        return __(parent::getNavigationGroup());
-    }
 
     public static function getNavigationLabel(): string
     {
@@ -209,8 +206,29 @@ class AssistantPerformanceReport extends Page implements HasTable
                             ->where('matter_party.type', 'assistant')
                             ->whereNull('matters.final_report_at')
                     )),
+
+                // Every figure here (fees, incentive, leave) is a lifetime
+                // total by design — an assistant's whole picture, not a
+                // period slice. This narrows WHICH assistants appear (only
+                // those with a matter distributed in the range), the same
+                // existence-check shape as with_matters/has_open above; it
+                // does not re-scope the totals themselves to that range.
+                ReportDateRangeFilter::make(
+                    column: 'matters.distributed_at',
+                    label: __('Matter Distributed'),
+                    applyUsing: fn (Builder $query, $from, $until) => $query->whereHas(
+                        'matters',
+                        fn ($q) => $q->where('matter_party.role', 'expert')
+                            ->where('matter_party.type', 'assistant')
+                            ->when($from, fn ($q) => $q->whereDate('matters.distributed_at', '>=', $from->toDateString()))
+                            ->when($until, fn ($q) => $q->whereDate('matters.distributed_at', '<=', $until->toDateString()))
+                    ),
+                ),
             ])
             ->filtersFormWidth(Width::Medium)
+            ->headerActions([
+                ReportPrintAction::make(),
+            ])
             ->queryStringIdentifier('assistant_performance');
     }
 }
