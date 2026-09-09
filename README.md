@@ -23,7 +23,7 @@ A legal case management and enterprise operations platform built with **Laravel 
 
 ## Overview
 
-**JPA Emirates** is tailored for legal firms and legal operations within the UAE. It streamlines case lifecycles, automates commission and incentive calculations for legal assistants and consultants, handles multi-currency and AED-centric accounting/payroll runs with journal voucher exports, and provides bilingual support (Arabic default, English fallback).
+**eExpert** is tailored for legal firms and legal operations within the UAE. It streamlines case lifecycles, automates commission and incentive calculations for legal assistants and consultants, handles multi-currency and AED-centric accounting/payroll runs with journal voucher exports, and provides bilingual support (Arabic default, English fallback).
 
 ---
 
@@ -85,8 +85,8 @@ A legal case management and enterprise operations platform built with **Laravel 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url> jpa-emirates
-cd jpa-emirates
+git clone <repository-url> eExpert
+cd eExpert
 ```
 
 ### 2. Automated Setup (Quick Start)
@@ -240,7 +240,7 @@ Key configuration variables defined in `.env.example`:
 
 | Variable | Description | Default |
 |---|---|---|
-| `APP_NAME` | Name of the application | `JPA Emirates` |
+| `APP_NAME` | Name of the application | `eExpert` |
 | `APP_ENV` | Environment (`local`, `production`, `testing`) | `local` |
 | `APP_KEY` | 32-character encryption key | Generated |
 | `APP_DEBUG` | Enable/disable debug mode | `true` |
@@ -302,7 +302,7 @@ php artisan test --compact --filter=test_calculates_incentive_correctly
 ## Project Structure
 
 ```
-jpa-emirates/
+eExpert/
 ├── app/
 │   ├── Console/Commands/        # Custom Artisan commands (bulk mail, sync, etc.)
 │   ├── Enums/                   # Enums for statuses, types, and priorities
