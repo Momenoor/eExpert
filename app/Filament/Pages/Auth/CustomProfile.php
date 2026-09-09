@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Auth;
 
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Filament\Auth\Pages\EditProfile;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -18,6 +19,13 @@ class CustomProfile extends EditProfile
     public function form(Schema $schema): Schema
     {
         return $schema->components([
+            FileUpload::make('profile_photo_path')
+                ->label(__('Avatar'))
+                ->avatar()
+                ->image()
+                ->imageEditor()
+                ->columnSpanFull()
+                ->alignCenter(),
             TextInput::make('name')
                 ->label(__('Name'))
                 ->required(),

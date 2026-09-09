@@ -61,6 +61,18 @@ parameters:
 			path: app/Filament/Pages/SystemSettings.php
 
 		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\Chat\:\:\$activeConversation\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Filament/Pages/Chat.php
+
+		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\Chat\:\:\$conversations\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Pages/Chat.php
+
+		-
 			message: '#^Cannot access property \$id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
 			identifier: property.nonObject
 			count: 1

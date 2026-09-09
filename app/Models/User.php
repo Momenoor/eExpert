@@ -3,19 +3,25 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use FilamentInbox\Concerns\HasInbox;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser
+/**
+ * @property-read ChatConversationUser|null $pivot Only set when loaded through a chat conversation's participants() relation.
+ */
+class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     use HasFactory, HasInbox, HasRoles, Notifiable;
     use LogsActivity;
@@ -35,6 +41,7 @@ class User extends Authenticatable implements FilamentUser
         'font_size',
         'notify_by_email',
         'notify_by_whatsapp',
+        'profile_photo_path',
     ];
 
     protected $with = [
@@ -79,9 +86,29 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(IncentiveCalculation::class, 'created_by');
     }
 
+    /**
+     * @return BelongsToMany<ChatConversation, $this, ChatConversationUser, 'pivot'>
+     */
+    public function chatConversations(): BelongsToMany
+    {
+        return $this->belongsToMany(ChatConversation::class, 'chat_conversation_user')
+            ->using(ChatConversationUser::class)
+            ->withPivot('last_read_at')
+            ->withTimestamps();
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        if (blank($this->profile_photo_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->profile_photo_path);
     }
 
     public function phone(): Attribute

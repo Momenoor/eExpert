@@ -41,7 +41,13 @@ return [
     |
     */
 
-    'default_filesystem_disk' => env('FILESYSTEM_DISK', 'local'),
+    // Every FileUpload/ImageColumn/ImageEntry this app authors already calls
+    // ->disk('public') itself, so this default only governs components that
+    // don't — like the vendor avatar field — which is why it must resolve to
+    // the same disk uploads are actually written to. Tied to the app-wide
+    // FILESYSTEM_DISK before, it silently followed that to 'local' (private,
+    // no public URL), so avatar uploads saved fine but never displayed.
+    'default_filesystem_disk' => 'public',
 
     /*
     |--------------------------------------------------------------------------
