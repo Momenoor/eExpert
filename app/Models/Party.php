@@ -122,8 +122,8 @@ class Party extends Model
      * `role` is a JSON array of objects, and every report asked about it with
      * `whereJsonContains('role', ['role' => ..., 'type' => ...])`. That is
      * MySQL-only in practice — SQLite renders the same call as a comparison
-     * against each element's whole JSON text — which is why none of those pages
-     * could be covered by a test. Sql::jsonArrayHas() states the same question
+     * against each element's whole JSON text — which is why a test
+     * could cover none of those pages. Sql::jsonArrayHas() states the same question
      * in whichever dialect is connected.
      *
      * @param  Builder<Party>  $query
