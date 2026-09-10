@@ -13,9 +13,9 @@ use Illuminate\Support\Number;
 
 /**
  * Employee profiles are matched to an EXISTING party holding the `employee`
- * role by name — this import only ever fills in the employment/HR paperwork
+ * role by ID — this import only ever fills in the employment/HR paperwork
  * for someone already on the party list; it never creates the party itself.
- * Re-importing the same employee (same party name) updates their existing
+ * Re-importing the same employee (same party ID) updates their existing
  * profile rather than creating a duplicate, so a corrected spreadsheet can be
  * re-uploaded safely.
  */
@@ -44,13 +44,13 @@ class EmployeeProfileImporter extends Importer
                 ->label(__('Date of Joining'))
                 ->requiredMapping()
                 ->example('2024-01-15')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state))
+                ->castStateUsing(fn (?string $state) => self::parseDate($state))
                 ->rules(['required']),
 
             ImportColumn::make('date_of_leaving')
                 ->label(__('Date of Leaving'))
                 ->example('')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state)),
+                ->castStateUsing(fn (?string $state) => self::parseDate($state)),
 
             ImportColumn::make('passport_no')
                 ->label(__('Passport No'))
@@ -59,7 +59,7 @@ class EmployeeProfileImporter extends Importer
             ImportColumn::make('passport_expiry')
                 ->label(__('Passport Expiry'))
                 ->example('2030-05-01')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state)),
+                ->castStateUsing(fn (?string $state) => self::parseDate($state)),
 
             ImportColumn::make('emirates_id_no')
                 ->label(__('Emirates ID No'))
@@ -68,7 +68,7 @@ class EmployeeProfileImporter extends Importer
             ImportColumn::make('emirates_id_expiry')
                 ->label(__('Emirates ID Expiry'))
                 ->example('2028-03-10')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state)),
+                ->castStateUsing(fn (?string $state) => self::parseDate($state)),
 
             ImportColumn::make('labour_card_no')
                 ->label(__('Labour Card No'))
@@ -81,7 +81,7 @@ class EmployeeProfileImporter extends Importer
             ImportColumn::make('labour_card_expiry')
                 ->label(__('Labour Card Expiry'))
                 ->example('2027-11-20')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state)),
+                ->castStateUsing(fn (?string $state) => self::parseDate($state)),
 
             ImportColumn::make('residency_visa_no')
                 ->label(__('Visa No'))
@@ -94,7 +94,7 @@ class EmployeeProfileImporter extends Importer
             ImportColumn::make('residency_expiry')
                 ->label(__('Residency Expiry'))
                 ->example('2027-11-20')
-                ->castStateUsing(fn(?string $state) => self::parseDate($state)),
+                ->castStateUsing(fn (?string $state) => self::parseDate($state)),
 
             ImportColumn::make('sponsor_name')
                 ->label(__('Sponsor'))
@@ -124,7 +124,7 @@ class EmployeeProfileImporter extends Importer
         // machine name (e.g. "party_name") — make it follow the panel's
         // current language like every other label here.
         foreach ($columns as $column) {
-            $column->exampleHeader(fn(ImportColumn $col): string => $col->getLabel() ?? $col->getName());
+            $column->exampleHeader(fn (ImportColumn $col): string => $col->getLabel() ?? $col->getName());
         }
 
         return $columns;
@@ -147,7 +147,7 @@ class EmployeeProfileImporter extends Importer
         $state = trim($state);
 
         foreach (['Y-m-d', 'd/m/Y', 'd-m-Y', 'm/d/Y', 'd.m.Y'] as $format) {
-            $date = \DateTime::createFromFormat('!' . $format, $state);
+            $date = \DateTime::createFromFormat('!'.$format, $state);
 
             // createFromFormat silently overflows out-of-range components
             // (e.g. "01/15/2024" as d/m/Y rolls month 15 into next March)
@@ -166,12 +166,32 @@ class EmployeeProfileImporter extends Importer
         }
     }
 
+    public function resolveRecord(): EmployeeProfile
+    {
+        $partyId = trim((string) ($this->data['party_id'] ?? ''));
+
+        $party = Party::withRole('employee')->find($partyId);
+
+        if (! $party) {
+            throw new RowImportFailedException(__(
+                'No party with ID ":id" holding the Employee role was found. Add them as a party first.',
+                ['id' => $partyId]
+            ));
+        }
+
+        // firstOrNew, not always `new` — re-uploading a corrected spreadsheet
+        // updates the same employee's profile instead of creating a second
+        // one for the same party, which the form's own unique rule would
+        // otherwise only catch after the fact.
+        return EmployeeProfile::firstOrNew(['party_id' => $party->id]);
+    }
+
     public static function getCompletedNotificationBody(Import $import): string
     {
         $body = __(':count employee profile(s) imported.', ['count' => Number::format($import->successful_rows)]);
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
-            $body .= ' ' . __(':count row(s) failed to import.', ['count' => Number::format($failedRowsCount)]);
+            $body .= ' '.__(':count row(s) failed to import.', ['count' => Number::format($failedRowsCount)]);
         }
 
         return $body;

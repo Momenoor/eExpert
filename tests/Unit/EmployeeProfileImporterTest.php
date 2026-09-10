@@ -27,51 +27,51 @@ class EmployeeProfileImporterTest extends TestCase
         return $importer;
     }
 
-    public function test_it_matches_an_existing_employee_party_by_name(): void
+    public function test_it_matches_an_existing_employee_party_by_id(): void
     {
-        $party = Party::factory()->employee()->create(['name' => 'Mohammed Ahmed']);
+        $party = Party::factory()->employee()->create();
 
-        $record = $this->makeImporter(['party_name' => 'Mohammed Ahmed'])->resolveRecord();
+        $record = $this->makeImporter(['party_id' => (string) $party->id])->resolveRecord();
 
         $this->assertInstanceOf(EmployeeProfile::class, $record);
         $this->assertFalse($record->exists);
         $this->assertSame($party->id, $record->party_id);
     }
 
-    public function test_the_name_match_is_case_insensitive(): void
+    public function test_the_id_match_trims_surrounding_whitespace(): void
     {
-        $party = Party::factory()->employee()->create(['name' => 'Mohammed Ahmed']);
+        $party = Party::factory()->employee()->create();
 
-        $record = $this->makeImporter(['party_name' => 'mohammed ahmed'])->resolveRecord();
+        $record = $this->makeImporter(['party_id' => ' '.$party->id.' '])->resolveRecord();
 
         $this->assertSame($party->id, $record->party_id);
     }
 
     public function test_re_importing_the_same_employee_updates_the_existing_profile_instead_of_duplicating(): void
     {
-        $party = Party::factory()->employee()->create(['name' => 'Mohammed Ahmed']);
+        $party = Party::factory()->employee()->create();
         $existing = EmployeeProfile::factory()->for($party)->create();
 
-        $record = $this->makeImporter(['party_name' => 'Mohammed Ahmed'])->resolveRecord();
+        $record = $this->makeImporter(['party_id' => (string) $party->id])->resolveRecord();
 
         $this->assertTrue($record->exists);
         $this->assertSame($existing->id, $record->id);
     }
 
-    public function test_it_fails_gracefully_when_no_party_with_that_name_holds_the_employee_role(): void
+    public function test_it_fails_gracefully_when_the_party_id_does_not_hold_the_employee_role(): void
     {
-        Party::factory()->create(['name' => 'Mohammed Ahmed']);
+        $party = Party::factory()->create();
 
         $this->expectException(RowImportFailedException::class);
 
-        $this->makeImporter(['party_name' => 'Mohammed Ahmed'])->resolveRecord();
+        $this->makeImporter(['party_id' => (string) $party->id])->resolveRecord();
     }
 
     public function test_it_fails_gracefully_when_the_party_does_not_exist_at_all(): void
     {
         $this->expectException(RowImportFailedException::class);
 
-        $this->makeImporter(['party_name' => 'Nobody Here'])->resolveRecord();
+        $this->makeImporter(['party_id' => '999999'])->resolveRecord();
     }
 
     #[DataProvider('dateFormatProvider')]
@@ -122,12 +122,12 @@ class EmployeeProfileImporterTest extends TestCase
     public function test_the_example_download_headers_follow_the_current_locale(): void
     {
         App::setLocale('en');
-        $englishColumn = collect(EmployeeProfileImporter::getColumns())->firstOrFail(fn ($column) => $column->getName() === 'party_name');
-        $this->assertSame('Employee Name', $englishColumn->getExampleHeader());
+        $englishColumn = collect(EmployeeProfileImporter::getColumns())->firstOrFail(fn ($column) => $column->getName() === 'employee_no');
+        $this->assertSame('Employee Number', $englishColumn->getExampleHeader());
 
         App::setLocale('ar');
-        $arabicColumn = collect(EmployeeProfileImporter::getColumns())->firstOrFail(fn ($column) => $column->getName() === 'party_name');
-        $this->assertSame(__('Employee Name'), $arabicColumn->getExampleHeader());
-        $this->assertNotSame('Employee Name', $arabicColumn->getExampleHeader());
+        $arabicColumn = collect(EmployeeProfileImporter::getColumns())->firstOrFail(fn ($column) => $column->getName() === 'employee_no');
+        $this->assertSame(__('Employee Number'), $arabicColumn->getExampleHeader());
+        $this->assertNotSame('Employee Number', $arabicColumn->getExampleHeader());
     }
 }
