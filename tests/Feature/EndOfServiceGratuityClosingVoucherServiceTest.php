@@ -63,6 +63,26 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         return $run;
     }
 
+    /**
+     * Every one of a year's twelve months, run through payroll — the only
+     * way the real monthly figures are trusted instead of the synthetic
+     * fallback (`hasCompletePayslipCoverage()` requires full coverage).
+     */
+    private function generateFullYear(int $year): void
+    {
+        foreach (range(1, 12) as $month) {
+            $this->generateMonth(sprintf('%d-%02d', $year, $month));
+        }
+    }
+
+    private function totalEosgAccruedIn(int $year): float
+    {
+        return (float) PayrollRun::query()
+            ->where('period', 'like', "{$year}-%")
+            ->get()
+            ->sum(fn (PayrollRun $run) => (float) $run->payslips->sum('eosg_accrued'));
+    }
+
     public function test_a_year_nobody_has_generated_returns_null(): void
     {
         $this->employee();
@@ -153,21 +173,52 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
     public function test_it_excludes_accruals_from_other_years(): void
     {
         $this->employee();
-        $december = $this->generateMonth('2025-12');
-        $january = $this->generateMonth('2026-01');
 
-        $decemberAccrual = (float) $december->payslips()->first()->eosg_accrued;
-        $januaryAccrual = (float) $january->payslips()->first()->eosg_accrued;
+        // Full coverage on both years — otherwise each year falls back to
+        // the synthetic figure regardless of the other year's data.
+        $this->generateFullYear(2025);
+        $this->generateFullYear(2026);
+
+        $accrued2025 = $this->totalEosgAccruedIn(2025);
+        $accrued2026 = $this->totalEosgAccruedIn(2026);
 
         $this->service->generate(2025);
         $this->service->generate(2026);
 
-        // Each year sees only the one month accrued inside it, not both.
+        // Each year sees only the twelve months accrued inside it, not both.
         $voucher2025 = $this->service->forYear(2025);
         $voucher2026 = $this->service->forYear(2026);
 
-        $this->assertSame($decemberAccrual, $voucher2025['total_debit']);
-        $this->assertSame($januaryAccrual, $voucher2026['total_debit']);
+        $this->assertEqualsWithDelta($accrued2025, $voucher2025['total_debit'], 0.01);
+        $this->assertEqualsWithDelta($accrued2026, $voucher2026['total_debit'], 0.01);
+    }
+
+    public function test_a_partial_years_real_payslips_are_discarded_in_favor_of_the_synthetic_figure(): void
+    {
+        $party = $this->employee();
+
+        // Only three months run through payroll — payroll started partway
+        // through the year, or a run was later deleted. Either way this is
+        // not a trustworthy annual figure.
+        foreach (['2026-01', '2026-02', '2026-03'] as $period) {
+            $this->generateMonth($period);
+        }
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $gratuity = app(EndOfServiceGratuityService::class);
+        $expectedSynthetic = $gratuity->monthlyAccrual(
+            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2026-01-01')),
+            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2026-12-31')),
+            6000.0,
+        );
+
+        // The three months' worth of real data is discarded entirely in
+        // favour of the synthetic annual figure, not folded in or left as-is
+        // (the partial sum is a fraction of a year's accrual, so it is nowhere
+        // near the full-year synthetic figure asserted above).
+        $this->assertSame($party->name, $voucher['debits'][0]['detail']);
+        $this->assertEqualsWithDelta($expectedSynthetic, $voucher['debits'][0]['amount'], 0.01);
     }
 
     public function test_generating_a_year_with_nothing_accrued_saves_an_empty_but_balanced_voucher(): void
@@ -260,14 +311,15 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
 
     public function test_real_payslip_data_takes_priority_over_the_synthetic_fallback_in_a_mixed_year(): void
     {
-        // Has an actual payslip for 2026 — must use that, not the synthetic
-        // year-end estimate.
+        // Has a complete year of payslips for 2026 — must use their sum, not
+        // the synthetic year-end estimate.
         $withPayslip = $this->employee();
-        $this->generateMonth('2026-01');
-        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+        $this->generateFullYear(2026);
+        $realAccrual = $this->totalEosgAccruedIn(2026);
 
-        // Joined the same day, same salary, but never run through payroll —
-        // falls back to the synthetic figure.
+        // Joined the same day, same salary, but created after the year was
+        // already run — never appears on a payslip, so falls back to the
+        // synthetic figure.
         $withoutPayslip = $this->employee();
 
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
@@ -279,15 +331,15 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
             array_column($voucher['debits'], 'amount'),
         );
 
-        $this->assertSame($realAccrual, $amountsByName[$withPayslip->name]);
+        $this->assertEqualsWithDelta($realAccrual, $amountsByName[$withPayslip->name], 0.01);
         $this->assertArrayHasKey($withoutPayslip->name, $amountsByName);
     }
 
     public function test_the_opening_balance_is_added_on_top_of_the_first_voucher_generated(): void
     {
         $this->employee(['opening_eosg_balance' => 5000]);
-        $this->generateMonth('2026-01');
-        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+        $this->generateFullYear(2026);
+        $realAccrual = $this->totalEosgAccruedIn(2026);
 
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
@@ -297,13 +349,13 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
     public function test_the_opening_balance_is_not_added_again_on_a_later_year(): void
     {
         $this->employee(['opening_eosg_balance' => 5000]);
-        $this->generateMonth('2026-01');
+        $this->generateFullYear(2026);
         $this->service->generate(2026);
 
-        $this->generateMonth('2027-01');
+        $this->generateFullYear(2027);
         $voucherFor2027 = $this->service->forYear($this->service->generate(2027)->year);
 
-        $realAccrual2027 = (float) PayrollRun::where('period', '2027-01')->first()->payslips()->first()->eosg_accrued;
+        $realAccrual2027 = $this->totalEosgAccruedIn(2027);
 
         $this->assertEqualsWithDelta($realAccrual2027, $voucherFor2027['debits'][0]['amount'], 0.01);
     }
@@ -311,12 +363,12 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
     public function test_regenerating_the_same_year_keeps_the_opening_balance(): void
     {
         $this->employee(['opening_eosg_balance' => 5000]);
-        $this->generateMonth('2026-01');
+        $this->generateFullYear(2026);
 
         $this->service->generate(2026);
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
-        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+        $realAccrual = $this->totalEosgAccruedIn(2026);
 
         $this->assertEqualsWithDelta($realAccrual + 5000, $voucher['debits'][0]['amount'], 0.01);
     }
@@ -341,12 +393,12 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
     public function test_no_opening_balance_leaves_the_figure_untouched(): void
     {
         $this->employee();
-        $this->generateMonth('2026-01');
+        $this->generateFullYear(2026);
 
-        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+        $realAccrual = $this->totalEosgAccruedIn(2026);
 
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
-        $this->assertSame($realAccrual, $voucher['debits'][0]['amount']);
+        $this->assertEqualsWithDelta($realAccrual, $voucher['debits'][0]['amount'], 0.01);
     }
 }

@@ -38,17 +38,21 @@ use Illuminate\Support\Facades\DB;
  * them), so excluding them again here is a defensive second check rather than
  * the only one.
  *
- * A year with no payslips at all for a given employee — typically because the
- * office had not yet started running payroll through this system, or an
- * employee's records were entered after the fact — is not simply skipped.
- * `generate()` falls back to a synthetic annual figure for exactly that
+ * A year is only trusted to its monthly payslips when EVERY month that
+ * employee was actually employed in has an EOSG payslip line — a partial year
+ * (say, payroll only ran from August, or three months are missing because a
+ * run was deleted) is not summed as-is, since that would silently understate
+ * the year. Whenever coverage is incomplete — including a year with no
+ * payslips at all, typically because the office had not yet started running
+ * payroll through this system — `generate()` discards whatever partial figure
+ * exists and falls back to a synthetic annual figure for exactly that
  * employee in exactly that year, computed the same way as a month's accrual
  * (`gratuityFor(closing days) - gratuityFor(opening days)`, see
  * `EndOfServiceGratuityService::monthlyAccrual()`) but spanning the whole
  * calendar year, using whichever basic salary was on record at the year's end
  * (`PayrollService::salaryAt()`). Nothing here assumes the salary was constant
  * for the whole year — only that the year-end figure is the best available
- * estimate when no monthly record exists to do better.
+ * estimate when the monthly record is missing or incomplete.
  *
  * An employee's `opening_eosg_balance` — gratuity entered once by HR/Finance
  * for service this system has no record of at all — is added on top of
@@ -154,12 +158,17 @@ class EndOfServiceGratuityClosingVoucherService
                 ->whereBetween('period', ["{$year}-01", "{$year}-12"]))
             ->whereHas('payslip.party.employeeProfile', fn ($query) => $query
                 ->where('is_eosg_applicable', true))
-            ->with('payslip.party')
+            ->with(['payslip.party.employeeProfile', 'payslip.payrollRun'])
             ->get();
 
         $byParty = $lines->groupBy(fn (PayslipLine $line): int => $line->payslip->party->getKey());
 
         $amountsByParty = $byParty
+            ->filter(fn (Collection $partyLines, int $partyId): bool => $this->hasCompletePayslipCoverage(
+                $partyLines->first()->payslip->party,
+                $year,
+                $partyLines,
+            ))
             ->map(fn (Collection $partyLines): float => round((float) $partyLines->sum('amount'), 2))
             ->filter(fn (float $amount): bool => $amount > 0);
 
@@ -239,9 +248,75 @@ class EndOfServiceGratuityClosingVoucherService
     }
 
     /**
-     * EOSG-applicable employees who accrued nothing from payslips in this
-     * year — either because they were never run through payroll this system
-     * knows about, or because that data was never entered.
+     * Whether every month this employee was actually employed in during the
+     * year has an EOSG payslip line — not merely whether some do.
+     *
+     * A partial year (payroll only started partway through, or a run was
+     * later deleted) must not be summed as-is and passed off as the year's
+     * figure; it is treated exactly like a year with no payslips at all, and
+     * `syntheticAnnualAccrual()` recomputes the whole year from service dates
+     * instead.
+     *
+     * @param  Collection<int, PayslipLine>  $partyLines
+     */
+    private function hasCompletePayslipCoverage(Party $party, int $year, Collection $partyLines): bool
+    {
+        $expected = $this->employedPeriodsIn($party, $year);
+
+        if ($expected->isEmpty()) {
+            return false;
+        }
+
+        $actual = $partyLines
+            ->map(fn (PayslipLine $line): string => $line->payslip->payrollRun->getAttribute('period'))
+            ->unique();
+
+        return $expected->diff($actual)->isEmpty();
+    }
+
+    /**
+     * The 'Y-m' periods this employee was on the payroll for within a year —
+     * every calendar month from whichever is later of joining or the year's
+     * start, to whichever is earlier of leaving or the year's end.
+     *
+     * @return Collection<int, string>
+     */
+    private function employedPeriodsIn(Party $party, int $year): Collection
+    {
+        $profile = $party->employeeProfile;
+        $joinedOn = $profile?->getAttribute('date_of_joining');
+
+        if ($joinedOn === null) {
+            return collect();
+        }
+
+        $yearStart = Carbon::create($year, 1, 1)->startOfMonth();
+        $yearEnd = Carbon::create($year, 12, 1)->startOfMonth();
+
+        $leftOn = $profile->getAttribute('date_of_leaving');
+
+        $start = $joinedOn->greaterThan($yearStart) ? $joinedOn->copy()->startOfMonth() : $yearStart;
+        $end = ($leftOn !== null && $leftOn->lessThan(Carbon::create($year, 12, 31)))
+            ? $leftOn->copy()->startOfMonth()
+            : $yearEnd;
+
+        if ($end->lessThan($start)) {
+            return collect();
+        }
+
+        $periods = collect();
+
+        for ($cursor = $start->copy(); $cursor->lessThanOrEqualTo($end); $cursor->addMonth()) {
+            $periods->push($cursor->format('Y-m'));
+        }
+
+        return $periods;
+    }
+
+    /**
+     * EOSG-applicable employees with no complete, trustworthy monthly figure
+     * for this year — either no payslips at all, or an incomplete run of
+     * them — so a synthetic figure is computed for them instead.
      *
      * @param  Collection<int, float>  $amountsByParty  Keyed by party id
      * @return Collection<int, Party>
