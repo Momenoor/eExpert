@@ -68,7 +68,7 @@ class SalaryComponentsRelationManager extends RelationManager
     {
         $record = $this->getOwnerRecord();
 
-        if (! $record instanceof EmployeeProfile) {
+        if (!$record instanceof EmployeeProfile) {
             throw new LogicException('This relation manager only attaches to an employee profile.');
         }
 
@@ -104,7 +104,7 @@ class SalaryComponentsRelationManager extends RelationManager
                 TextColumn::make('amount')
                     ->label(__('Monthly Amount (AED)'))
                     ->numeric(decimalPlaces: 2)
-                    ->summarize(Sum::make()->label(__('Total'))),
+                    ->summarize(Sum::make()->query(fn($query) => $query->where('effective_to', null))->label(__('Total'))),
                 TextColumn::make('effective_from')
                     ->label(__('Effective From'))
                     ->date()
@@ -144,7 +144,7 @@ class SalaryComponentsRelationManager extends RelationManager
                             ->default(now()->endOfMonth())
                             ->required(),
                     ])
-                    ->visible(fn (EmployeeSalaryComponent $record): bool => $record->effective_to === null)
+                    ->visible(fn(EmployeeSalaryComponent $record): bool => $record->effective_to === null)
                     ->action(function (EmployeeSalaryComponent $record, array $data): void {
                         $record->forceFill(['effective_to' => $data['effective_to']])->save();
 
@@ -154,7 +154,7 @@ class SalaryComponentsRelationManager extends RelationManager
                     ->iconButton()
                     // Only a row nothing has been paid against may be removed;
                     // anything older is closed, not deleted.
-                    ->visible(fn (EmployeeSalaryComponent $record): bool => $record->effective_from->isFuture()),
+                    ->visible(fn(EmployeeSalaryComponent $record): bool => $record->effective_from->isFuture()),
             ])
             ->emptyStateHeading(__('No salary components yet'));
     }
@@ -172,7 +172,7 @@ class SalaryComponentsRelationManager extends RelationManager
                 ->where('party_id', $partyId)
                 ->where('component', $data['component'])
                 ->whereNull('effective_to')
-                ->where(fn (Builder $query) => $query->whereDate('effective_from', '<', $from->toDateString()))
+                ->where(fn(Builder $query) => $query->whereDate('effective_from', '<', $from->toDateString()))
                 ->update(['effective_to' => $from->copy()->subDay()->toDateString()]);
 
             return EmployeeSalaryComponent::create([
