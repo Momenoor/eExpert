@@ -35,6 +35,9 @@ class EmployeeProfileForm
                         TextInput::make('designation')
                             ->label(__('Designation'))
                             ->maxLength(255),
+                        TextInput::make('display_name')
+                            ->label(__('Name as WPS From'))
+                            ->maxLength(255),
                         DatePicker::make('date_of_joining')
                             ->label(__('Date of Joining'))
                             ->required()
