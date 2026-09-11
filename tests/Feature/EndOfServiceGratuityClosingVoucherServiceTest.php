@@ -10,9 +10,11 @@ use App\Models\EosgClosingVoucher;
 use App\Models\Party;
 use App\Models\PayrollRun;
 use App\Services\EndOfServiceGratuityClosingVoucherService;
+use App\Services\EndOfServiceGratuityService;
 use App\Services\PayrollJournalVoucherService;
 use App\Services\PayrollService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
@@ -195,5 +197,89 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
             [$first->name, $second->name],
             array_column($voucher['debits'], 'detail'),
         );
+    }
+
+    public function test_a_year_with_no_payslips_at_all_still_accrues_from_service_dates_and_year_end_salary(): void
+    {
+        // Joined well before the payroll module ever ran a payslip — this is
+        // exactly the "office started using this system in 2026" scenario.
+        $party = $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $gratuity = app(EndOfServiceGratuityService::class);
+        $expected = $gratuity->monthlyAccrual(
+            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2023-01-01')),
+            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2023-12-31')),
+            6000.0,
+        );
+
+        $this->assertSame(1, $voucher['employee_count']);
+        $this->assertSame($party->name, $voucher['debits'][0]['detail']);
+        $this->assertEqualsWithDelta($expected, $voucher['debits'][0]['amount'], 0.01);
+        $this->assertGreaterThan(0, $voucher['total_debit']);
+    }
+
+    public function test_an_employee_who_joined_after_the_year_ended_accrues_nothing_synthetically(): void
+    {
+        $this->employee(['date_of_joining' => '2024-06-01']);
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $this->assertSame(0, $voucher['employee_count']);
+    }
+
+    public function test_an_employee_who_left_before_the_year_started_accrues_nothing_synthetically(): void
+    {
+        $this->employee(['date_of_leaving' => '2022-06-01']);
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $this->assertSame(0, $voucher['employee_count']);
+    }
+
+    public function test_the_synthetic_fallback_also_respects_the_eosg_applicable_flag(): void
+    {
+        $this->employee(['is_eosg_applicable' => false]);
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $this->assertSame(0, $voucher['employee_count']);
+    }
+
+    public function test_no_salary_on_record_for_that_year_accrues_nothing_synthetically(): void
+    {
+        $party = Party::factory()->employee()->create();
+        EmployeeProfile::create(['party_id' => $party->id, 'date_of_joining' => '2020-01-01']);
+        // No EmployeeSalaryComponent at all — nothing to base a figure on.
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $this->assertSame(0, $voucher['employee_count']);
+    }
+
+    public function test_real_payslip_data_takes_priority_over_the_synthetic_fallback_in_a_mixed_year(): void
+    {
+        // Has an actual payslip for 2026 — must use that, not the synthetic
+        // year-end estimate.
+        $withPayslip = $this->employee();
+        $this->generateMonth('2026-01');
+        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+
+        // Joined the same day, same salary, but never run through payroll —
+        // falls back to the synthetic figure.
+        $withoutPayslip = $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $this->assertSame(2, $voucher['employee_count']);
+
+        $amountsByName = array_combine(
+            array_column($voucher['debits'], 'detail'),
+            array_column($voucher['debits'], 'amount'),
+        );
+
+        $this->assertSame($realAccrual, $amountsByName[$withPayslip->name]);
+        $this->assertArrayHasKey($withoutPayslip->name, $amountsByName);
     }
 }

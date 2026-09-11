@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Enums\PayslipLineKind;
+use App\Enums\SalaryComponent;
 use App\Models\EosgClosingVoucher;
 use App\Models\EosgClosingVoucherLine;
+use App\Models\Party;
 use App\Models\PayslipLine;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -34,9 +37,26 @@ use Illuminate\Support\Facades\DB;
  * anything in the first place (`PayrollService::accrueGratuity()` returns 0 for
  * them), so excluding them again here is a defensive second check rather than
  * the only one.
+ *
+ * A year with no payslips at all for a given employee — typically because the
+ * office had not yet started running payroll through this system, or an
+ * employee's records were entered after the fact — is not simply skipped.
+ * `generate()` falls back to a synthetic annual figure for exactly that
+ * employee in exactly that year, computed the same way as a month's accrual
+ * (`gratuityFor(closing days) - gratuityFor(opening days)`, see
+ * `EndOfServiceGratuityService::monthlyAccrual()`) but spanning the whole
+ * calendar year, using whichever basic salary was on record at the year's end
+ * (`PayrollService::salaryAt()`). Nothing here assumes the salary was constant
+ * for the whole year — only that the year-end figure is the best available
+ * estimate when no monthly record exists to do better.
  */
 class EndOfServiceGratuityClosingVoucherService
 {
+    public function __construct(
+        private readonly PayrollService $payroll,
+        private readonly EndOfServiceGratuityService $gratuity,
+    ) {}
+
     /**
      * @param  list<array{account: string, detail: string|null, amount: float}>  $debits
      * @return array{
@@ -134,6 +154,14 @@ class EndOfServiceGratuityClosingVoucherService
             ->map(fn (Collection $partyLines): float => round((float) $partyLines->sum('amount'), 2))
             ->filter(fn (float $amount): bool => $amount > 0);
 
+        foreach ($this->partiesWithoutPayslipsIn($year, $amountsByParty) as $party) {
+            $amount = round($this->syntheticAnnualAccrual($party, $year), 2);
+
+            if ($amount > 0) {
+                $amountsByParty[$party->getKey()] = $amount;
+            }
+        }
+
         $totalAmount = round((float) $amountsByParty->sum(), 2);
 
         return DB::transaction(function () use ($year, $amountsByParty, $totalAmount): EosgClosingVoucher {
@@ -156,5 +184,66 @@ class EndOfServiceGratuityClosingVoucherService
 
             return $voucher;
         });
+    }
+
+    /**
+     * EOSG-applicable employees who accrued nothing from payslips in this
+     * year — either because they were never run through payroll this system
+     * knows about, or because that data was never entered.
+     *
+     * @param  Collection<int, float>  $amountsByParty  Keyed by party id
+     * @return Collection<int, Party>
+     */
+    private function partiesWithoutPayslipsIn(int $year, Collection $amountsByParty): Collection
+    {
+        return Party::withRole('employee')
+            ->with('employeeProfile')
+            ->get()
+            ->filter(fn (Party $party): bool => ! $amountsByParty->has($party->getKey())
+                && ($party->employeeProfile?->getAttribute('is_eosg_applicable') ?? true)
+                && $party->employeeProfile?->getAttribute('date_of_joining') !== null);
+    }
+
+    /**
+     * A whole year's gratuity accrual computed from service dates and the
+     * basic salary on record at the year's end, for an employee this system
+     * never ran a payslip for in that year.
+     *
+     * Mirrors `PayrollService::accrueGratuity()`'s telescoping-difference
+     * approach (`gratuityFor(closing) - gratuityFor(opening)`), just spanning
+     * the calendar year instead of a month, since nothing more granular is
+     * available.
+     */
+    private function syntheticAnnualAccrual(Party $party, int $year): float
+    {
+        $profile = $party->employeeProfile;
+        $joinedOn = $profile?->getAttribute('date_of_joining');
+
+        if ($joinedOn === null) {
+            return 0.0;
+        }
+
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
+        $leftOn = $profile->getAttribute('date_of_leaving');
+        $periodEnd = ($leftOn !== null && $leftOn->lessThan($yearEnd)) ? $leftOn : $yearEnd;
+
+        // Not employed at any point during this year — left before it started,
+        // or joined after it ended.
+        if ($periodEnd->lessThan($yearStart) || $joinedOn->greaterThan($periodEnd)) {
+            return 0.0;
+        }
+
+        $basic = (float) ($this->payroll->salaryAt($party->getKey(), $periodEnd)[SalaryComponent::BASIC->value] ?? 0.0);
+
+        if ($basic <= 0) {
+            return 0.0;
+        }
+
+        $openingDays = $this->gratuity->serviceDays($joinedOn, $yearStart);
+        $closingDays = $this->gratuity->serviceDays($joinedOn, $periodEnd);
+
+        return max(0.0, $this->gratuity->monthlyAccrual($openingDays, $closingDays, $basic));
     }
 }
