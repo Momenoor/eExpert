@@ -49,6 +49,15 @@ use Illuminate\Support\Facades\DB;
  * (`PayrollService::salaryAt()`). Nothing here assumes the salary was constant
  * for the whole year — only that the year-end figure is the best available
  * estimate when no monthly record exists to do better.
+ *
+ * An employee's `opening_eosg_balance` — gratuity entered once by HR/Finance
+ * for service this system has no record of at all — is added on top of
+ * whichever voucher is generated FIRST for that employee (checked by whether
+ * any `EosgClosingVoucherLine` already exists for them in a different year),
+ * never again after that. Which year counts as "first" is whichever is
+ * generated first in practice, not necessarily the chronologically earliest —
+ * the same one-time-top-up rule `LeaveEntitlementService` applies to an
+ * opening leave balance.
  */
 class EndOfServiceGratuityClosingVoucherService
 {
@@ -162,6 +171,9 @@ class EndOfServiceGratuityClosingVoucherService
             }
         }
 
+        $amountsByParty = $this->applyOpeningBalances($year, $amountsByParty)
+            ->filter(fn (float $amount): bool => $amount > 0);
+
         $totalAmount = round((float) $amountsByParty->sum(), 2);
 
         return DB::transaction(function () use ($year, $amountsByParty, $totalAmount): EosgClosingVoucher {
@@ -184,6 +196,46 @@ class EndOfServiceGratuityClosingVoucherService
 
             return $voucher;
         });
+    }
+
+    /**
+     * Adds each employee's one-time opening EOSG balance on top of whichever
+     * year is generated first for them.
+     *
+     * @param  Collection<int, float>  $amountsByParty  Keyed by party id
+     * @return Collection<int, float>
+     */
+    private function applyOpeningBalances(int $year, Collection $amountsByParty): Collection
+    {
+        $withOpeningBalance = Party::withRole('employee')
+            ->with('employeeProfile')
+            ->get()
+            ->filter(fn (Party $party): bool => ($party->employeeProfile?->getAttribute('is_eosg_applicable') ?? true)
+                && (float) ($party->employeeProfile?->getAttribute('opening_eosg_balance') ?? 0) > 0);
+
+        if ($withOpeningBalance->isEmpty()) {
+            return $amountsByParty;
+        }
+
+        // Excludes the year being generated — its own lines are about to be
+        // wiped and recreated, so they can never count as "prior" history.
+        $partiesAlreadyGranted = EosgClosingVoucherLine::query()
+            ->whereIn('party_id', $withOpeningBalance->pluck('id'))
+            ->whereHas('voucher', fn ($query) => $query->where('year', '!=', $year))
+            ->pluck('party_id')
+            ->all();
+
+        foreach ($withOpeningBalance as $party) {
+            if (in_array($party->getKey(), $partiesAlreadyGranted, true)) {
+                continue;
+            }
+
+            $opening = (float) $party->employeeProfile->getAttribute('opening_eosg_balance');
+
+            $amountsByParty[$party->getKey()] = round(($amountsByParty[$party->getKey()] ?? 0.0) + $opening, 2);
+        }
+
+        return $amountsByParty;
     }
 
     /**

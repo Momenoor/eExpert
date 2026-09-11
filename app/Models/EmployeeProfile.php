@@ -42,7 +42,8 @@ class EmployeeProfile extends Model
         'wps_routing_code',
         'is_eosg_applicable',
         'opening_leave_balance',
-        'display_name'
+        'opening_eosg_balance',
+        'display_name',
     ];
 
     protected $casts = [
@@ -54,6 +55,7 @@ class EmployeeProfile extends Model
         'residency_expiry' => 'date',
         'is_eosg_applicable' => 'boolean',
         'opening_leave_balance' => 'decimal:1',
+        'opening_eosg_balance' => 'decimal:2',
     ];
 
     public function getActivitylogOptions(): LogOptions

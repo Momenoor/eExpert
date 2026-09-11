@@ -130,6 +130,14 @@ class EmployeeProfileForm
                             ->numeric()
                             ->default(0)
                             ->helperText(__('Days carried over from before leave was tracked here, added once to their first year of entitlement.')),
+                        TextInput::make('opening_eosg_balance')
+                            ->label(__('Opening EOSG Balance (AED)'))
+                            ->suffix('AED')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->default(0)
+                            ->helperText(__('Gratuity earned before this system tracked payroll, entered once and added to whichever closing voucher is generated first for this employee.')),
                     ])->columns(2),
             ]);
     }

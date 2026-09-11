@@ -127,6 +127,11 @@ class EmployeeProfileImporter extends Importer
                 ->label(__('Opening Leave Balance (days)'))
                 ->example('0')
                 ->rules(['nullable', 'numeric']),
+
+            ImportColumn::make('opening_eosg_balance')
+                ->label(__('Opening EOSG Balance (AED)'))
+                ->example('0')
+                ->rules(['nullable', 'numeric']),
         ];
 
         // The "Download Example" button headers each column with

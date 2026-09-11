@@ -282,4 +282,71 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $this->assertSame($realAccrual, $amountsByName[$withPayslip->name]);
         $this->assertArrayHasKey($withoutPayslip->name, $amountsByName);
     }
+
+    public function test_the_opening_balance_is_added_on_top_of_the_first_voucher_generated(): void
+    {
+        $this->employee(['opening_eosg_balance' => 5000]);
+        $this->generateMonth('2026-01');
+        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $this->assertEqualsWithDelta($realAccrual + 5000, $voucher['debits'][0]['amount'], 0.01);
+    }
+
+    public function test_the_opening_balance_is_not_added_again_on_a_later_year(): void
+    {
+        $this->employee(['opening_eosg_balance' => 5000]);
+        $this->generateMonth('2026-01');
+        $this->service->generate(2026);
+
+        $this->generateMonth('2027-01');
+        $voucherFor2027 = $this->service->forYear($this->service->generate(2027)->year);
+
+        $realAccrual2027 = (float) PayrollRun::where('period', '2027-01')->first()->payslips()->first()->eosg_accrued;
+
+        $this->assertEqualsWithDelta($realAccrual2027, $voucherFor2027['debits'][0]['amount'], 0.01);
+    }
+
+    public function test_regenerating_the_same_year_keeps_the_opening_balance(): void
+    {
+        $this->employee(['opening_eosg_balance' => 5000]);
+        $this->generateMonth('2026-01');
+
+        $this->service->generate(2026);
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+
+        $this->assertEqualsWithDelta($realAccrual + 5000, $voucher['debits'][0]['amount'], 0.01);
+    }
+
+    public function test_the_opening_balance_alone_creates_a_line_even_with_nothing_else_accrued(): void
+    {
+        // Left long before 2026, so no real or synthetic accrual — only the
+        // opening balance should appear.
+        $party = $this->employee([
+            'date_of_joining' => '2015-01-01',
+            'date_of_leaving' => '2019-01-01',
+            'opening_eosg_balance' => 3000,
+        ]);
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $this->assertSame(1, $voucher['employee_count']);
+        $this->assertSame($party->name, $voucher['debits'][0]['detail']);
+        $this->assertSame(3000.0, $voucher['debits'][0]['amount']);
+    }
+
+    public function test_no_opening_balance_leaves_the_figure_untouched(): void
+    {
+        $this->employee();
+        $this->generateMonth('2026-01');
+
+        $realAccrual = (float) PayrollRun::where('period', '2026-01')->first()->payslips()->first()->eosg_accrued;
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $this->assertSame($realAccrual, $voucher['debits'][0]['amount']);
+    }
 }
