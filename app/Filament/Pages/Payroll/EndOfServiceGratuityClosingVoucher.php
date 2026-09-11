@@ -6,14 +6,26 @@ use App\Services\EndOfServiceGratuityClosingVoucherService;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
 use Livewire\Attributes\Computed;
-use UnitEnum;
 
 /**
  * The annual EOSG closing voucher, on its own page rather than hanging off a
  * Payroll Run — gratuity is now posted once a year, not once a month, so it
  * has no single run to belong to.
+ *
+ * Built entirely from the standard Filament schema (a live `Select` filter
+ * plus an embedded view), like every other custom page in this app, rather
+ * than a hand-rolled Blade view with a raw `<select>` — only the printable
+ * voucher (`journal-voucher-print.blade.php`, via the print action below)
+ * stays exactly as it was.
  *
  * Gated purely by this page's own Shield permission (HasPageShield), never by
  * `View:PayrollRun` — a Finance user who should see only the gratuity total,
@@ -24,15 +36,14 @@ class EndOfServiceGratuityClosingVoucher extends Page
 {
     use HasPageShield;
 
-    protected string $view = 'filament.pages.payroll.eosg-closing-voucher';
-
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
-
-    protected static string|UnitEnum|null $navigationGroup = 'Financial';
 
     protected static ?int $navigationSort = 3;
 
-    public int $year;
+    /**
+     * @var array{year?: int}
+     */
+    public ?array $filters = [];
 
     public static function getNavigationLabel(): string
     {
@@ -44,9 +55,33 @@ class EndOfServiceGratuityClosingVoucher extends Page
         return __('EOSG Closing Voucher');
     }
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('Financial');
+    }
+
     public function mount(): void
     {
-        $this->year = (int) now()->year;
+        $this->filtersForm->fill(['year' => (int) now()->year]);
+    }
+
+    public function filtersForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Select::make('year')
+                    ->label(__('Closing Year'))
+                    ->options(fn (): array => array_combine($this->selectableYears(), $this->selectableYears()))
+                    ->selectablePlaceholder(false)
+                    ->live()
+                    ->required(),
+            ])
+            ->statePath('filters');
+    }
+
+    private function year(): int
+    {
+        return (int) ($this->filters['year'] ?? now()->year);
     }
 
     /**
@@ -63,7 +98,7 @@ class EndOfServiceGratuityClosingVoucher extends Page
     #[Computed]
     public function voucher(): array
     {
-        return app(EndOfServiceGratuityClosingVoucherService::class)->forYear($this->year);
+        return app(EndOfServiceGratuityClosingVoucherService::class)->forYear($this->year());
     }
 
     /**
@@ -72,12 +107,37 @@ class EndOfServiceGratuityClosingVoucher extends Page
      *
      * @return array<int, int>
      */
-    #[Computed]
     public function selectableYears(): array
     {
         $current = (int) now()->year;
 
         return range($current, $current - 10);
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make(__('Closing Year'))
+                ->schema([
+                    Form::make([EmbeddedSchema::make('filtersForm')]),
+                ]),
+
+            Section::make(__('Journal Voucher'))
+                ->visible(fn (): bool => $this->voucher()['employee_count'] > 0)
+                ->schema([
+                    View::make('filament.payroll.journal-voucher')
+                        ->viewData(fn (): array => ['voucher' => $this->voucher()]),
+                ]),
+
+            Section::make(__('Journal Voucher'))
+                ->visible(fn (): bool => $this->voucher()['employee_count'] === 0)
+                ->schema([
+                    Text::make(fn (): string => __(
+                        'No gratuity was accrued for :year among employees applicable for EOSG.',
+                        ['year' => $this->year()],
+                    ))->color('gray'),
+                ]),
+        ]);
     }
 
     protected function getHeaderActions(): array
@@ -88,7 +148,7 @@ class EndOfServiceGratuityClosingVoucher extends Page
                 ->icon('heroicon-o-printer')
                 ->color('gray')
                 ->visible(fn (): bool => $this->voucher()['employee_count'] > 0)
-                ->url(fn (): string => route('payroll.eosg-closing-voucher.print', ['year' => $this->year]))
+                ->url(fn (): string => route('payroll.eosg-closing-voucher.print', ['year' => $this->year()]))
                 ->openUrlInNewTab(),
         ];
     }

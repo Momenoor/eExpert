@@ -78,6 +78,18 @@ class PayrollRunsTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel(__('Close'))
                     ->modalWidth('4xl'),
+                // Same permission, same reasoning as the action above: a
+                // JV-only user needs the printable sheet too, not just the
+                // on-screen modal, without ever touching `View:PayrollRun`.
+                Action::make('print_journal_voucher')
+                    ->label(__('Print Voucher'))
+                    ->icon('heroicon-o-printer')
+                    ->iconButton()
+                    ->color('gray')
+                    ->authorize('viewJournalVoucher')
+                    ->visible(fn (PayrollRun $record): bool => $record->payslips()->exists())
+                    ->url(fn (PayrollRun $record): string => route('payroll.run.journal-voucher.print', $record))
+                    ->openUrlInNewTab(),
                 DeleteAction::make()
                     ->iconButton()
                     // Only an untouched draft may be removed. Anything HR has

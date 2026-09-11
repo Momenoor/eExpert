@@ -6,6 +6,7 @@ use App\Enums\LoanKind;
 use App\Enums\PayslipLineKind;
 use App\Models\PayrollRun;
 use App\Models\PayslipLine;
+use App\Models\Setting;
 
 /**
  * The monthly Salaries journal voucher a payroll run posts to QuickBooks.
@@ -17,15 +18,22 @@ use App\Models\PayslipLine;
  * The double entry it describes:
  *
  *   Dr  Basic salary, allowances, incentives   — the full cost of the month
+ *   Dr  Bank fees                              — the fixed monthly transfer charge
  *     Cr  Loan and petty cash clearing         — advances recovered, per employee
  *     Cr  Unpaid leave recovery                — pay withheld, contra to expense
  *     Cr  Other salary deductions              — fines and manual adjustments
+ *     Cr  Bank fees payable                    — settled alongside the transfer
  *     Cr  Net salary payable                   — what the bank transfer settles
  *
  * Earnings are debited GROSS and the withholdings credited back, rather than
  * debiting the net figure. That is what makes the sheet reconcilable: the salary
  * expense line matches the payroll register, and every deduction can be traced
  * to the account it landed in.
+ *
+ * The bank fee is a fixed office-wide charge from Payroll Settings, not derived
+ * from any payslip — it posts once per run regardless of headcount, because the
+ * bank charges the same transfer fee whether the batch holds five salaries or
+ * fifty.
  *
  * End-of-service gratuity is deliberately absent from this voucher. It is still
  * accrued and stored on every payslip (`PayslipLine::EMPLOYER_COST`, via
@@ -39,6 +47,21 @@ class PayrollJournalVoucherService
     public const GL_EOSG_PROVISION = 'EOSG Provision (Liability)';
 
     public const GL_NET_SALARY_PAYABLE = 'Net Salary Payable';
+
+    public const GL_BANK_FEES_EXPENSE = 'Bank Fees Expense';
+
+    public const GL_BANK_FEES_PAYABLE = 'Bank Fees Payable';
+
+    private const DEFAULT_BANK_FEE_AMOUNT = 0.0;
+
+    /**
+     * The fixed transfer fee from Payroll Settings — office policy, not a
+     * statutory figure, so it has no legal citation to mirror.
+     */
+    public function bankFeeAmount(): float
+    {
+        return (float) Setting::get('payroll_bank_fee_amount', self::DEFAULT_BANK_FEE_AMOUNT);
+    }
 
     /**
      * Build the voucher for a run.
@@ -105,6 +128,13 @@ class PayrollJournalVoucherService
 
         if ($netPay > 0) {
             $credits[] = ['account' => self::GL_NET_SALARY_PAYABLE, 'detail' => null, 'amount' => $netPay];
+        }
+
+        $bankFee = round($this->bankFeeAmount(), 2);
+
+        if ($bankFee > 0) {
+            $debits[] = ['account' => self::GL_BANK_FEES_EXPENSE, 'detail' => null, 'amount' => $bankFee];
+            $credits[] = ['account' => self::GL_BANK_FEES_PAYABLE, 'detail' => null, 'amount' => $bankFee];
         }
 
         $debits = $this->merged($debits);

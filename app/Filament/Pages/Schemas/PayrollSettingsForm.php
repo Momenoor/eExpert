@@ -36,6 +36,22 @@ class PayrollSettingsForm
                         ->helperText(__('Every instalment after the first is rounded down to the nearest multiple of this amount; the remainder is charged in month one.')),
                 ]),
 
+            Section::make(__('Journal Voucher'))
+                ->description(__('Office costs added to the monthly Salaries journal voucher, alongside the payslip figures.'))
+                ->icon(Heroicon::Banknotes)
+                ->columns(2)
+                ->schema([
+                    TextInput::make('payroll_bank_fee_amount')
+                        ->label(__('Bank Transfer Fee (AED)'))
+                        ->suffix('AED')
+                        ->numeric()
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->required()
+                        ->default(0)
+                        ->helperText(__('A fixed charge the bank makes for the salary transfer batch, posted once per run regardless of headcount.')),
+                ]),
+
             Section::make(__('End of Service Gratuity — Federal Decree-Law 33/2021, Article 51'))
                 ->description(__('These are statutory figures, not office policy. Only change them if the law itself changes, or on legal advice — lowering them below the statutory minimum exposes the office to liability.'))
                 ->icon(Heroicon::Scale)

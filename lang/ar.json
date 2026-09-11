@@ -1170,6 +1170,7 @@
     "Off excludes this employee from the annual gratuity accrual and closing voucher.": "التعطيل يستثني هذا الموظف من احتساب مكافأة نهاية الخدمة السنوية وسند إقفالها.",
     "Office (+2%)": "مكتب (+2%)",
     "Office Committee (+2%)": "لجنة المكتب (+2%)",
+    "Office costs added to the monthly Salaries journal voucher, alongside the payslip figures.": "تكاليف مكتبية تُضاف إلى سند قيد الرواتب الشهري، إلى جانب أرقام مسير الرواتب.",
     "Office Owner": "مالك المكتب",
     "Office Share": "حصة المكتب",
     "Office Work": "عمل المكتب",
