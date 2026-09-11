@@ -51,7 +51,7 @@ class PayrollJournalVoucherService
 
     public const GL_NET_SALARY_PAYABLE = 'Net Salary Payable';
 
-    public const GL_BANK_FEES_EXPENSE = 'Bank Fees Expense';
+    public const GL_BANK_FEES_EXPENSE = 'مصروفات رسوم التحويل';
 
     private const DEFAULT_BANK_FEE_AMOUNT = 0.0;
 
