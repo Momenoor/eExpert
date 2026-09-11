@@ -30,6 +30,7 @@ class EmployeeProfilesTable
                 TextColumn::make('employee_no')
                     ->label(__('Employee Number'))
                     ->searchable()
+                    ->sortable()
                     ->placeholder('—'),
                 TextColumn::make('designation')
                     ->label(__('Designation'))
