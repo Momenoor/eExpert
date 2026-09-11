@@ -42,6 +42,7 @@ class EmployeeProfile extends Model
         'wps_routing_code',
         'is_eosg_applicable',
         'opening_leave_balance',
+        'display_name'
     ];
 
     protected $casts = [
