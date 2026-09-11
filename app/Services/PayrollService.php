@@ -442,10 +442,7 @@ class PayrollService
             return 0.0;
         }
 
-        $openingDays = $this->gratuity->serviceDays($joinedOn, $periodStart);
-        $closingDays = $this->gratuity->serviceDays($joinedOn, $periodEnd, $unpaidDays);
-
-        return max(0.0, $this->gratuity->monthlyAccrual($openingDays, $closingDays, $basic));
+        return max(0.0, $this->gratuity->accrualBetween($joinedOn, $periodStart, $periodEnd, $basic, $unpaidDays));
     }
 
     private function isOnPayroll(Party $party, CarbonInterface $periodEnd): bool

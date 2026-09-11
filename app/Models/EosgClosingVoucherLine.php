@@ -13,11 +13,15 @@ class EosgClosingVoucherLine extends Model
     protected $fillable = [
         'eosg_closing_voucher_id',
         'party_id',
+        'opening_balance',
         'amount',
+        'closing_balance',
     ];
 
     protected $casts = [
+        'opening_balance' => 'decimal:2',
         'amount' => 'decimal:2',
+        'closing_balance' => 'decimal:2',
     ];
 
     /**

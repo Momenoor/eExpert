@@ -74,19 +74,21 @@ class PayrollSettingsForm
                         ->default(24)
                         ->helperText(__('The gratuity total can never exceed this many months of basic pay, however long the service.')),
 
+                    TextInput::make('payroll_eosg_minimum_service_years')
+                        ->label(__('Minimum Service Before Anything Is Owed (years)'))
+                        ->numeric()
+                        ->minValue(0)
+                        ->required()
+                        ->default(1)
+                        ->helperText(__('Below this many completed years, gratuity is zero. Once crossed, the WHOLE period since joining is paid, not just the time after the threshold.')),
+
                     TextInput::make('payroll_eosg_days_per_year_first_five')
                         ->label(__('Days Accrued Per Year — First 5 Years'))
                         ->numeric()
                         ->minValue(0)
                         ->required()
-                        ->default(21),
-
-                    TextInput::make('payroll_eosg_days_per_year_after_five')
-                        ->label(__('Days Accrued Per Year — Beyond 5 Years'))
-                        ->numeric()
-                        ->minValue(0)
-                        ->required()
-                        ->default(30),
+                        ->default(21)
+                        ->helperText(__('Every year beyond the fifth is a full month\'s basic salary instead — that part of the law is not expressed in days, so there is nothing to configure for it.')),
                 ]),
 
             Section::make(__('Annual Leave — Federal Decree-Law 33/2021, Article 29'))

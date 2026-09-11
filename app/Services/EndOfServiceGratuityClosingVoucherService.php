@@ -47,12 +47,12 @@ use Illuminate\Support\Facades\DB;
  * payroll through this system — `generate()` discards whatever partial figure
  * exists and falls back to a synthetic annual figure for exactly that
  * employee in exactly that year, computed the same way as a month's accrual
- * (`gratuityFor(closing days) - gratuityFor(opening days)`, see
- * `EndOfServiceGratuityService::monthlyAccrual()`) but spanning the whole
- * calendar year, using whichever basic salary was on record at the year's end
- * (`PayrollService::salaryAt()`). Nothing here assumes the salary was constant
- * for the whole year — only that the year-end figure is the best available
- * estimate when the monthly record is missing or incomplete.
+ * (`EndOfServiceGratuityService::accrualBetween()`, spanning the whole
+ * calendar year instead of a month), using whichever basic salary was on
+ * record at the year's end (`PayrollService::salaryAt()`). Nothing here
+ * assumes the salary was constant for the whole year — only that the
+ * year-end figure is the best available estimate when the monthly record is
+ * missing or incomplete.
  *
  * An employee's `opening_eosg_balance` — gratuity entered once by HR/Finance
  * for service this system has no record of at all — is added on top of
@@ -62,6 +62,19 @@ use Illuminate\Support\Facades\DB;
  * generated first in practice, not necessarily the chronologically earliest —
  * the same one-time-top-up rule `LeaveEntitlementService` applies to an
  * opening leave balance.
+ *
+ * Every line also carries its OPENING and CLOSING cumulative balance, not
+ * just the year's movement — a proper provision rollforward, not a bare
+ * figure. Closing balance is always `opening + this year's movement`, and
+ * opening balance is whichever year was generated immediately before this one
+ * for that employee (its saved closing balance), chained year over year;
+ * for whichever year is generated FIRST for an employee, there is no prior
+ * year to chain from, so opening balance is computed fresh from their service
+ * dates as of the day before the year began. This is what keeps "just this
+ * year's amount" (the GL posting, unaffected by this) visibly reconciled
+ * against the running total, and what makes a leaver's final year show
+ * their true closing entitlement as of the date they actually left, not
+ * 31/12.
  */
 class EndOfServiceGratuityClosingVoucherService
 {
@@ -106,7 +119,10 @@ class EndOfServiceGratuityClosingVoucherService
      *
      * Reads only what `generate()` last wrote — it never recomputes from
      * payslips, so it stays exactly what was posted even if a payroll run in
-     * that year is corrected afterwards.
+     * that year is corrected afterwards. The journal entry (`debits`/`credits`)
+     * carries only this year's movement, unchanged from before — `rollforward`
+     * is the added, purely informational opening/movement/closing/paid
+     * breakdown per employee.
      *
      * @return array{
      *     period: string,
@@ -117,13 +133,24 @@ class EndOfServiceGratuityClosingVoucherService
      *     balanced: bool,
      *     employee_count: int,
      *     generated_at: string,
+     *     rollforward: list<array{
+     *         party_name: string,
+     *         opening_balance: float,
+     *         current_year_amount: float,
+     *         closing_balance: float,
+     *         left_during_year: bool,
+     *         date_of_leaving: string|null,
+     *         paid_amount: float,
+     *         outstanding: float,
+     *         payment_status: string,
+     *     }>,
      * }|null
      */
     public function forYear(int $year): ?array
     {
         $voucher = EosgClosingVoucher::query()
             ->where('year', $year)
-            ->with('lines.party')
+            ->with('lines.party.employeeProfile')
             ->first();
 
         if (! $voucher) {
@@ -140,10 +167,56 @@ class EndOfServiceGratuityClosingVoucherService
             ->values()
             ->all();
 
+        $rollforward = $voucher->lines
+            ->map(function (EosgClosingVoucherLine $line) use ($year): array {
+                $profile = $line->party->employeeProfile;
+                $leftOn = $profile?->getAttribute('date_of_leaving');
+                $leftDuringYear = $leftOn !== null && $leftOn->year === $year;
+
+                $closingBalance = (float) $line->closing_balance;
+                $paidAmount = (float) ($profile?->getAttribute('eosg_paid_amount') ?? 0.0);
+                $outstanding = round(max(0.0, $closingBalance - $paidAmount), 2);
+
+                return [
+                    'party_name' => $line->party->name,
+                    'opening_balance' => (float) $line->opening_balance,
+                    'current_year_amount' => (float) $line->amount,
+                    'closing_balance' => $closingBalance,
+                    'left_during_year' => $leftDuringYear,
+                    'date_of_leaving' => $leftOn?->toDateString(),
+                    'paid_amount' => $paidAmount,
+                    'outstanding' => $outstanding,
+                    'payment_status' => $this->paymentStatus($closingBalance, $paidAmount),
+                ];
+            })
+            ->sortBy('party_name')
+            ->values()
+            ->all();
+
         return [
             ...$this->shape((string) __(':year — Annual Closing', ['year' => $year]), $debits, $voucher->lines->count()),
             'generated_at' => $voucher->generated_at->toIso8601String(),
+            'rollforward' => $rollforward,
         ];
+    }
+
+    /**
+     * Unpaid, partially paid, or paid in full — compared against the
+     * cumulative closing balance, not just this year's movement, since
+     * gratuity is settled against the whole entitlement, not a single year's
+     * slice of it.
+     */
+    private function paymentStatus(float $closingBalance, float $paidAmount): string
+    {
+        if ($paidAmount <= 0.0) {
+            return (string) __('Unpaid');
+        }
+
+        if ($paidAmount >= $closingBalance) {
+            return (string) __('Paid in Full');
+        }
+
+        return (string) __('Partially Paid');
     }
 
     /**
@@ -196,15 +269,65 @@ class EndOfServiceGratuityClosingVoucherService
             // fact, say) must not leave a stale line behind.
             $voucher->lines()->delete();
 
+            $parties = Party::with('employeeProfile')
+                ->whereIn('id', $amountsByParty->keys())
+                ->get()
+                ->keyBy(fn (Party $party): int => $party->getKey());
+
             $voucher->lines()->createMany(
-                $amountsByParty->map(fn (float $amount, int $partyId): array => [
-                    'party_id' => $partyId,
-                    'amount' => $amount,
-                ])->values()->all(),
+                $amountsByParty->map(function (float $amount, int $partyId) use ($year, $parties): array {
+                    $opening = $this->openingBalanceFor($parties->get($partyId), $year);
+
+                    return [
+                        'party_id' => $partyId,
+                        'opening_balance' => $opening,
+                        'amount' => $amount,
+                        'closing_balance' => round($opening + $amount, 2),
+                    ];
+                })->values()->all(),
             );
 
             return $voucher;
         });
+    }
+
+    /**
+     * An employee's cumulative liability at the START of a year — chained
+     * from whichever year was generated immediately before this one for them
+     * (its saved closing balance), so a correction to an earlier year and a
+     * re-generation of this one stay in step. For whichever year is
+     * generated FIRST for an employee, there is nothing to chain from, so
+     * this is computed fresh from their service dates as of the day before
+     * the year began.
+     */
+    private function openingBalanceFor(Party $party, int $year): float
+    {
+        $priorLine = EosgClosingVoucherLine::query()
+            ->where('party_id', $party->getKey())
+            ->whereHas('voucher', fn ($query) => $query->where('year', '<', $year))
+            ->with('voucher')
+            ->get()
+            ->sortByDesc(fn (EosgClosingVoucherLine $line): int => $line->voucher->year)
+            ->first();
+
+        if ($priorLine !== null) {
+            return (float) $priorLine->closing_balance;
+        }
+
+        $joinedOn = $party->employeeProfile?->getAttribute('date_of_joining');
+
+        if ($joinedOn === null) {
+            return 0.0;
+        }
+
+        $dayBeforeYear = Carbon::create($year, 1, 1)->startOfDay()->subDay();
+        $basic = (float) ($this->payroll->salaryAt($party->getKey(), $dayBeforeYear)[SalaryComponent::BASIC->value] ?? 0.0);
+
+        if ($basic <= 0) {
+            return 0.0;
+        }
+
+        return $this->gratuity->gratuityAsOf($joinedOn, $dayBeforeYear, $basic);
     }
 
     /**
@@ -336,9 +459,9 @@ class EndOfServiceGratuityClosingVoucherService
      * basic salary on record at the year's end, for an employee this system
      * never ran a payslip for in that year.
      *
-     * Mirrors `PayrollService::accrueGratuity()`'s telescoping-difference
-     * approach (`gratuityFor(closing) - gratuityFor(opening)`), just spanning
-     * the calendar year instead of a month, since nothing more granular is
+     * Mirrors `PayrollService::accrueGratuity()`'s use of
+     * `EndOfServiceGratuityService::accrualBetween()`, just spanning the
+     * calendar year instead of a month, since nothing more granular is
      * available.
      */
     private function syntheticAnnualAccrual(Party $party, int $year): float
@@ -368,9 +491,6 @@ class EndOfServiceGratuityClosingVoucherService
             return 0.0;
         }
 
-        $openingDays = $this->gratuity->serviceDays($joinedOn, $yearStart);
-        $closingDays = $this->gratuity->serviceDays($joinedOn, $periodEnd);
-
-        return max(0.0, $this->gratuity->monthlyAccrual($openingDays, $closingDays, $basic));
+        return max(0.0, $this->gratuity->accrualBetween($joinedOn, $yearStart, $periodEnd, $basic));
     }
 }

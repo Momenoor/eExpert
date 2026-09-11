@@ -43,6 +43,8 @@ class EmployeeProfile extends Model
         'is_eosg_applicable',
         'opening_leave_balance',
         'opening_eosg_balance',
+        'eosg_paid_amount',
+        'eosg_paid_at',
         'display_name',
     ];
 
@@ -56,6 +58,8 @@ class EmployeeProfile extends Model
         'is_eosg_applicable' => 'boolean',
         'opening_leave_balance' => 'decimal:1',
         'opening_eosg_balance' => 'decimal:2',
+        'eosg_paid_amount' => 'decimal:2',
+        'eosg_paid_at' => 'date',
     ];
 
     public function getActivitylogOptions(): LogOptions

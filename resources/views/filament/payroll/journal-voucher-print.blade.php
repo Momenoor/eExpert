@@ -212,6 +212,47 @@
         <p class="balance off">{{ __('This voucher does not balance. Regenerate the run before posting it.') }}</p>
     @endif
 
+    {{--
+        Only the annual EOSG closing voucher carries a rollforward — the
+        monthly Salaries voucher this same template also renders has no such
+        key, so it never shows this table.
+    --}}
+    @isset($voucher['rollforward'])
+        <h1 style="margin-top: 24px;">{{ __('Opening / Closing Balances Per Employee') }}</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>{{ __('Employee') }}</th>
+                    <th class="amount">{{ __('Opening Balance') }}</th>
+                    <th class="amount">{{ __('Current Year Amount') }}</th>
+                    <th class="amount">{{ __('Closing Balance') }}</th>
+                    <th class="amount">{{ __('Paid') }}</th>
+                    <th class="amount">{{ __('Outstanding') }}</th>
+                    <th>{{ __('Status') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($voucher['rollforward'] as $row)
+                    <tr>
+                        <td>
+                            {{ $row['party_name'] }}
+                            @if ($row['left_during_year'])
+                                <span class="detail">— {{ __('left :date', ['date' => $row['date_of_leaving']]) }}</span>
+                            @endif
+                        </td>
+                        <td class="amount">{{ number_format($row['opening_balance'], 2) }}</td>
+                        <td class="amount">{{ number_format($row['current_year_amount'], 2) }}</td>
+                        <td class="amount">{{ number_format($row['closing_balance'], 2) }}</td>
+                        <td class="amount">{{ number_format($row['paid_amount'], 2) }}</td>
+                        <td class="amount">{{ number_format($row['outstanding'], 2) }}</td>
+                        <td>{{ $row['payment_status'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endisset
+
     <div class="signatures">
         <div>{{ __('Prepared by') }}</div>
         <div>{{ __('Reviewed by') }}</div>

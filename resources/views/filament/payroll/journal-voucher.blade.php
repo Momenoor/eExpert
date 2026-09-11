@@ -5,7 +5,7 @@
     office types the entry in, so what matters is that the two columns are easy
     to read off and that the totals visibly agree.
 --}}
-<div class="fi-section space-y-4 text-sm">
+<div class="fi-section space-y-4 p-4 text-sm">
     <div class="grid grid-cols-2 gap-4">
         <div>
             <div class="fi-color-gray text-xs uppercase tracking-wide opacity-70">{{ __('Period') }}</div>

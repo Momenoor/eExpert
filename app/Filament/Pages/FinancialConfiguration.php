@@ -114,8 +114,8 @@ class FinancialConfiguration extends Page
 
                 'payroll_days_per_month' => Setting::get('payroll_days_per_month', 30),
                 'payroll_eosg_cap_months' => Setting::get('payroll_eosg_cap_months', 24),
+                'payroll_eosg_minimum_service_years' => Setting::get('payroll_eosg_minimum_service_years', 1),
                 'payroll_eosg_days_per_year_first_five' => Setting::get('payroll_eosg_days_per_year_first_five', 21),
-                'payroll_eosg_days_per_year_after_five' => Setting::get('payroll_eosg_days_per_year_after_five', 30),
 
                 'payroll_annual_leave_days' => Setting::get('payroll_annual_leave_days', 30),
                 'payroll_annual_leave_days_per_month' => Setting::get('payroll_annual_leave_days_per_month', 2),

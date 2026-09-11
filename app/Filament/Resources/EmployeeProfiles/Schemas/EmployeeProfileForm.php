@@ -138,6 +138,16 @@ class EmployeeProfileForm
                             ->step(0.01)
                             ->default(0)
                             ->helperText(__('Gratuity earned before this system tracked payroll, entered once and added to whichever closing voucher is generated first for this employee.')),
+                        TextInput::make('eosg_paid_amount')
+                            ->label(__('EOSG Paid Amount (AED)'))
+                            ->suffix('AED')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->default(0)
+                            ->helperText(__('Cumulative gratuity actually paid out. Compared against the closing balance to mark the EOSG closing voucher unpaid, partially paid, or paid in full.')),
+                        DatePicker::make('eosg_paid_at')
+                            ->label(__('EOSG Last Paid On')),
                     ])->columns(2),
             ]);
     }

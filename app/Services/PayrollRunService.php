@@ -129,11 +129,9 @@ class PayrollRunService
                 continue;
             }
 
-            $serviceDays = $gratuity->serviceDays(
-                $joinedOn,
-                $periodEnd,
-                (float) $payslip->getAttribute('unpaid_days'),
-            );
+            $unpaidDays = (float) $payslip->getAttribute('unpaid_days');
+
+            $serviceDays = $gratuity->serviceDays($joinedOn, $periodEnd, $unpaidDays);
 
             $basic = (float) $payslip->getAttribute('basic_snapshot');
 
@@ -147,7 +145,7 @@ class PayrollRunService
                     'basic_snapshot' => $basic,
                     'accrued_this_month' => (float) $payslip->getAttribute('eosg_accrued'),
                     // What settlement would cost today, cap already applied.
-                    'cumulative_liability' => $gratuity->gratuityFor($serviceDays, $basic),
+                    'cumulative_liability' => $gratuity->gratuityAsOf($joinedOn, $periodEnd, $basic, $unpaidDays),
                 ],
             );
         }

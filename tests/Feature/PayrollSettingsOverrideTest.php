@@ -79,17 +79,51 @@ class PayrollSettingsOverrideTest extends TestCase
         $this->assertSame(6000.0 * 18, $service->cap(6000.0));
     }
 
-    public function test_the_gratuity_year_bands_are_configurable(): void
+    public function test_the_first_five_year_band_is_configurable(): void
     {
         Setting::set('payroll_eosg_days_per_year_first_five', 30, 'payroll');
-        Setting::set('payroll_eosg_days_per_year_after_five', 30, 'payroll');
 
         $service = app(EndOfServiceGratuityService::class);
+        $joined = Carbon::parse('2020-01-01');
 
-        // With both bands equal to 30, one full year is worth 30 days of basic
-        // at 6,000/30 = 200/day: 6,000 flat — different from the statutory
-        // default of 21 days (4,200).
-        $this->assertSame(6000.0, $service->gratuityFor(365, 6000.0));
+        // 30 days of basic at 6,000/30 = 200/day: 6,000 flat — different from
+        // the statutory default of 21 days (4,200).
+        $this->assertSame(6000.0, $service->gratuityAsOf($joined, $joined->copy()->addYear(), 6000.0));
+    }
+
+    public function test_years_beyond_the_fifth_are_a_full_months_salary_regardless_of_days_per_month(): void
+    {
+        // The days-per-month setting is shared with the daily rate used for
+        // the first five years and for unpaid leave — it must not also creep
+        // into what "a year beyond the fifth" is worth, since the statute
+        // means a literal month's salary there, not a day count.
+        Setting::set('payroll_days_per_month', 28, 'payroll');
+
+        $service = app(EndOfServiceGratuityService::class);
+        $joined = Carbon::parse('2020-01-01');
+
+        // Six years: 5 at 21/28 days' basic (first five), plus exactly one
+        // full month's basic (6,000) for the sixth — not 30/28 days' worth.
+        $this->assertSame(
+            6000.0,
+            $service->gratuityAsOf($joined, $joined->copy()->addYears(6), 6000.0)
+                - $service->gratuityAsOf($joined, $joined->copy()->addYears(5), 6000.0),
+        );
+    }
+
+    public function test_the_minimum_service_before_anything_is_owed_is_configurable(): void
+    {
+        Setting::set('payroll_eosg_minimum_service_years', 2, 'payroll');
+
+        $service = app(EndOfServiceGratuityService::class);
+        $joined = Carbon::parse('2020-01-01');
+
+        // One year alone is no longer enough once the office requires two.
+        $this->assertSame(0.0, $service->gratuityAsOf($joined, $joined->copy()->addYear(), 6000.0));
+
+        // Once the (now two-year) threshold is crossed, the WHOLE period
+        // since joining is paid — not just the time after year one.
+        $this->assertGreaterThan(0.0, $service->gratuityAsOf($joined, $joined->copy()->addYears(2), 6000.0));
     }
 
     public function test_the_annual_leave_entitlement_is_configurable(): void

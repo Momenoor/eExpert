@@ -207,9 +207,10 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
         $gratuity = app(EndOfServiceGratuityService::class);
-        $expectedSynthetic = $gratuity->monthlyAccrual(
-            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2026-01-01')),
-            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2026-12-31')),
+        $expectedSynthetic = $gratuity->accrualBetween(
+            Carbon::parse('2020-01-01'),
+            Carbon::parse('2026-01-01')->startOfDay(),
+            Carbon::parse('2026-12-31')->endOfDay(),
             6000.0,
         );
 
@@ -259,9 +260,10 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $voucher = $this->service->forYear($this->service->generate(2023)->year);
 
         $gratuity = app(EndOfServiceGratuityService::class);
-        $expected = $gratuity->monthlyAccrual(
-            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2023-01-01')),
-            $gratuity->serviceDays(Carbon::parse('2020-01-01'), Carbon::parse('2023-12-31')),
+        $expected = $gratuity->accrualBetween(
+            Carbon::parse('2020-01-01'),
+            Carbon::parse('2023-01-01')->startOfDay(),
+            Carbon::parse('2023-12-31')->endOfDay(),
             6000.0,
         );
 
@@ -400,5 +402,143 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
         $this->assertEqualsWithDelta($realAccrual, $voucher['debits'][0]['amount'], 0.01);
+    }
+
+    public function test_the_rollforward_reconciles_opening_plus_movement_to_closing(): void
+    {
+        $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $row = $voucher['rollforward'][0];
+
+        $this->assertEqualsWithDelta(
+            $row['closing_balance'],
+            $row['opening_balance'] + $row['current_year_amount'],
+            0.01,
+        );
+    }
+
+    public function test_a_first_generated_year_computes_opening_balance_from_service_dates(): void
+    {
+        $party = $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $gratuity = app(EndOfServiceGratuityService::class);
+        $expectedOpening = $gratuity->gratuityAsOf(
+            Carbon::parse('2020-01-01'),
+            Carbon::parse('2022-12-31')->startOfDay(),
+            6000.0,
+        );
+
+        $row = $voucher['rollforward'][0];
+
+        $this->assertSame($party->name, $row['party_name']);
+        $this->assertEqualsWithDelta($expectedOpening, $row['opening_balance'], 0.01);
+    }
+
+    public function test_a_later_years_opening_balance_chains_from_the_prior_years_closing(): void
+    {
+        $this->employee();
+
+        $firstYear = $this->service->forYear($this->service->generate(2023)->year);
+        $secondYear = $this->service->forYear($this->service->generate(2024)->year);
+
+        $this->assertEqualsWithDelta(
+            $firstYear['rollforward'][0]['closing_balance'],
+            $secondYear['rollforward'][0]['opening_balance'],
+            0.01,
+        );
+    }
+
+    public function test_an_employee_who_left_during_the_year_is_flagged_with_their_leaving_date(): void
+    {
+        $this->employee(['date_of_leaving' => '2026-06-15']);
+
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
+
+        $row = $voucher['rollforward'][0];
+
+        $this->assertTrue($row['left_during_year']);
+        $this->assertSame('2026-06-15', $row['date_of_leaving']);
+
+        // Their closing balance is their entitlement as of leaving, not 31/12.
+        $gratuity = app(EndOfServiceGratuityService::class);
+        $expectedClosing = $row['opening_balance'] + $gratuity->accrualBetween(
+            Carbon::parse('2020-01-01'),
+            Carbon::parse('2026-01-01')->startOfDay(),
+            Carbon::parse('2026-06-15'),
+            6000.0,
+        );
+
+        $this->assertEqualsWithDelta($expectedClosing, $row['closing_balance'], 0.01);
+    }
+
+    public function test_an_employee_still_employed_is_not_flagged_as_having_left(): void
+    {
+        $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+
+        $row = $voucher['rollforward'][0];
+
+        $this->assertFalse($row['left_during_year']);
+        $this->assertNull($row['date_of_leaving']);
+    }
+
+    public function test_payment_status_defaults_to_unpaid(): void
+    {
+        $this->employee();
+
+        $voucher = $this->service->forYear($this->service->generate(2023)->year);
+        $row = $voucher['rollforward'][0];
+
+        $this->assertSame(__('Unpaid'), $row['payment_status']);
+        $this->assertSame(0.0, $row['paid_amount']);
+        $this->assertEqualsWithDelta($row['closing_balance'], $row['outstanding'], 0.01);
+    }
+
+    public function test_payment_status_partially_paid(): void
+    {
+        $party = $this->employee();
+        $this->service->generate(2023);
+
+        $closingBalance = (float) $this->service->forYear(2023)['rollforward'][0]['closing_balance'];
+        $party->employeeProfile->forceFill(['eosg_paid_amount' => $closingBalance / 2])->save();
+
+        $row = $this->service->forYear(2023)['rollforward'][0];
+
+        $this->assertSame(__('Partially Paid'), $row['payment_status']);
+        $this->assertEqualsWithDelta($closingBalance / 2, $row['paid_amount'], 0.01);
+        $this->assertEqualsWithDelta($closingBalance / 2, $row['outstanding'], 0.01);
+    }
+
+    public function test_payment_status_paid_in_full(): void
+    {
+        $party = $this->employee();
+        $this->service->generate(2023);
+
+        $closingBalance = (float) $this->service->forYear(2023)['rollforward'][0]['closing_balance'];
+        $party->employeeProfile->forceFill(['eosg_paid_amount' => $closingBalance])->save();
+
+        $row = $this->service->forYear(2023)['rollforward'][0];
+
+        $this->assertSame(__('Paid in Full'), $row['payment_status']);
+        $this->assertSame(0.0, $row['outstanding']);
+    }
+
+    public function test_a_payment_larger_than_the_balance_still_reads_as_paid_in_full_with_no_negative_outstanding(): void
+    {
+        $party = $this->employee();
+        $this->service->generate(2023);
+
+        $closingBalance = (float) $this->service->forYear(2023)['rollforward'][0]['closing_balance'];
+        $party->employeeProfile->forceFill(['eosg_paid_amount' => $closingBalance + 500])->save();
+
+        $row = $this->service->forYear(2023)['rollforward'][0];
+
+        $this->assertSame(__('Paid in Full'), $row['payment_status']);
+        $this->assertSame(0.0, $row['outstanding']);
     }
 }
