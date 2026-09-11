@@ -5,8 +5,10 @@ use App\Http\Controllers\BulkMailController;
 use App\Http\Controllers\EndOfServiceGratuityClosingVoucherPrintController;
 use App\Http\Controllers\IncentiveCalculationAssistantPrintController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
+use App\Http\Controllers\LeaveRequestEmailActionController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Http\Controllers\PayrollJournalVoucherPrintController;
+use App\Http\Controllers\SalaryAuthorizationFormPrintController;
 use App\Livewire\Installer\InstallWizard;
 use App\Models\Attachment;
 use App\Models\BulkMailRecipient;
@@ -64,6 +66,10 @@ Route::middleware('auth')->group(function () {
         ->name('payroll.run.journal-voucher.print')
         ->middleware(['auth']);
 
+    Route::get('payroll/runs/{run}/salary-authorization-form/print', SalaryAuthorizationFormPrintController::class)
+        ->name('payroll.run.salary-authorization-form.print')
+        ->middleware(['auth']);
+
     Route::get('payroll/eosg-closing-voucher/{year}/print', EndOfServiceGratuityClosingVoucherPrintController::class)
         ->name('payroll.eosg-closing-voucher.print')
         ->whereNumber('year')
@@ -91,4 +97,28 @@ Route::prefix('admin/matter/{matter}/received-date')
 
         Route::post('dispute/{matterRequest}', [MatterReceivedNotificationController::class, 'disputeSubmit'])
             ->name('matter.received.dispute.submit');
+    });
+
+/*
+ * Approve/reject a leave request straight from the notification email, with
+ * no login — the recipient (Redha, or whoever is cc'd) is very often reading
+ * this on a phone, outside any session. As with the matter flow above, the
+ * signature IS the authentication, which is why this sits outside the auth
+ * group entirely.
+ *
+ * GET and POST share one route (and one signed URL): GET only renders a
+ * confirm page, POST is what actually decides the request. Outlook's Safe
+ * Links (and equivalents) visit every link in a message to scan it, often
+ * before the recipient opens it at all — a plain GET that mutated on the spot
+ * meant the scanner itself approved or rejected requests before a human ever
+ * clicked.
+ */
+Route::prefix('leave-requests/{leaveRequest}/email-action')
+    ->middleware('signed')
+    ->group(function () {
+        Route::match(['get', 'post'], 'approve', [LeaveRequestEmailActionController::class, 'approve'])
+            ->name('leave-request.email-action.approve');
+
+        Route::match(['get', 'post'], 'reject', [LeaveRequestEmailActionController::class, 'reject'])
+            ->name('leave-request.email-action.reject');
     });

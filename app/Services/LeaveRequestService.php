@@ -36,11 +36,16 @@ class LeaveRequestService
     /**
      * Approve a request, recording how the absence divides.
      *
+     * `$approver` is nullable so an office email's one-click approve link — the
+     * signature on that URL is the authentication, there is no logged-in user to
+     * attribute it to — can still call this. `approved_by` is left null in that
+     * case; the comment says how it was decided instead.
+     *
      * @param  list<array{leave_type: string|LeaveType, start_date: string, end_date: string, day_count: float|string}>  $periods
      */
     public function approve(
         LeaveRequest $request,
-        User $approver,
+        ?User $approver,
         array $periods,
         ?string $comment = null,
     ): LeaveRequest {
@@ -53,7 +58,7 @@ class LeaveRequestService
         return DB::transaction(function () use ($request, $approver, $periods, $comment): LeaveRequest {
             $request->forceFill([
                 'status' => RequestStatus::APPROVED,
-                'approved_by' => $approver->getKey(),
+                'approved_by' => $approver?->getKey(),
                 'approved_at' => now(),
                 'approved_comment' => $comment,
             ])->save();
@@ -87,7 +92,7 @@ class LeaveRequestService
      * common complaint about approval queues, and the column exists precisely so
      * the employee can be told something.
      */
-    public function reject(LeaveRequest $request, User $approver, string $reason): LeaveRequest
+    public function reject(LeaveRequest $request, ?User $approver, string $reason): LeaveRequest
     {
         if (! $request->isPending()) {
             throw new RuntimeException('Only a pending leave request can be rejected.');
@@ -100,7 +105,7 @@ class LeaveRequestService
         return DB::transaction(function () use ($request, $approver, $reason): LeaveRequest {
             $request->forceFill([
                 'status' => RequestStatus::REJECTED,
-                'approved_by' => $approver->getKey(),
+                'approved_by' => $approver?->getKey(),
                 'approved_at' => now(),
                 'approved_comment' => $reason,
             ])->save();
@@ -117,18 +122,21 @@ class LeaveRequestService
     }
 
     /**
-     * A starting split for the approver: the whole absence as one annual block.
+     * A starting split for the approver: the whole absence as one block of
+     * `$type` (the employee's own requested type by default, falling back to
+     * annual leave if none was stated).
      *
      * Offered as a default rather than applied automatically. It is right often
      * enough to save typing and visible enough that changing it is obviously the
-     * approver's job.
+     * approver's job — except via an office email's one-click approve link,
+     * which has no form to change it in and adopts this suggestion outright.
      *
      * @return list<array{leave_type: string, start_date: string, end_date: string, day_count: float}>
      */
-    public function suggestSplit(LeaveRequest $request): array
+    public function suggestSplit(LeaveRequest $request, ?LeaveType $type = null): array
     {
         return [[
-            'leave_type' => LeaveType::ANNUAL->value,
+            'leave_type' => ($type ?? $request->getAttribute('requested_leave_type') ?? LeaveType::ANNUAL)->value,
             'start_date' => $request->getAttribute('start_date')->toDateString(),
             'end_date' => $request->getAttribute('end_date')->toDateString(),
             'day_count' => $request->requestedDays(),

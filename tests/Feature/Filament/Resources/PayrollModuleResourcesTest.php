@@ -203,6 +203,52 @@ class PayrollModuleResourcesTest extends TestCase
         $this->get(route('payroll.run.journal-voucher.print', $run))->assertForbidden();
     }
 
+    public function test_the_printable_salary_authorization_form_renders(): void
+    {
+        $party = $this->employee();
+        EmployeeProfile::where('party_id', $party->id)->update([
+            'bank_name' => 'Emirates NBD',
+            'iban' => 'AE070331234567890123456',
+        ]);
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $this->get(route('payroll.run.salary-authorization-form.print', $run))
+            ->assertSuccessful()
+            ->assertSee('Salary Authorization and Upload Form')
+            ->assertSee('Emirates NBD')
+            ->assertSee('AE070331234567890123456')
+            ->assertSee('June/2026');
+    }
+
+    public function test_an_employee_with_no_bank_details_prints_by_name_only(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $response = $this->get(route('payroll.run.salary-authorization-form.print', $run));
+
+        $response->assertSuccessful();
+        $response->assertDontSee('AC#');
+        $response->assertDontSee('IBAN');
+        $response->assertDontSee('Routing code');
+    }
+
+    public function test_the_printable_salary_authorization_form_is_refused_without_the_permission(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('payroll.run.salary-authorization-form.print', $run))->assertForbidden();
+    }
+
     public function test_every_payroll_screen_listens_for_the_refresh_event(): void
     {
         $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);

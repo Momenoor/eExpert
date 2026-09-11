@@ -112,6 +112,10 @@ class FinancialConfiguration extends Page
 
                 'payroll_bank_fee_amount' => Setting::get('payroll_bank_fee_amount', 0),
 
+                'payroll_wps_employer_id' => Setting::get('payroll_wps_employer_id'),
+                'payroll_wps_trade_license' => Setting::get('payroll_wps_trade_license'),
+                'payroll_wps_gl_number' => Setting::get('payroll_wps_gl_number'),
+
                 'payroll_days_per_month' => Setting::get('payroll_days_per_month', 30),
                 'payroll_eosg_cap_months' => Setting::get('payroll_eosg_cap_months', 24),
                 'payroll_eosg_minimum_service_years' => Setting::get('payroll_eosg_minimum_service_years', 1),

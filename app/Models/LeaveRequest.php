@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\LeaveType;
 use App\Enums\RequestStatus;
+use App\Observers\LeaveRequestObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +21,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * annual, two casual and five unpaid without becoming three separate requests
  * for the approver to read.
  */
+#[ObservedBy(LeaveRequestObserver::class)]
 class LeaveRequest extends Model
 {
     use LogsActivity;
@@ -30,6 +34,7 @@ class LeaveRequest extends Model
         'start_date',
         'end_date',
         'comment',
+        'requested_leave_type',
         'approved_by',
         'approved_at',
         'approved_comment',
@@ -37,6 +42,7 @@ class LeaveRequest extends Model
 
     protected $casts = [
         'status' => RequestStatus::class,
+        'requested_leave_type' => LeaveType::class,
         'start_date' => 'date',
         'end_date' => 'date',
         'approved_at' => 'datetime',

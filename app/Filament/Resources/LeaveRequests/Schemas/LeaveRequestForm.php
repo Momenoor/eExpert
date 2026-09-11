@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LeaveRequests\Schemas;
 
+use App\Enums\LeaveType;
 use App\Models\LeaveRequest;
 use App\Models\Party;
 use Filament\Forms\Components\DatePicker;
@@ -50,6 +51,12 @@ class LeaveRequestForm
                             ->label(__('To'))
                             ->required()
                             ->afterOrEqual('start_date'),
+                        Select::make('requested_leave_type')
+                            ->label(__('Requested Leave Type'))
+                            ->options(LeaveType::class)
+                            ->default(LeaveType::ANNUAL->value)
+                            ->required()
+                            ->helperText(__('What you believe this absence should be. The approver still decides how it is actually split.')),
                         Textarea::make('comment')
                             ->label(__('Reason'))
                             ->rows(2)

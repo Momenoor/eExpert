@@ -117,6 +117,10 @@ class EmployeeProfileForm
                             ->validationMessages([
                                 'regex' => __('A routing code is exactly 9 digits.'),
                             ]),
+                        Toggle::make('include_in_salary_authorization_form')
+                            ->label(__('Include in Salary Authorization Form'))
+                            ->default(true)
+                            ->helperText(__('Off leaves this employee out of the WPS bank salary-upload form — for anyone paid outside that batch, e.g. by cheque or a different exchange.')),
                     ])->columns(2),
 
                 Section::make(__('Gratuity & Leave'))

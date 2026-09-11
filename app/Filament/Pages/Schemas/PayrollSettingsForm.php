@@ -49,7 +49,23 @@ class PayrollSettingsForm
                         ->step(0.01)
                         ->required()
                         ->default(0)
-                        ->helperText(__('A fixed charge the bank makes for the salary transfer batch, posted once per run regardless of headcount.')),
+                        ->helperText(__('A fixed charge the bank makes for the salary transfer batch, posted once per run regardless of headcount. Already includes VAT — the salary authorization form below splits it back out.')),
+                ]),
+
+            Section::make(__('Salary Authorization Form (WPS)'))
+                ->description(__('The exchange house\'s own establishment details, printed on the header of the bank salary-upload form.'))
+                ->icon(Heroicon::Banknotes)
+                ->columns(2)
+                ->schema([
+                    TextInput::make('payroll_wps_employer_id')
+                        ->label(__('WPS Employer ID')),
+
+                    TextInput::make('payroll_wps_trade_license')
+                        ->label(__('Trade License Number')),
+
+                    TextInput::make('payroll_wps_gl_number')
+                        ->label(__('GL Number'))
+                        ->helperText(__('The office\'s own account number at the exchange house — fixed, the same on every salary authorization form.')),
                 ]),
 
             Section::make(__('End of Service Gratuity — Federal Decree-Law 33/2021, Article 51'))

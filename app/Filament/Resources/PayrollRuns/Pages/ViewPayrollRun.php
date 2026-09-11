@@ -32,6 +32,7 @@ class ViewPayrollRun extends ViewRecord
             $this->disburseAction(),
             $this->journalVoucherAction(),
             $this->printJournalVoucherAction(),
+            $this->printSalaryAuthorizationFormAction(),
             $this->returnToDraftAction(),
         ];
     }
@@ -220,6 +221,23 @@ class ViewPayrollRun extends ViewRecord
             ->authorize('viewJournalVoucher')
             ->visible(fn (): bool => $this->run()->payslips()->exists())
             ->url(fn (): string => route('payroll.run.journal-voucher.print', $this->run()))
+            ->openUrlInNewTab();
+    }
+
+    /**
+     * The bank's own salary-upload form — a different sheet from the journal
+     * voucher, carrying IBANs per employee rather than GL accounts, for
+     * signing and sending straight to the exchange house.
+     */
+    private function printSalaryAuthorizationFormAction(): Action
+    {
+        return Action::make('print_salary_authorization_form')
+            ->label(__('Print Salary Form'))
+            ->icon('heroicon-o-printer')
+            ->color('gray')
+            ->authorize('viewJournalVoucher')
+            ->visible(fn (): bool => $this->run()->payslips()->exists())
+            ->url(fn (): string => route('payroll.run.salary-authorization-form.print', $this->run()))
             ->openUrlInNewTab();
     }
 

@@ -90,6 +90,18 @@ class PayrollRunsTable
                     ->visible(fn (PayrollRun $record): bool => $record->payslips()->exists())
                     ->url(fn (PayrollRun $record): string => route('payroll.run.journal-voucher.print', $record))
                     ->openUrlInNewTab(),
+                // The bank's own salary-upload form — a separate sheet, carrying
+                // IBANs per employee rather than GL accounts, for signing and
+                // sending straight to the exchange house.
+                Action::make('print_salary_authorization_form')
+                    ->label(__('Print Salary Form'))
+                    ->icon('heroicon-o-banknotes')
+                    ->iconButton()
+                    ->color('gray')
+                    ->authorize('viewJournalVoucher')
+                    ->visible(fn (PayrollRun $record): bool => $record->payslips()->exists())
+                    ->url(fn (PayrollRun $record): string => route('payroll.run.salary-authorization-form.print', $record))
+                    ->openUrlInNewTab(),
                 DeleteAction::make()
                     ->iconButton()
                     // Only an untouched draft may be removed. Anything HR has
