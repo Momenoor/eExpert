@@ -86,7 +86,8 @@ class EmployeeProfilesTable
             ->emptyStateHeading(__('No employee records yet'))
             ->emptyStateActions([
                 CreateAction::make()->label(__('Add Employee')),
-            ]);
+            ])
+            ->defaultSort('employee_no');
     }
 
     /**
@@ -97,10 +98,10 @@ class EmployeeProfilesTable
     private static function documentLabels(): array
     {
         return [
-            'passport_expiry' => 'Passport',
-            'emirates_id_expiry' => 'Emirates ID',
-            'labour_card_expiry' => 'Labour Card',
-            'residency_expiry' => 'Residency',
+            'passport_expiry' => __('Passport'),
+            'emirates_id_expiry' => __('Emirates ID'),
+            'labour_card_expiry' => __('Labour Card'),
+            'residency_expiry' => __('Residency'),
         ];
     }
 }
