@@ -9,6 +9,7 @@ use App\Models\EmployeeSalaryComponent;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +17,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -155,8 +157,11 @@ class SalaryComponentsRelationManager extends RelationManager
                     // Only a row nothing has been paid against may be removed;
                     // anything older is closed, not deleted.
                     ->visible(fn(EmployeeSalaryComponent $record): bool => $record->effective_from->isFuture()),
-            ])
-            ->emptyStateHeading(__('No salary components yet'));
+            ])->filters([
+                Filter::make('effective_to')
+                    ->label(__('Effective Only'))
+                    ->query(fn($query) => $query->where('effective_to', null)),
+            ])->emptyStateHeading(__('No salary components yet'));
     }
 
     /**
