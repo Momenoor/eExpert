@@ -47,6 +47,12 @@ class SalaryComponentsRelationManager extends RelationManager
         return __('Salary Structure');
     }
 
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        // Example: Only allow users with a specific permission to view this relation
+        return auth()->user()->can('View:PayrollRun');
+    }
+
     /**
      * The relation hangs off the party, not the profile.
      *
