@@ -274,12 +274,12 @@ class PayrollService
 
         $basic = $salary[SalaryComponent::BASIC->value] ?? 0.0;
         $allowances = (float) $salary->except(SalaryComponent::BASIC->value)->sum();
-
+        $grossSalary = round($basic + $allowances, 2);
         $unpaidDays = $this->unpaidDaysInPeriod($party->getKey(), $periodStart, $periodEnd);
         // Shared with the gratuity service's own daily rate, under the same
         // setting key — basic salary ÷ a month has to mean the same thing on
         // both figures, or the two would silently disagree about the divisor.
-        $unpaidDeduction = round(($basic / $this->gratuity->daysPerMonth()) * $unpaidDays, 2);
+        $unpaidDeduction = round(($grossSalary / $this->gratuity->daysPerMonth()) * $unpaidDays, 2);
 
         $installments = $this->dueInstallments($party, $run->getAttribute('period'));
         $loanDeduction = round((float) $installments->sum('amount'), 2);
