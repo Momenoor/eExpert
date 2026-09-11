@@ -6,6 +6,7 @@ use App\Models\Party;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -116,6 +117,19 @@ class EmployeeProfileForm
                             ->validationMessages([
                                 'regex' => __('A routing code is exactly 9 digits.'),
                             ]),
+                    ])->columns(2),
+
+                Section::make(__('Gratuity & Leave'))
+                    ->schema([
+                        Toggle::make('is_eosg_applicable')
+                            ->label(__('Applicable for EOSG'))
+                            ->default(true)
+                            ->helperText(__('Off excludes this employee from the annual gratuity accrual and closing voucher.')),
+                        TextInput::make('opening_leave_balance')
+                            ->label(__('Opening Leave Balance (days)'))
+                            ->numeric()
+                            ->default(0)
+                            ->helperText(__('Days carried over from before leave was tracked here, added once to their first year of entitlement.')),
                     ])->columns(2),
             ]);
     }

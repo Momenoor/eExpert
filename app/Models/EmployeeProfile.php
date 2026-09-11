@@ -40,6 +40,8 @@ class EmployeeProfile extends Model
         'bank_account_no',
         'iban',
         'wps_routing_code',
+        'is_eosg_applicable',
+        'opening_leave_balance',
     ];
 
     protected $casts = [
@@ -49,6 +51,8 @@ class EmployeeProfile extends Model
         'emirates_id_expiry' => 'date',
         'labour_card_expiry' => 'date',
         'residency_expiry' => 'date',
+        'is_eosg_applicable' => 'boolean',
+        'opening_leave_balance' => 'decimal:1',
     ];
 
     public function getActivitylogOptions(): LogOptions

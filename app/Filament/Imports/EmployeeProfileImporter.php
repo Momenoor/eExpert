@@ -117,6 +117,16 @@ class EmployeeProfileImporter extends Importer
                 ->label(__('Routing Code'))
                 ->example('123456789')
                 ->rules(['nullable', 'regex:/^\d{9}$/']),
+
+            ImportColumn::make('is_eosg_applicable')
+                ->label(__('Applicable for EOSG'))
+                ->boolean()
+                ->example('1'),
+
+            ImportColumn::make('opening_leave_balance')
+                ->label(__('Opening Leave Balance (days)'))
+                ->example('0')
+                ->rules(['nullable', 'numeric']),
         ];
 
         // The "Download Example" button headers each column with

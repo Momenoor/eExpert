@@ -435,9 +435,10 @@ class PayrollService
         float $basic,
         float $unpaidDays,
     ): float {
-        $joinedOn = $party->employeeProfile?->getAttribute('date_of_joining');
+        $profile = $party->employeeProfile;
+        $joinedOn = $profile?->getAttribute('date_of_joining');
 
-        if ($joinedOn === null || $basic <= 0) {
+        if ($joinedOn === null || $basic <= 0 || $profile?->getAttribute('is_eosg_applicable') === false) {
             return 0.0;
         }
 

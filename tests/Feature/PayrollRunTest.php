@@ -314,6 +314,34 @@ class PayrollRunTest extends TestCase
         $this->assertSame('10000.00', $payslip->net_pay);
     }
 
+    public function test_gratuity_is_not_posted_to_the_monthly_salaries_voucher(): void
+    {
+        $this->employee();
+
+        $run = $this->payrollRun();
+        $this->payroll->generate($run);
+
+        // Still accrued and stored on the payslip (asserted above) — it just
+        // does not reach the monthly voucher any more. It is posted once a
+        // year instead, by EndOfServiceGratuityClosingVoucherService.
+        $voucher = app(PayrollJournalVoucherService::class)->forRun($run);
+
+        $accounts = [...array_column($voucher['debits'], 'account'), ...array_column($voucher['credits'], 'account')];
+
+        $this->assertNotContains(PayrollService::GL_EOSG_EXPENSE, $accounts);
+        $this->assertNotContains(PayrollJournalVoucherService::GL_EOSG_PROVISION, $accounts);
+    }
+
+    public function test_an_employee_not_applicable_for_eosg_accrues_nothing(): void
+    {
+        $party = $this->employee();
+        $party->employeeProfile->forceFill(['is_eosg_applicable' => false])->save();
+
+        $payslip = $this->payroll->generate($this->payrollRun())->first();
+
+        $this->assertSame('0.00', $payslip->eosg_accrued);
+    }
+
     public function test_an_employee_who_left_before_the_period_is_not_paid(): void
     {
         $this->employee(['date_of_leaving' => '2026-01-31']);
@@ -435,16 +463,17 @@ class PayrollRunTest extends TestCase
 
         $voucher = app(PayrollJournalVoucherService::class)->forRun($run);
 
-        $basic = array_values(array_filter(
+        $salaries = array_values(array_filter(
             $voucher['debits'],
-            fn (array $line): bool => $line['account'] === 'Basic Salary Expense',
+            fn (array $line): bool => $line['account'] === 'Salaries Expense',
         ));
 
-        // Two employees, one salary expense line of 12,000 — the expense side
-        // reconciles against the payroll register, not against individuals.
-        $this->assertCount(1, $basic);
-        $this->assertNull($basic[0]['detail']);
-        $this->assertSame(12000.0, $basic[0]['amount']);
+        // Two employees at 10,000 (basic + allowances) each, one merged
+        // Salaries Expense line — the expense side reconciles against the
+        // payroll register, not against individuals.
+        $this->assertCount(1, $salaries);
+        $this->assertNull($salaries[0]['detail']);
+        $this->assertSame(20000.0, $salaries[0]['amount']);
     }
 
     public function test_a_payslip_carries_every_instalment_behind_its_loan_figure(): void
@@ -504,8 +533,7 @@ class PayrollRunTest extends TestCase
         $this->assertSame(1, $voucher['employee_count']);
 
         $accounts = array_column($voucher['debits'], 'account');
-        $this->assertContains('Basic Salary Expense', $accounts);
-        $this->assertContains('Housing Allowance Expense', $accounts);
+        $this->assertContains('Salaries Expense', $accounts);
 
         $credits = array_column($voucher['credits'], 'account');
         $this->assertContains('Net Salary Payable', $credits);

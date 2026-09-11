@@ -2,6 +2,7 @@
 
 use App\Enums\BulkMailRecipientStatus;
 use App\Http\Controllers\BulkMailController;
+use App\Http\Controllers\EndOfServiceGratuityClosingVoucherPrintController;
 use App\Http\Controllers\IncentiveCalculationAssistantPrintController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\MatterReceivedNotificationController;
@@ -61,6 +62,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('payroll/runs/{run}/journal-voucher/print', PayrollJournalVoucherPrintController::class)
         ->name('payroll.run.journal-voucher.print')
+        ->middleware(['auth']);
+
+    Route::get('payroll/eosg-closing-voucher/{year}/print', EndOfServiceGratuityClosingVoucherPrintController::class)
+        ->name('payroll.eosg-closing-voucher.print')
+        ->whereNumber('year')
         ->middleware(['auth']);
 
 });

@@ -8,11 +8,13 @@ use App\Enums\PayrollRunStatus;
 use App\Enums\RequestStatus;
 use App\Enums\SalaryComponent;
 use App\Filament\Concerns\PayrollRefresh;
+use App\Filament\Pages\Payroll\EndOfServiceGratuityClosingVoucher;
 use App\Filament\Resources\EmployeeLoans\EmployeeLoanResource;
 use App\Filament\Resources\EmployeeProfiles\EmployeeProfileResource;
 use App\Filament\Resources\LeaveRequests\LeaveRequestResource;
 use App\Filament\Resources\LeaveRequests\Pages\CreateLeaveRequest;
 use App\Filament\Resources\LeaveRequests\Pages\ListLeaveRequests;
+use App\Filament\Resources\PayrollRuns\Pages\ListPayrollRuns;
 use App\Filament\Resources\PayrollRuns\Pages\ViewPayrollRun;
 use App\Filament\Resources\PayrollRuns\PayrollRunResource;
 use App\Models\EmployeeLoan;
@@ -180,7 +182,7 @@ class PayrollModuleResourcesTest extends TestCase
         $this->get(route('payroll.run.journal-voucher.print', $run))
             ->assertSuccessful()
             ->assertSee(__('Journal Voucher'))
-            ->assertSee(__('Basic Salary Expense'))
+            ->assertSee(__('Salaries Expense'))
             ->assertSee(__('Net Salary Payable'))
             ->assertSee('2026-06');
     }
@@ -391,9 +393,85 @@ class PayrollModuleResourcesTest extends TestCase
         $html = view('filament.payroll.journal-voucher', ['voucher' => $voucher])->render();
 
         $this->assertTrue($voucher['balanced']);
-        $this->assertStringContainsString(__('Basic Salary Expense'), $html);
+        $this->assertStringContainsString(__('Salaries Expense'), $html);
         $this->assertStringContainsString(__('Net Salary Payable'), $html);
         $this->assertStringContainsString(__('Debits and credits agree.'), $html);
+    }
+
+    /**
+     * A role holding nothing but the JV permission — the Finance-only user this
+     * table action exists for.
+     */
+    private function journalVoucherOnlyUser(): User
+    {
+        $role = Role::firstOrCreate(['name' => 'jv_only', 'guard_name' => 'web']);
+
+        foreach (['ViewAny:PayrollRun', 'ViewJournalVoucher:PayrollRun'] as $name) {
+            Permission::findOrCreate($name, 'web');
+        }
+
+        $role->givePermissionTo(['ViewAny:PayrollRun', 'ViewJournalVoucher:PayrollRun']);
+
+        $user = User::factory()->create();
+        $user->assignRole($role);
+
+        return $user;
+    }
+
+    public function test_the_eosg_closing_voucher_page_and_its_print_route_render(): void
+    {
+        $party = $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        // This page's own Shield-generated permission — separate from the
+        // payroll module's seeded permissions, since HasPageShield derives it
+        // independently of PayrollRun.
+        $this->admin->givePermissionTo(Permission::findOrCreate('View:EndOfServiceGratuityClosingVoucher', 'web'));
+
+        // The page mounts with the current year selected by default — no route
+        // parameter to feed it one, since the year is chosen on the page itself.
+        $this->get(EndOfServiceGratuityClosingVoucher::getUrl())
+            ->assertSuccessful()
+            ->assertSee($party->name);
+
+        $this->get(route('payroll.eosg-closing-voucher.print', ['year' => 2026]))
+            ->assertSuccessful()
+            ->assertSee(__(':year — Annual Closing', ['year' => 2026]))
+            ->assertSee($party->name);
+    }
+
+    public function test_the_jv_only_permission_reaches_the_voucher_straight_from_the_list(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $this->actingAs($this->journalVoucherOnlyUser());
+
+        Livewire::test(ListPayrollRuns::class)
+            ->assertCanSeeTableRecords([$run])
+            ->mountTableAction('journal_voucher', $run)
+            ->assertOk();
+    }
+
+    public function test_the_jv_only_permission_does_not_reach_the_full_run_page(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $user = $this->journalVoucherOnlyUser();
+        $this->actingAs($user);
+
+        // The row's own View button needs View:PayrollRun, which this user does
+        // not hold — that permission gap is the entire point of the JV-only
+        // table action existing.
+        $this->assertFalse($user->can('view', $run));
+        $this->get(PayrollRunResource::getUrl('view', ['record' => $run]))->assertForbidden();
     }
 
     public function test_a_run_cannot_be_generated_once_it_has_left_draft(): void

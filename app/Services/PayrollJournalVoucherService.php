@@ -8,7 +8,7 @@ use App\Models\PayrollRun;
 use App\Models\PayslipLine;
 
 /**
- * The journal voucher a payroll run posts to QuickBooks.
+ * The monthly Salaries journal voucher a payroll run posts to QuickBooks.
  *
  * There is no QuickBooks integration here and this does not pretend otherwise:
  * the office keys the entry in by hand, so what this produces is a balanced,
@@ -17,17 +17,22 @@ use App\Models\PayslipLine;
  * The double entry it describes:
  *
  *   Dr  Basic salary, allowances, incentives   — the full cost of the month
- *   Dr  Employer EOSG accrual                  — gratuity earned but unpaid
  *     Cr  Loan and petty cash clearing         — advances recovered, per employee
  *     Cr  Unpaid leave recovery                — pay withheld, contra to expense
  *     Cr  Other salary deductions              — fines and manual adjustments
- *     Cr  EOSG provision                       — the liability side of the accrual
  *     Cr  Net salary payable                   — what the bank transfer settles
  *
  * Earnings are debited GROSS and the withholdings credited back, rather than
  * debiting the net figure. That is what makes the sheet reconcilable: the salary
  * expense line matches the payroll register, and every deduction can be traced
  * to the account it landed in.
+ *
+ * End-of-service gratuity is deliberately absent from this voucher. It is still
+ * accrued and stored on every payslip (`PayslipLine::EMPLOYER_COST`, via
+ * `PayrollService::accrueGratuity()`), but it is posted only once a year, as its
+ * own closing entry, by `EndOfServiceGratuityClosingVoucherService` — mixing a
+ * once-a-year provision into twelve monthly vouchers made it harder, not easier,
+ * to reconcile either one.
  */
 class PayrollJournalVoucherService
 {
@@ -52,6 +57,9 @@ class PayrollJournalVoucherService
     {
         $lines = PayslipLine::query()
             ->whereIn('payslip_id', $run->payslips()->select('id'))
+            // Gratuity is posted once a year, in its own closing voucher —
+            // see EndOfServiceGratuityClosingVoucherService.
+            ->where('kind', '!=', PayslipLineKind::EMPLOYER_COST)
             ->with('payslip.party')
             ->get();
 
@@ -84,16 +92,12 @@ class PayrollJournalVoucherService
             $isLoan = in_array($account, $loanAccounts, true);
             $detail = $isLoan ? $first->payslip->party->name : null;
 
+            // EMPLOYER_COST lines never reach here — the query above excludes
+            // them, since gratuity posts only in the annual closing voucher.
             match ($first->kind) {
                 PayslipLineKind::EARNING => $debits[] = ['account' => $account, 'detail' => $detail, 'amount' => $amount],
                 PayslipLineKind::DEDUCTION => $credits[] = ['account' => $account, 'detail' => $detail, 'amount' => $amount],
-                // An employer cost is the only line that posts to both sides:
-                // it debits an expense and credits the provision it funds,
-                // without ever passing through the employee's net pay.
-                PayslipLineKind::EMPLOYER_COST => [
-                    $debits[] = ['account' => $account, 'detail' => null, 'amount' => $amount],
-                    $credits[] = ['account' => self::GL_EOSG_PROVISION, 'detail' => null, 'amount' => $amount],
-                ],
+                PayslipLineKind::EMPLOYER_COST => null,
             };
         }
 

@@ -125,6 +125,19 @@ class LeaveEntitlementService
             ? CarbonImmutable::parse($on->toDateString())->startOfYear()
             : $this->serviceYearStart($joinedOn, $on);
 
+        $entitled = $joinedOn === null
+            ? $this->annualDays()
+            : $this->annualEntitlement($joinedOn, $on);
+
+        // The opening balance is days carried over from before this system
+        // tracked leave, so it belongs on the very first service-year row this
+        // party ever gets — added once, not re-applied on every later year.
+        // Checked BEFORE firstOrCreate runs, since afterwards a row always
+        // exists.
+        if (! LeaveEntitlement::where('party_id', $party->getKey())->exists()) {
+            $entitled += (float) ($party->employeeProfile?->getAttribute('opening_leave_balance') ?? 0);
+        }
+
         return LeaveEntitlement::firstOrCreate(
             [
                 'party_id' => $party->getKey(),
@@ -135,9 +148,7 @@ class LeaveEntitlementService
                 'service_year_start' => $yearStart,
             ],
             [
-                'annual_entitled_days' => $joinedOn === null
-                    ? $this->annualDays()
-                    : $this->annualEntitlement($joinedOn, $on),
+                'annual_entitled_days' => $entitled,
                 // Stated rather than left to the column defaults: a freshly
                 // created model does not read them back, so the caller would get
                 // nulls where it expects balances.

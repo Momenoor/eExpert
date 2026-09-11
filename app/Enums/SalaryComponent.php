@@ -19,6 +19,8 @@ enum SalaryComponent: string implements HasLabel
     case UTILITIES = 'utilities';
     case OTHER = 'other';
 
+    case CAR = 'car';
+
     public function getLabel(): ?string
     {
         return match ($this) {
@@ -27,20 +29,23 @@ enum SalaryComponent: string implements HasLabel
             self::TRANSPORT => __('Transport Allowance'),
             self::UTILITIES => __('Utilities Allowance'),
             self::OTHER => __('Other Allowance'),
+            self::CAR => __('Car Allowance'),
         };
     }
 
     /**
      * The expense account this component is debited to in the journal voucher.
+     *
+     * Basic and every allowance except Car post to the same Salaries Expense
+     * line — the office wants one salary figure to reconcile against, not one
+     * row per allowance type. Car Allowance is kept on its own row because it
+     * is tracked separately in the office's own accounts.
      */
     public function glAccount(): string
     {
         return match ($this) {
-            self::BASIC => 'Basic Salary Expense',
-            self::HOUSING => 'Housing Allowance Expense',
-            self::TRANSPORT => 'Transport Allowance Expense',
-            self::UTILITIES => 'Utilities Allowance Expense',
-            self::OTHER => 'Other Allowance Expense',
+            self::BASIC, self::HOUSING, self::TRANSPORT, self::UTILITIES, self::OTHER => 'Salaries Expense',
+            self::CAR => 'Car Allowance Expense',
         };
     }
 
