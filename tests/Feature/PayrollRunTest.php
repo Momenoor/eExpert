@@ -13,6 +13,7 @@ use App\Models\Party;
 use App\Models\PartyLeave;
 use App\Models\PayrollRun;
 use App\Models\Payslip;
+use App\Models\Setting;
 use App\Services\LoanScheduleService;
 use App\Services\PayrollJournalVoucherService;
 use App\Services\PayrollService;
@@ -39,6 +40,11 @@ class PayrollRunTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Setting caches its values (a request-cache plus a persistent store)
+        // independently of the DB transaction RefreshDatabase rolls back, so a
+        // value set by one test would otherwise leak into the next.
+        Setting::clearCache();
 
         $this->payroll = app(PayrollService::class);
     }
@@ -558,5 +564,75 @@ class PayrollRunTest extends TestCase
         // The expense side must reconcile against the payroll register, which is
         // gross. Posting net would leave every deduction account unexplained.
         $this->assertSame(10000.0, $salaryAndAllowances);
+    }
+
+    public function test_the_bank_fee_debits_an_expense_and_folds_into_net_salary_payable(): void
+    {
+        Setting::set('payroll_bank_fee_amount', 25);
+
+        $this->employee();
+
+        $run = $this->payrollRun();
+        $this->payroll->generate($run);
+
+        $voucher = app(PayrollJournalVoucherService::class)->forRun($run);
+
+        $bankFeeDebits = array_values(array_filter(
+            $voucher['debits'],
+            fn (array $line): bool => $line['account'] === PayrollJournalVoucherService::GL_BANK_FEES_EXPENSE,
+        ));
+        $this->assertCount(1, $bankFeeDebits);
+        $this->assertSame(25.0, $bankFeeDebits[0]['amount']);
+
+        // No separate "Bank Fees Payable" line — it settles in the same
+        // transfer as net pay, so it folds into that one payable figure.
+        $accounts = array_column($voucher['credits'], 'account');
+        $this->assertNotContains('Bank Fees Payable', $accounts);
+
+        $payable = array_values(array_filter(
+            $voucher['credits'],
+            fn (array $line): bool => $line['account'] === PayrollJournalVoucherService::GL_NET_SALARY_PAYABLE,
+        ));
+        $this->assertCount(1, $payable);
+        $this->assertSame(10025.0, $payable[0]['amount']);
+
+        $this->assertTrue($voucher['balanced']);
+        $this->assertSame($voucher['total_debit'], $voucher['total_credit']);
+    }
+
+    public function test_no_bank_fee_line_appears_when_the_setting_is_zero(): void
+    {
+        $this->employee();
+
+        $run = $this->payrollRun();
+        $this->payroll->generate($run);
+
+        $voucher = app(PayrollJournalVoucherService::class)->forRun($run);
+
+        $accounts = [...array_column($voucher['debits'], 'account'), ...array_column($voucher['credits'], 'account')];
+
+        $this->assertNotContains(PayrollJournalVoucherService::GL_BANK_FEES_EXPENSE, $accounts);
+    }
+
+    public function test_the_bank_fee_is_fixed_regardless_of_headcount(): void
+    {
+        Setting::set('payroll_bank_fee_amount', 25);
+
+        $this->employee();
+        $this->employee();
+
+        $run = $this->payrollRun();
+        $this->payroll->generate($run);
+
+        $voucher = app(PayrollJournalVoucherService::class)->forRun($run);
+
+        $bankFeeDebits = array_values(array_filter(
+            $voucher['debits'],
+            fn (array $line): bool => $line['account'] === PayrollJournalVoucherService::GL_BANK_FEES_EXPENSE,
+        ));
+
+        // One flat charge, not one per employee.
+        $this->assertCount(1, $bankFeeDebits);
+        $this->assertSame(25.0, $bankFeeDebits[0]['amount']);
     }
 }

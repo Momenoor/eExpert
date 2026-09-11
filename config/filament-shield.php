@@ -336,7 +336,14 @@ return [
     */
 
     'custom_permissions' => [
-        // No custom permissions needed - all permissions follow their resource, page, or widget.
+        // EosgClosingVoucher has no Filament Resource — it's a plain model
+        // written to only from the EndOfServiceGratuityClosingVoucher page and
+        // its service, so its two abilities have nowhere else to be declared.
+        // Without this, the role editor cannot see them and, because it SYNCS
+        // a role's permissions on save, would strip them from every role the
+        // next time anyone saved one — see the PayrollRun caution above.
+        'View:EosgClosingVoucher',
+        'Generate:EosgClosingVoucher',
     ],
 
     /*

@@ -2,11 +2,13 @@
 
 namespace App\Filament\Pages\Payroll;
 
+use App\Models\EosgClosingVoucher;
 use App\Services\EndOfServiceGratuityClosingVoucherService;
 use BackedEnum;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
@@ -27,10 +29,19 @@ use Livewire\Attributes\Computed;
  * voucher (`journal-voucher-print.blade.php`, via the print action below)
  * stays exactly as it was.
  *
- * Gated purely by this page's own Shield permission (HasPageShield), never by
- * `View:PayrollRun` — a Finance user who should see only the gratuity total,
- * not any employee's monthly salary detail, can be granted this permission
- * alone.
+ * The voucher shown here is a SAVED snapshot
+ * (`EndOfServiceGratuityClosingVoucherService::forYear()`), not a live
+ * recomputation — pressing Generate is what writes it, exactly like a Payroll
+ * Run's own Generate button. A year nobody has generated yet shows a distinct
+ * "not generated" state rather than silently falling back to a live figure.
+ *
+ * Gated by two separate permissions: this page's own Shield permission
+ * (HasPageShield) controls whether it can be opened at all — never
+ * `View:PayrollRun`, so a Finance user who should see only the gratuity total
+ * can be granted it alone — while `Generate:EosgClosingVoucher`
+ * (`EosgClosingVoucherPolicy`) separately gates the mutating button, so a
+ * view-only grant of the first permission cannot also rewrite the saved
+ * voucher.
  */
 class EndOfServiceGratuityClosingVoucher extends Page
 {
@@ -85,6 +96,9 @@ class EndOfServiceGratuityClosingVoucher extends Page
     }
 
     /**
+     * The saved voucher for the selected year, or null if nobody has
+     * generated one yet.
+     *
      * @return array{
      *     period: string,
      *     debits: list<array{account: string, detail: string|null, amount: float}>,
@@ -93,10 +107,11 @@ class EndOfServiceGratuityClosingVoucher extends Page
      *     total_credit: float,
      *     balanced: bool,
      *     employee_count: int,
-     * }
+     *     generated_at: string,
+     * }|null
      */
     #[Computed]
-    public function voucher(): array
+    public function voucher(): ?array
     {
         return app(EndOfServiceGratuityClosingVoucherService::class)->forYear($this->year());
     }
@@ -123,17 +138,17 @@ class EndOfServiceGratuityClosingVoucher extends Page
                 ]),
 
             Section::make(__('Journal Voucher'))
-                ->visible(fn (): bool => $this->voucher()['employee_count'] > 0)
+                ->visible(fn (): bool => $this->voucher() !== null)
                 ->schema([
                     View::make('filament.payroll.journal-voucher')
                         ->viewData(fn (): array => ['voucher' => $this->voucher()]),
                 ]),
 
             Section::make(__('Journal Voucher'))
-                ->visible(fn (): bool => $this->voucher()['employee_count'] === 0)
+                ->visible(fn (): bool => $this->voucher() === null)
                 ->schema([
                     Text::make(fn (): string => __(
-                        'No gratuity was accrued for :year among employees applicable for EOSG.',
+                        'No EOSG closing voucher has been generated for :year yet.',
                         ['year' => $this->year()],
                     ))->color('gray'),
                 ]),
@@ -143,11 +158,35 @@ class EndOfServiceGratuityClosingVoucher extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('generate')
+                ->label(__('Generate'))
+                ->icon('heroicon-o-calculator')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalDescription(fn (): string => $this->voucher() === null
+                    ? __('Computes and saves the EOSG closing voucher for :year from that year\'s payroll runs.', ['year' => $this->year()])
+                    : __('Replaces the voucher already saved for :year with a fresh figure from that year\'s payroll runs. This cannot be undone.', ['year' => $this->year()]))
+                ->authorize(fn (): bool => auth()->user()?->can('generate', EosgClosingVoucher::class) ?? false)
+                ->action(function (): void {
+                    $voucher = app(EndOfServiceGratuityClosingVoucherService::class)->generate($this->year());
+
+                    unset($this->voucher);
+
+                    Notification::make()
+                        ->success()
+                        ->title(__('EOSG closing voucher generated'))
+                        ->body(__(':count employee(s) included, total :amount AED.', [
+                            'count' => $voucher->lines()->count(),
+                            'amount' => number_format((float) $voucher->total_amount, 2),
+                        ]))
+                        ->send();
+                }),
+
             Action::make('print')
                 ->label(__('Print Voucher'))
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->visible(fn (): bool => $this->voucher()['employee_count'] > 0)
+                ->visible(fn (): bool => $this->voucher() !== null)
                 ->url(fn (): string => route('payroll.eosg-closing-voucher.print', ['year' => $this->year()]))
                 ->openUrlInNewTab(),
         ];

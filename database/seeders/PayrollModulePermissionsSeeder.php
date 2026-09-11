@@ -58,6 +58,18 @@ class PayrollModulePermissionsSeeder extends Seeder
     ];
 
     /**
+     * Subjects that get ONLY their own abilities, not Shield's standard CRUD
+     * set — `EosgClosingVoucherPolicy` implements exactly `view` and
+     * `generate`, so granting the standard eleven would invent permissions
+     * nothing answers to.
+     *
+     * @var array<string, list<string>>
+     */
+    private const BESPOKE = [
+        'EosgClosingVoucher' => ['View', 'Generate'],
+    ];
+
+    /**
      * Roles that should receive everything this module defines.
      *
      * Both spellings are listed because this database carries both — a role
@@ -72,6 +84,12 @@ class PayrollModulePermissionsSeeder extends Seeder
 
         foreach (self::SUBJECTS as $subject) {
             foreach ([...self::STANDARD, ...(self::CUSTOM[$subject] ?? [])] as $ability) {
+                $names[] = "{$ability}:{$subject}";
+            }
+        }
+
+        foreach (self::BESPOKE as $subject => $abilities) {
+            foreach ($abilities as $ability) {
                 $names[] = "{$ability}:{$subject}";
             }
         }

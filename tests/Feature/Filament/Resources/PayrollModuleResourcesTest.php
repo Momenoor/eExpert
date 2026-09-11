@@ -20,6 +20,7 @@ use App\Filament\Resources\PayrollRuns\PayrollRunResource;
 use App\Models\EmployeeLoan;
 use App\Models\EmployeeProfile;
 use App\Models\EmployeeSalaryComponent;
+use App\Models\EosgClosingVoucher;
 use App\Models\LeaveRequest;
 use App\Models\Party;
 use App\Models\PartyLeave;
@@ -418,20 +419,51 @@ class PayrollModuleResourcesTest extends TestCase
         return $user;
     }
 
-    public function test_the_eosg_closing_voucher_page_and_its_print_route_render(): void
+    /**
+     * This page's own Shield-generated permission plus its bespoke `generate`
+     * ability — separate from the payroll module's seeded permissions, since
+     * both are derived independently of PayrollRun.
+     */
+    private function grantEosgClosingVoucherPermissions(User $user): void
+    {
+        $user->givePermissionTo(Permission::findOrCreate('View:EndOfServiceGratuityClosingVoucher', 'web'));
+        $user->givePermissionTo(Permission::findOrCreate('Generate:EosgClosingVoucher', 'web'));
+    }
+
+    public function test_the_eosg_closing_voucher_page_shows_not_generated_until_someone_presses_generate(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        $this->grantEosgClosingVoucherPermissions($this->admin);
+
+        // Accrued in the payslip, but nobody has generated the year's voucher
+        // yet — the page must not fall back to a live figure.
+        $this->get(EndOfServiceGratuityClosingVoucher::getUrl())
+            ->assertSuccessful()
+            ->assertSee(__('No EOSG closing voucher has been generated for :year yet.', ['year' => 2026]));
+
+        $this->get(route('payroll.eosg-closing-voucher.print', ['year' => 2026]))
+            ->assertNotFound();
+    }
+
+    public function test_generating_saves_the_voucher_and_the_page_and_print_route_then_render_it(): void
     {
         $party = $this->employee();
 
         $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
         app(PayrollService::class)->generate($run);
 
-        // This page's own Shield-generated permission — separate from the
-        // payroll module's seeded permissions, since HasPageShield derives it
-        // independently of PayrollRun.
-        $this->admin->givePermissionTo(Permission::findOrCreate('View:EndOfServiceGratuityClosingVoucher', 'web'));
+        $this->grantEosgClosingVoucherPermissions($this->admin);
 
-        // The page mounts with the current year selected by default — no route
-        // parameter to feed it one, since the year is chosen on the page itself.
+        Livewire::test(EndOfServiceGratuityClosingVoucher::class)
+            ->callAction('generate')
+            ->assertNotified();
+
+        $this->assertSame(1, EosgClosingVoucher::where('year', 2026)->count());
+
         $this->get(EndOfServiceGratuityClosingVoucher::getUrl())
             ->assertSuccessful()
             ->assertSee($party->name);
@@ -440,6 +472,29 @@ class PayrollModuleResourcesTest extends TestCase
             ->assertSuccessful()
             ->assertSee(__(':year — Annual Closing', ['year' => 2026]))
             ->assertSee($party->name);
+    }
+
+    public function test_generate_is_refused_without_its_own_permission_even_with_view_access(): void
+    {
+        $this->employee();
+
+        $run = PayrollRun::create(['period' => '2026-06', 'status' => PayrollRunStatus::DRAFT]);
+        app(PayrollService::class)->generate($run);
+
+        // A dedicated, non-super_admin role: super_admin already holds
+        // Generate:EosgClosingVoucher via the module seeder, which would make
+        // this test pass for the wrong reason.
+        $role = Role::firstOrCreate(['name' => 'eosg_view_only', 'guard_name' => 'web']);
+        $role->givePermissionTo(Permission::findOrCreate('View:EndOfServiceGratuityClosingVoucher', 'web'));
+
+        $user = User::factory()->create();
+        $user->assignRole($role);
+        $this->actingAs($user);
+
+        Livewire::test(EndOfServiceGratuityClosingVoucher::class)
+            ->assertActionHidden('generate');
+
+        $this->assertSame(0, EosgClosingVoucher::count());
     }
 
     public function test_the_jv_only_permission_reaches_the_voucher_straight_from_the_list(): void

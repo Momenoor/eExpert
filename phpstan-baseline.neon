@@ -43,6 +43,12 @@ parameters:
 			path: app/Filament/Imports/BulkMailRecipientImporter.php
 
 		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\Payroll\\EndOfServiceGratuityClosingVoucher\:\:\$filtersForm\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Filament/Pages/Payroll/EndOfServiceGratuityClosingVoucher.php
+
+		-
 			message: '#^Access to an undefined property App\\Filament\\Pages\\FinancialConfiguration\:\:\$incentiveForm\.$#'
 			identifier: property.notFound
 			count: 2

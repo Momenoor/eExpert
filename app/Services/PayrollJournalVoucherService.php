@@ -22,8 +22,8 @@ use App\Models\Setting;
  *     Cr  Loan and petty cash clearing         — advances recovered, per employee
  *     Cr  Unpaid leave recovery                — pay withheld, contra to expense
  *     Cr  Other salary deductions              — fines and manual adjustments
- *     Cr  Bank fees payable                    — settled alongside the transfer
- *     Cr  Net salary payable                   — what the bank transfer settles
+ *     Cr  Net salary payable                   — what the bank transfer settles,
+ *                                                 the bank fee folded in
  *
  * Earnings are debited GROSS and the withholdings credited back, rather than
  * debiting the net figure. That is what makes the sheet reconcilable: the salary
@@ -33,7 +33,10 @@ use App\Models\Setting;
  * The bank fee is a fixed office-wide charge from Payroll Settings, not derived
  * from any payslip — it posts once per run regardless of headcount, because the
  * bank charges the same transfer fee whether the batch holds five salaries or
- * fifty.
+ * fifty. It debits its own expense account so the cost stays visible on the
+ * expense side, but credits straight into Net Salary Payable rather than a
+ * separate payable account — the office settles both in the one bank transfer,
+ * so the liability side is one figure, not two.
  *
  * End-of-service gratuity is deliberately absent from this voucher. It is still
  * accrued and stored on every payslip (`PayslipLine::EMPLOYER_COST`, via
@@ -49,8 +52,6 @@ class PayrollJournalVoucherService
     public const GL_NET_SALARY_PAYABLE = 'Net Salary Payable';
 
     public const GL_BANK_FEES_EXPENSE = 'Bank Fees Expense';
-
-    public const GL_BANK_FEES_PAYABLE = 'Bank Fees Payable';
 
     private const DEFAULT_BANK_FEE_AMOUNT = 0.0;
 
@@ -125,16 +126,19 @@ class PayrollJournalVoucherService
         }
 
         $netPay = round((float) $run->payslips()->sum('net_pay'), 2);
-
-        if ($netPay > 0) {
-            $credits[] = ['account' => self::GL_NET_SALARY_PAYABLE, 'detail' => null, 'amount' => $netPay];
-        }
-
         $bankFee = round($this->bankFeeAmount(), 2);
 
         if ($bankFee > 0) {
             $debits[] = ['account' => self::GL_BANK_FEES_EXPENSE, 'detail' => null, 'amount' => $bankFee];
-            $credits[] = ['account' => self::GL_BANK_FEES_PAYABLE, 'detail' => null, 'amount' => $bankFee];
+        }
+
+        // The bank fee is settled in the same transfer as net pay, so it
+        // folds into the one payable line rather than opening a second
+        // payable account for the office to reconcile.
+        $payable = round($netPay + $bankFee, 2);
+
+        if ($payable > 0) {
+            $credits[] = ['account' => self::GL_NET_SALARY_PAYABLE, 'detail' => null, 'amount' => $payable];
         }
 
         $debits = $this->merged($debits);

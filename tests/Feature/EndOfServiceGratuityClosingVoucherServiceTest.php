@@ -6,6 +6,7 @@ use App\Enums\PayrollRunStatus;
 use App\Enums\SalaryComponent;
 use App\Models\EmployeeProfile;
 use App\Models\EmployeeSalaryComponent;
+use App\Models\EosgClosingVoucher;
 use App\Models\Party;
 use App\Models\PayrollRun;
 use App\Services\EndOfServiceGratuityClosingVoucherService;
@@ -16,11 +17,21 @@ use Tests\TestCase;
 
 /**
  * The annual EOSG closing voucher: one year's worth of monthly accruals,
- * summed into a single entry, itemised per employee.
+ * summed into a single entry, itemised per employee — generated on demand and
+ * saved, not recomputed live on every view.
  */
 class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    private EndOfServiceGratuityClosingVoucherService $service;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->service = app(EndOfServiceGratuityClosingVoucherService::class);
+    }
 
     private function employee(array $profile = []): Party
     {
@@ -50,7 +61,17 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         return $run;
     }
 
-    public function test_it_sums_a_years_monthly_accruals_into_one_itemised_entry(): void
+    public function test_a_year_nobody_has_generated_returns_null(): void
+    {
+        $this->employee();
+        $this->generateMonth('2026-01');
+
+        // Accrued in the payslips, but nobody has pressed Generate — forYear()
+        // never falls back to a live figure.
+        $this->assertNull($this->service->forYear(2026));
+    }
+
+    public function test_generating_saves_a_voucher_and_its_lines(): void
     {
         $party = $this->employee();
 
@@ -58,11 +79,32 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
             $this->generateMonth($period);
         }
 
-        $voucher = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2026);
+        $saved = $this->service->generate(2026);
 
+        $this->assertInstanceOf(EosgClosingVoucher::class, $saved);
+        $this->assertSame(2026, $saved->year);
+        $this->assertNotNull($saved->generated_at);
+        $this->assertCount(1, $saved->lines);
+        $this->assertSame($party->id, $saved->lines->first()->party_id);
+        $this->assertEqualsWithDelta((float) $saved->total_amount, (float) $saved->lines->sum('amount'), 0.005);
+    }
+
+    public function test_for_year_reads_back_the_saved_voucher(): void
+    {
+        $party = $this->employee();
+
+        foreach (['2026-01', '2026-02', '2026-03'] as $period) {
+            $this->generateMonth($period);
+        }
+
+        $this->service->generate(2026);
+        $voucher = $this->service->forYear(2026);
+
+        $this->assertNotNull($voucher);
         $this->assertSame(1, $voucher['employee_count']);
         $this->assertTrue($voucher['balanced']);
         $this->assertSame($voucher['total_debit'], $voucher['total_credit']);
+        $this->assertNotNull($voucher['generated_at']);
 
         $this->assertCount(1, $voucher['debits']);
         $this->assertSame(PayrollService::GL_EOSG_EXPENSE, $voucher['debits'][0]['account']);
@@ -73,12 +115,34 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $this->assertSame(PayrollJournalVoucherService::GL_EOSG_PROVISION, $voucher['credits'][0]['account']);
     }
 
+    public function test_regenerating_replaces_the_saved_figures_wholesale(): void
+    {
+        $first = $this->employee();
+        $this->generateMonth('2026-01');
+        $this->service->generate(2026);
+
+        // A second employee starts accruing later in the year — regenerating
+        // must pick them up, not just refresh the first employee's line.
+        $second = $this->employee();
+        $this->generateMonth('2026-02');
+        $voucher = $this->service->generate(2026);
+
+        $this->assertCount(2, $voucher->fresh()->lines);
+        $this->assertEqualsCanonicalizing(
+            [$first->id, $second->id],
+            $voucher->lines()->pluck('party_id')->all(),
+        );
+
+        // Still one row for the year, not two.
+        $this->assertSame(1, EosgClosingVoucher::where('year', 2026)->count());
+    }
+
     public function test_it_excludes_an_employee_not_applicable_for_eosg(): void
     {
         $party = $this->employee(['is_eosg_applicable' => false]);
         $this->generateMonth('2026-01');
 
-        $voucher = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2026);
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
         $this->assertSame(0, $voucher['employee_count']);
         $this->assertNotContains($party->name, array_column($voucher['debits'], 'detail'));
@@ -93,18 +157,22 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $decemberAccrual = (float) $december->payslips()->first()->eosg_accrued;
         $januaryAccrual = (float) $january->payslips()->first()->eosg_accrued;
 
+        $this->service->generate(2025);
+        $this->service->generate(2026);
+
         // Each year sees only the one month accrued inside it, not both.
-        $voucher2025 = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2025);
-        $voucher2026 = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2026);
+        $voucher2025 = $this->service->forYear(2025);
+        $voucher2026 = $this->service->forYear(2026);
 
         $this->assertSame($decemberAccrual, $voucher2025['total_debit']);
         $this->assertSame($januaryAccrual, $voucher2026['total_debit']);
     }
 
-    public function test_a_year_with_nothing_accrued_is_empty_but_balanced(): void
+    public function test_generating_a_year_with_nothing_accrued_saves_an_empty_but_balanced_voucher(): void
     {
-        $voucher = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2019);
+        $voucher = $this->service->forYear($this->service->generate(2019)->year);
 
+        $this->assertNotNull($voucher);
         $this->assertSame(0, $voucher['employee_count']);
         $this->assertSame(0.0, $voucher['total_debit']);
         $this->assertSame(0.0, $voucher['total_credit']);
@@ -119,7 +187,7 @@ class EndOfServiceGratuityClosingVoucherServiceTest extends TestCase
         $second = $this->employee();
         $this->generateMonth('2026-01');
 
-        $voucher = app(EndOfServiceGratuityClosingVoucherService::class)->forYear(2026);
+        $voucher = $this->service->forYear($this->service->generate(2026)->year);
 
         $this->assertSame(2, $voucher['employee_count']);
         $this->assertCount(2, $voucher['debits']);
