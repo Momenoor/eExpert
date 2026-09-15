@@ -99,7 +99,7 @@ class PayrollRunsTable
                     ->iconButton()
                     ->color('gray')
                     ->authorize('viewJournalVoucher')
-                    ->visible(fn (PayrollRun $record): bool => $record->payslips()->exists())
+                    ->visible(fn (PayrollRun $record): bool => $record->payslips()->exists() && auth()->user()->can('View:PayrollRun'))
                     ->url(fn (PayrollRun $record): string => route('payroll.run.salary-authorization-form.print', $record))
                     ->openUrlInNewTab(),
                 DeleteAction::make()

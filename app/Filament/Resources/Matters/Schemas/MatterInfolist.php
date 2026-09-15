@@ -458,7 +458,7 @@ class MatterInfolist
             ->description(__('Finalized incentive calculations for this matter'))
             ->visible(fn ($record) => $record && $record->incentiveLines()
                 ->whereHas('calculation', fn ($q) => $q->where('status', 'finalized'))
-                ->exists())
+                ->exists() && auth()->user()->can('View:IncentiveCalculation'))
             ->schema(function ($record) {
                 if (! $record) {
                     return [];
@@ -667,6 +667,7 @@ class MatterInfolist
             ->schema([
                 TextInput::make('amount')->label(__('Fee Amount'))
                     ->numeric()->required()->prefix('AED'),
+                DatePicker::make('date')->label(__('Date'))->required(),
                 TextInput::make('description')->label(__('Description'))->required(),
             ])
             ->fillForm(fn ($record) => [
