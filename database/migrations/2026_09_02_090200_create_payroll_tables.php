@@ -13,11 +13,10 @@ use Illuminate\Support\Facades\Schema;
  * IncentiveCalculation keeps its own stored figures instead of re-reading live
  * configuration.
  */
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
-        if (! Schema::hasTable('employee_loans')) {
+        if (!Schema::hasTable('employee_loans')) {
             Schema::create('employee_loans', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('party_id')->constrained()->cascadeOnDelete();
@@ -41,7 +40,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('loan_installments')) {
+        if (!Schema::hasTable('loan_installments')) {
             Schema::create('loan_installments', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('employee_loan_id')->constrained()->cascadeOnDelete();
@@ -53,8 +52,7 @@ return new class extends Migration
                 // let a later edit silently shift every remaining instalment.
                 $table->decimal('amount', 12, 2);
 
-                $table->foreignId('payslip_id')->nullable()
-                    ->comment('Set when actually deducted; null = still outstanding');
+                $table->foreignId('payslip_id')->nullable() ->comment('Set when actually deducted; null = still outstanding')->constrained()->nullOnDelete();
 
                 $table->timestamps();
 
@@ -63,7 +61,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('payroll_runs')) {
+        if (!Schema::hasTable('payroll_runs')) {
             Schema::create('payroll_runs', function (Blueprint $table) {
                 $table->id();
                 $table->char('period', 7)->unique()->comment('YYYY-MM; one run per month');
@@ -87,7 +85,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('payslips')) {
+        if (!Schema::hasTable('payslips')) {
             Schema::create('payslips', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('payroll_run_id')->constrained()->cascadeOnDelete();
@@ -125,7 +123,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('payslip_lines')) {
+        if (!Schema::hasTable('payslip_lines')) {
             Schema::create('payslip_lines', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('payslip_id')->constrained()->cascadeOnDelete();
@@ -144,7 +142,7 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('eosg_accruals')) {
+        if (!Schema::hasTable('eosg_accruals')) {
             Schema::create('eosg_accruals', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('party_id')->constrained()->cascadeOnDelete();
