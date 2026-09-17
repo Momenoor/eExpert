@@ -39,9 +39,9 @@ class UnitsRelationManager extends RelationManager
                 // The classification a type normally implies, offered as a
                 // default the office can still override — a warehouse inside
                 // a mixed-use tower may need a different rate than usual.
-                ->afterStateUpdated(fn (Set $set, ?string $state) => $set(
+                ->afterStateUpdated(fn (Set $set, $state) => $set(
                     'property_classification',
-                    $state ? UnitType::from($state)->defaultClassification()->value : null,
+                    $state ? UnitType::from($state->value)->defaultClassification()->value : null,
                 )),
             Select::make('property_classification')
                 ->label(__('Property Classification'))
