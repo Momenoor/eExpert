@@ -3,8 +3,8 @@
 namespace App\Filament\Pms\Resources\Properties\Pages;
 
 use App\Filament\Pms\Resources\Properties\PropertyResource;
-use App\Models\Property;
 use App\Models\Party;
+use App\Models\Property;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 

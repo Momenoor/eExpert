@@ -3,8 +3,8 @@
 namespace Tests\Feature\PMS;
 
 use App\Filament\Pms\Resources\Properties\Pages\CreateProperty;
-use App\Models\Property;
 use App\Models\Party;
+use App\Models\Property;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -6,6 +6,7 @@ use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PanelNavigationOrderTest extends TestCase
@@ -94,7 +95,7 @@ class PanelNavigationOrderTest extends TestCase
 
     public function test_mms_panel_rendered_navigation_order(): void
     {
-        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+        $role = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
         $user = User::factory()->create();
         $user->assignRole($role);
 
@@ -121,7 +122,7 @@ class PanelNavigationOrderTest extends TestCase
 
     public function test_pms_panel_rendered_navigation_order(): void
     {
-        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+        $role = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
         $user = User::factory()->create();
         $user->assignRole($role);
 

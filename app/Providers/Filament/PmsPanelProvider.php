@@ -8,12 +8,6 @@ use App\Filament\Mms\Pages\Auth\CustomProfile;
 use App\Filament\Mms\Support\SystemSwitcher;
 use App\Filament\Pms\Pages\PmsDashboard;
 use App\Filament\Pms\Pages\PMSSettings;
-use App\Filament\Pms\Resources\Leases\LeaseResource;
-use App\Filament\Pms\Resources\OwnerGroups\OwnerGroupResource;
-use App\Filament\Pms\Resources\OwnerProfiles\OwnerProfileResource;
-use App\Filament\Pms\Resources\Properties\PropertyResource;
-use App\Filament\Pms\Resources\Quotations\QuotationResource;
-use App\Filament\Pms\Resources\Tenants\TenantResource;
 use App\Http\Middleware\CheckSystemOffline;
 use App\Http\Middleware\RedirectToInstaller;
 use App\Http\Middleware\TrackCurrentSystem;
@@ -126,7 +120,7 @@ class PmsPanelProvider extends PanelProvider
                     ->selectable(),
                 ActivityLogPlugin::make()
                     ->navigationGroup(fn () => __('Settings'))
-                ->navigationSort(99),
+                    ->navigationSort(99),
                 // FilamentUiSwitcherPlugin::make(),
                 FilamentLanguageSwitcherPlugin::make()
                     ->locales(['en', ['code' => 'ar', 'name' => __('Arabic'), 'flag' => 'ae']]),

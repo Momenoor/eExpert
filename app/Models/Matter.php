@@ -9,6 +9,7 @@ use App\Enums\MatterLevel;
 use App\Enums\MatterStatus;
 use App\Observers\MatterObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,8 +21,8 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
- * @mixin \Illuminate\Database\Eloquent\SoftDeletes
+ * @mixin Builder
+ * @mixin SoftDeletes
  */
 /**
  * @property mixed $status

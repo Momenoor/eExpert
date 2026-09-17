@@ -2,6 +2,11 @@
 
 namespace App\Filament\Mms\Resources\BulkMailCampaigns;
 
+use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\CreateBulkMailCampaign;
+use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\EditBulkMailCampaign;
+use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\ListBulkMailCampaigns;
+use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\ViewBulkMailCampaign;
+use App\Filament\Mms\Resources\BulkMailCampaigns\RelationManagers\RecipientsRelationManager;
 use App\Filament\Mms\Resources\BulkMailCampaigns\Schema\BulkMailCampaignSchema;
 use App\Filament\Mms\Resources\BulkMailCampaigns\Tables\BulkMailCampaignTable;
 use App\Models\BulkMailCampaign;
@@ -53,17 +58,17 @@ class BulkMailCampaignResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Mms\Resources\BulkMailCampaigns\RelationManagers\RecipientsRelationManager::class,
+            RecipientsRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Mms\Resources\BulkMailCampaigns\Pages\ListBulkMailCampaigns::route('/'),
-            'create' => \App\Filament\Mms\Resources\BulkMailCampaigns\Pages\CreateBulkMailCampaign::route('/create'),
-            'view' => \App\Filament\Mms\Resources\BulkMailCampaigns\Pages\ViewBulkMailCampaign::route('/{record}'),
-            'edit' => \App\Filament\Mms\Resources\BulkMailCampaigns\Pages\EditBulkMailCampaign::route('/{record}/edit'),
+            'index' => ListBulkMailCampaigns::route('/'),
+            'create' => CreateBulkMailCampaign::route('/create'),
+            'view' => ViewBulkMailCampaign::route('/{record}'),
+            'edit' => EditBulkMailCampaign::route('/{record}/edit'),
         ];
     }
 

@@ -18,6 +18,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * `vatRate()`/`isTaxable()` are the ONLY place VAT applicability is derived
  * from a unit's classification — quotation and installment generation both
  * call through here rather than re-deriving the same 0%/5% rule.
+ *
  * @method static count()
  * @method static where(string $string, UnitStatus $VACANT)
  */
