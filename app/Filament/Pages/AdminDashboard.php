@@ -7,6 +7,7 @@ use App\Filament\Widgets\CalendarWidget;
 use App\Filament\Widgets\CollectionsAgingWidget;
 use App\Filament\Widgets\MattersPerYearWidget;
 use App\Filament\Widgets\MatterStatsWidget;
+use App\Filament\Widgets\PMSOverviewWidget;
 use App\Filament\Widgets\UpcomingSessionsWidget;
 use App\Filament\Widgets\VacationCalendarWidget;
 use Filament\Pages\Dashboard;
@@ -45,6 +46,7 @@ class AdminDashboard extends Dashboard
         return [
             AttentionNeededWidget::class,
             MatterStatsWidget::class,
+            PMSOverviewWidget::class,
             UpcomingSessionsWidget::class,
             CalendarWidget::class,
             CollectionsAgingWidget::class,

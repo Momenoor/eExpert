@@ -52,6 +52,8 @@ class PartyForm
                                 'expert' => __('Expert'),
                                 'representative' => __('Representative'),
                                 'employee' => __('Employee'),
+                                'tenant' => __('Tenant'),
+                                'owner' => __('Owner'),
                             ])
                             ->default(['party'])
                             ->required()

@@ -67,6 +67,12 @@ parameters:
 			path: app/Filament/Pages/SystemSettings.php
 
 		-
+			message: '#^Access to an undefined property App\\Filament\\Pages\\PMSSettings\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Filament/Pages/PMSSettings.php
+
+		-
 			message: '#^Access to an undefined property App\\Livewire\\ChatWidget\:\:\$activeConversation\.$#'
 			identifier: property.notFound
 			count: 3

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -176,6 +177,21 @@ class Party extends Model
         return $this->hasOne(EmployeeProfile::class);
     }
 
+    public function tenantProfile(): HasOne
+    {
+        return $this->hasOne(TenantProfile::class);
+    }
+
+    public function ownerProfile(): HasOne
+    {
+        return $this->hasOne(OwnerProfile::class);
+    }
+
+    public function ownerGroup(): HasOne
+    {
+        return $this->hasOne(OwnerGroup::class);
+    }
+
     public function salaryComponents(): HasMany
     {
         return $this->hasMany(EmployeeSalaryComponent::class);
@@ -222,6 +238,34 @@ class Party extends Model
     public function isEmployee(): bool
     {
         return isset($this->role['role']) && in_array('employee', (array) $this->role['role']);
+    }
+
+    public function isTenant(): bool
+    {
+        return isset($this->role['role']) && in_array('tenant', (array) $this->role['role']);
+    }
+
+    public function isOwner(): bool
+    {
+        return isset($this->role['role']) && in_array('owner', (array) $this->role['role']);
+    }
+
+    public function isOwnerGroup(): bool
+    {
+        return isset($this->role['role']) && in_array('owner_group', (array) $this->role['role']);
+    }
+
+    /**
+     * Buildings this party holds a stake in (role 'owner'), with the pivot's
+     * ownership_percentage.
+     *
+     * @return BelongsToMany<Building, $this>
+     */
+    public function ownedBuildings(): BelongsToMany
+    {
+        return $this->belongsToMany(Building::class, 'owner_building', 'owner_party_id', 'building_id')
+            ->withPivot('ownership_percentage')
+            ->withTimestamps();
     }
 
     public function user(): BelongsTo

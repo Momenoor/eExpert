@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('matter:confirm-receiving')->everyMinute()->withoutOverlapping();
         $schedule->command('mail:send-bulk-campaigns')->everyMinute()->withoutOverlapping();
+        $schedule->command('pms:flag-overdue-installments')->everyMinute()->withoutOverlapping();
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {

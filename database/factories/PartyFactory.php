@@ -46,4 +46,24 @@ class PartyFactory extends Factory
             'role' => ['role' => ['expert'], 'type' => ['certified']],
         ]);
     }
+
+    /**
+     * A tenant — the role the PMS module filters on.
+     */
+    public function tenant(): static
+    {
+        return $this->state(fn () => [
+            'role' => ['role' => ['tenant'], 'type' => []],
+        ]);
+    }
+
+    /**
+     * A building owner — the role the PMS module filters on.
+     */
+    public function owner(): static
+    {
+        return $this->state(fn () => [
+            'role' => ['role' => ['owner'], 'type' => []],
+        ]);
+    }
 }

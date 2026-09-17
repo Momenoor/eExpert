@@ -8,6 +8,7 @@ use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\LeaveRequestEmailActionController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Http\Controllers\PayrollJournalVoucherPrintController;
+use App\Http\Controllers\QuotationPrintController;
 use App\Http\Controllers\SalaryAuthorizationFormPrintController;
 use App\Livewire\Installer\InstallWizard;
 use App\Models\Attachment;
@@ -73,6 +74,10 @@ Route::middleware('auth')->group(function () {
     Route::get('payroll/eosg-closing-voucher/{year}/print', EndOfServiceGratuityClosingVoucherPrintController::class)
         ->name('payroll.eosg-closing-voucher.print')
         ->whereNumber('year')
+        ->middleware(['auth']);
+
+    Route::get('pms/quotations/{quotation}/print', QuotationPrintController::class)
+        ->name('pms.quotations.print')
         ->middleware(['auth']);
 
 });
