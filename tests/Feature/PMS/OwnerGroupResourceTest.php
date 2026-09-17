@@ -2,10 +2,11 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Filament\Resources\OwnerGroups\Pages\CreateOwnerGroup;
-use App\Filament\Resources\OwnerGroups\Pages\EditOwnerGroup;
+use App\Filament\Pms\Resources\OwnerGroups\Pages\CreateOwnerGroup;
+use App\Filament\Pms\Resources\OwnerGroups\Pages\EditOwnerGroup;
 use App\Models\OwnerGroup;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -18,12 +19,13 @@ class OwnerGroupResourceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
         Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
 
         $admin = User::factory()->create();
         $admin->assignRole('super-admin');
         $this->actingAs($admin);
+
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
     }
 
     public function test_creating_an_owner_group_creates_both_the_party_and_the_group(): void

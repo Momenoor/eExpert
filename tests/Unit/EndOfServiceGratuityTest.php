@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\EndOfServiceGratuityService;
+use App\Services\MMS\EndOfServiceGratuityService;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 

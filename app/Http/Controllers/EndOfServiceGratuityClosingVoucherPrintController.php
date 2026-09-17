@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Filament\Pages\Payroll\EndOfServiceGratuityClosingVoucher;
+use App\Filament\Mms\Pages\Payroll\EndOfServiceGratuityClosingVoucher;
 use App\Models\Setting;
-use App\Services\EndOfServiceGratuityClosingVoucherService;
+use App\Services\MMS\EndOfServiceGratuityClosingVoucherService;
 use Illuminate\Contracts\View\View;
 
 class EndOfServiceGratuityClosingVoucherPrintController extends Controller

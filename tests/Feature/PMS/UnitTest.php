@@ -4,7 +4,7 @@ namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitType;
-use App\Models\Building;
+use App\Models\Property;
 use App\Models\Setting;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,7 +29,7 @@ class UnitTest extends TestCase
     private function unit(PropertyClassification $classification): Unit
     {
         return Unit::factory()->create([
-            'building_id' => Building::factory(),
+            'property_id' => Property::factory(),
             'property_classification' => $classification,
             'unit_type' => UnitType::COMMERCIAL_OFFICE,
         ]);

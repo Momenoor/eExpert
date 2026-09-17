@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\FeeType;
-use App\Filament\Pages\Reports\FeeCollectionAgingReport;
-use App\Filament\Pages\Reports\MatterQualityReport;
-use App\Filament\Pages\Reports\OverdueMattersReport;
+use App\Filament\Mms\Pages\Reports\FeeCollectionAgingReport;
+use App\Filament\Mms\Pages\Reports\MatterQualityReport;
+use App\Filament\Mms\Pages\Reports\OverdueMattersReport;
 use App\Models\Allocation;
 use App\Models\Fee;
 use App\Models\Matter;

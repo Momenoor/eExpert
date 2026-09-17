@@ -13,11 +13,13 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
- * A single rentable space within a building.
+ * A single rentable space within a property.
  *
  * `vatRate()`/`isTaxable()` are the ONLY place VAT applicability is derived
  * from a unit's classification — quotation and installment generation both
  * call through here rather than re-deriving the same 0%/5% rule.
+ * @method static count()
+ * @method static where(string $string, UnitStatus $VACANT)
  */
 class Unit extends Model
 {
@@ -26,7 +28,7 @@ class Unit extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'building_id',
+        'property_id',
         'unit_number',
         'floor',
         'rental_rate',
@@ -50,11 +52,11 @@ class Unit extends Model
     }
 
     /**
-     * @return BelongsTo<Building, $this>
+     * @return BelongsTo<Property, $this>
      */
-    public function building(): BelongsTo
+    public function property(): BelongsTo
     {
-        return $this->belongsTo(Building::class);
+        return $this->belongsTo(Property::class);
     }
 
     public function isVacant(): bool

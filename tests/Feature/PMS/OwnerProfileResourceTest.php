@@ -2,11 +2,12 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Filament\Resources\OwnerProfiles\Pages\CreateOwnerProfile;
-use App\Filament\Resources\OwnerProfiles\Pages\EditOwnerProfile;
+use App\Filament\Pms\Resources\OwnerProfiles\Pages\CreateOwnerProfile;
+use App\Filament\Pms\Resources\OwnerProfiles\Pages\EditOwnerProfile;
 use App\Models\OwnerProfile;
 use App\Models\Party;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -25,6 +26,8 @@ class OwnerProfileResourceTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('super-admin');
         $this->actingAs($admin);
+
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
     }
 
     public function test_creating_an_owner_creates_both_the_party_and_the_profile(): void

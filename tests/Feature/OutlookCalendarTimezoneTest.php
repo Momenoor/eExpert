@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\CalendarEvents\Pages\ListCalendarEvents;
+use App\Filament\Mms\Resources\CalendarEvents\Pages\ListCalendarEvents;
 use App\Models\CalendarEvent;
 use App\Models\User;
-use App\Services\OutlookCalendarService;
+use App\Services\MMS\OutlookCalendarService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;

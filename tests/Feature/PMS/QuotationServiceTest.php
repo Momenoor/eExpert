@@ -7,7 +7,7 @@ use App\Enums\PMS\QuotationStatus;
 use App\Models\Party;
 use App\Models\Setting;
 use App\Models\Unit;
-use App\Services\QuotationService;
+use App\Services\PMS\QuotationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;

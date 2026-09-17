@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Matters\Pages\ViewMatter;
+use App\Filament\Mms\Resources\Matters\Pages\ViewMatter;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;
 use App\Models\IncentiveLine;

@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LetterTemplateCategories;
-use App\Filament\Forms\Components\RichEditor\RichContentCustomBlocks\HeroBlock;
+use App\Filament\Mms\Forms\Components\RichEditor\RichContentCustomBlocks\HeroBlock;
 use Filament\Forms\Components\RichEditor\MentionProvider;
 use Filament\Forms\Components\RichEditor\Models\Concerns\InteractsWithRichContent;
 use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
@@ -43,7 +43,7 @@ class LetterTemplate extends Model implements HasRichContent
                 MentionProvider::make('@')
                     ->getSearchResultsUsing(fn ($query) => User::where('name', 'like', "%{$query}%")->pluck('name', 'id'))
                     ->getLabelsUsing(fn ($ids) => User::whereIn('id', $ids)->pluck('display_name', 'id'))
-                    ->url(fn ($record) => route('filament.admin.resources.users.view', $record)),
+                    ->url(fn ($record) => route('filament.mms.resources.users.view', $record)),
             ])
             ->customBlocks([
                 HeroBlock::class,

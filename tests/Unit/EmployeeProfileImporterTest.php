@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Filament\Imports\EmployeeProfileImporter;
+use App\Filament\Mms\Imports\EmployeeProfileImporter;
 use App\Models\EmployeeProfile;
 use App\Models\Party;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;

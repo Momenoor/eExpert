@@ -5,7 +5,7 @@ namespace Database\Factories;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
-use App\Models\Building;
+use App\Models\Property;
 use App\Models\Unit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,7 +21,7 @@ class UnitFactory extends Factory
         $type = fake()->randomElement(UnitType::cases());
 
         return [
-            'building_id' => Building::factory(),
+            'property_id' => Property::factory(),
             'unit_number' => (string) fake()->unique()->numberBetween(100, 9999),
             'floor' => (string) fake()->numberBetween(1, 40),
             'rental_rate' => fake()->numberBetween(20000, 200000),

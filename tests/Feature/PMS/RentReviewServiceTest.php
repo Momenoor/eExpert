@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Models\Contract;
+use App\Models\Lease;
 use App\Services\PMS\RentReviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -27,9 +27,9 @@ class RentReviewServiceTest extends TestCase
         $this->service = app(RentReviewService::class);
     }
 
-    private function contractRentedAt(float $rent, string $endDate = '2027-01-01'): Contract
+    private function contractRentedAt(float $rent, string $endDate = '2027-01-01'): Lease
     {
-        return Contract::factory()->create([
+        return Lease::factory()->create([
             'total_base_rent' => $rent,
             'end_date' => $endDate,
         ]);
@@ -58,18 +58,18 @@ class RentReviewServiceTest extends TestCase
     #[DataProvider('reraBandProvider')]
     public function test_rera_rent_increase_bands(float $currentRent, float $marketAverage, float $expectedAllowedIncrease): void
     {
-        $contract = $this->contractRentedAt($currentRent);
+        $lease = $this->contractRentedAt($currentRent);
 
-        $evaluation = $this->service->evaluateRenewal($contract, Carbon::parse('2026-01-01'), $marketAverage);
+        $evaluation = $this->service->evaluateRenewal($lease, Carbon::parse('2026-01-01'), $marketAverage);
 
         $this->assertSame($expectedAllowedIncrease, $evaluation->allowedIncreasePercent);
     }
 
     public function test_max_allowable_rent_applies_the_allowed_percentage_to_current_rent(): void
     {
-        $contract = $this->contractRentedAt(80000);
+        $lease = $this->contractRentedAt(80000);
 
-        $evaluation = $this->service->evaluateRenewal($contract, Carbon::parse('2026-01-01'), 100000);
+        $evaluation = $this->service->evaluateRenewal($lease, Carbon::parse('2026-01-01'), 100000);
 
         // 20% below market → 5% band → 80,000 * 1.05 = 84,000.
         $this->assertSame(5.0, $evaluation->allowedIncreasePercent);
@@ -78,10 +78,10 @@ class RentReviewServiceTest extends TestCase
 
     public function test_exactly_ninety_days_before_expiry_is_within_the_notice_window(): void
     {
-        $contract = $this->contractRentedAt(100000, '2026-04-01');
+        $lease = $this->contractRentedAt(100000, '2026-04-01');
 
         // 2026-04-01 minus 90 days = 2026-01-01.
-        $evaluation = $this->service->evaluateRenewal($contract, Carbon::parse('2026-01-01'), 100000);
+        $evaluation = $this->service->evaluateRenewal($lease, Carbon::parse('2026-01-01'), 100000);
 
         $this->assertTrue($evaluation->isWithinNoticeWindow);
         $this->assertNull($evaluation->nonComplianceMessage);
@@ -89,10 +89,10 @@ class RentReviewServiceTest extends TestCase
 
     public function test_eighty_nine_days_before_expiry_is_not_compliant(): void
     {
-        $contract = $this->contractRentedAt(100000, '2026-04-01');
+        $lease = $this->contractRentedAt(100000, '2026-04-01');
 
         // One day later than the 90-day boundary — only 89 days remain.
-        $evaluation = $this->service->evaluateRenewal($contract, Carbon::parse('2026-01-02'), 100000);
+        $evaluation = $this->service->evaluateRenewal($lease, Carbon::parse('2026-01-02'), 100000);
 
         $this->assertFalse($evaluation->isWithinNoticeWindow);
         $this->assertNotNull($evaluation->nonComplianceMessage);
@@ -100,9 +100,9 @@ class RentReviewServiceTest extends TestCase
 
     public function test_zero_market_average_is_treated_as_no_gap_rather_than_dividing_by_zero(): void
     {
-        $contract = $this->contractRentedAt(50000);
+        $lease = $this->contractRentedAt(50000);
 
-        $evaluation = $this->service->evaluateRenewal($contract, Carbon::parse('2026-01-01'), 0.0);
+        $evaluation = $this->service->evaluateRenewal($lease, Carbon::parse('2026-01-01'), 0.0);
 
         $this->assertSame(0.0, $evaluation->percentBelowMarket);
         $this->assertSame(0.0, $evaluation->allowedIncreasePercent);

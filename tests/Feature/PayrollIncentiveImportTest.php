@@ -13,8 +13,8 @@ use App\Models\IncentiveLine;
 use App\Models\Matter;
 use App\Models\Party;
 use App\Models\PayrollRun;
-use App\Services\IncentiveCalculatorService;
-use App\Services\PayrollService;
+use App\Services\MMS\IncentiveCalculatorService;
+use App\Services\MMS\PayrollService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

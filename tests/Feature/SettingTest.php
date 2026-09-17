@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Auth\CustomLogin;
+use App\Filament\Mms\Pages\Auth\CustomLogin;
 use App\Http\Middleware\CheckSystemOffline;
 use App\Models\Setting;
 use App\Models\User;
@@ -98,12 +98,12 @@ class SettingTest extends TestCase
         $this->assertTrue($response->isRedirect(route('system-down')));
 
         // Admin request redirects guest to login page
-        $adminRequest = Request::create('/admin', 'GET');
+        $adminRequest = Request::create('/mms', 'GET');
         $adminResponse = $middleware->handle($adminRequest, function () {
             return new Response('OK', 200);
         });
         $this->assertSame(302, $adminResponse->getStatusCode());
-        $this->assertTrue($adminResponse->isRedirect(route('filament.admin.auth.login')));
+        $this->assertTrue($adminResponse->isRedirect(route('filament.mms.auth.login')));
 
         // JSON request returns 503
         $jsonRequest = Request::create('/api/data', 'GET', [], [], [], [
@@ -185,7 +185,7 @@ class SettingTest extends TestCase
         $middleware = new CheckSystemOffline;
 
         // Login page request
-        $loginRequest = Request::create('/admin/login', 'GET');
+        $loginRequest = Request::create('/mms/login', 'GET');
         $loginResponse = $middleware->handle($loginRequest, fn () => new Response('Login Form', 200));
         $this->assertSame(200, $loginResponse->getStatusCode());
 
@@ -215,7 +215,7 @@ class SettingTest extends TestCase
         Setting::set('offline_allow_admins', true);
 
         // Can access login page
-        $this->get('/admin/login')->assertSuccessful();
+        $this->get('/mms/login')->assertSuccessful();
 
         // Can authenticate using Livewire CustomLogin component
         Livewire::test(CustomLogin::class)
@@ -225,26 +225,26 @@ class SettingTest extends TestCase
             ])
             ->call('authenticate')
             ->assertHasNoFormErrors()
-            ->assertRedirect('/admin');
+            ->assertRedirect('/mms');
 
         $this->assertAuthenticatedAs($user);
 
         // Admin can now access admin panel
-        $this->get('/admin')->assertSuccessful();
+        $this->get('/mms')->assertSuccessful();
     }
 
     public function test_can_access_login_page_via_login_route_when_offline(): void
     {
         Setting::set('app_offline', true);
 
-        // Visiting /login redirects to /admin/login
-        $this->get('/login')->assertRedirect(route('filament.admin.auth.login'));
+        // Visiting /login redirects to /mms/login
+        $this->get('/login')->assertRedirect(route('filament.mms.auth.login'));
 
-        // Visiting /admin/login is successful
-        $this->get('/admin/login')->assertSuccessful();
+        // Visiting /mms/login is successful
+        $this->get('/mms/login')->assertSuccessful();
 
-        // Visiting /admin as guest redirects to /admin/login
-        $this->get('/admin')->assertRedirect(route('filament.admin.auth.login'));
+        // Visiting /mms as guest redirects to /mms/login
+        $this->get('/mms')->assertRedirect(route('filament.mms.auth.login'));
     }
 
     public function test_authenticated_non_admin_can_recover_via_maintenance_page_logout(): void
@@ -260,26 +260,26 @@ class SettingTest extends TestCase
         Setting::set('app_offline', true);
         Setting::set('offline_allow_admins', true);
 
-        // Hitting /admin/login while already authenticated as a non-admin loops to system-down.
-        $response = $this->actingAs($user)->get('/admin/login');
-        $response->assertRedirect('/admin');
-        $this->followingRedirects()->get('/admin/login');
+        // Hitting /mms/login while already authenticated as a non-admin loops to system-down.
+        $response = $this->actingAs($user)->get('/mms/login');
+        $response->assertRedirect('/mms');
+        $this->followingRedirects()->get('/mms/login');
 
         // The maintenance page must offer a sign-out control for the stuck session.
         $this->actingAs($user)
             ->get(route('system-down'))
             ->assertSuccessful()
-            ->assertSee(route('filament.admin.auth.logout'), false);
+            ->assertSee(route('filament.mms.auth.logout'), false);
 
         // Signing out from there must succeed even while offline...
         $this->actingAs($user)
-            ->post(route('filament.admin.auth.logout'))
+            ->post(route('filament.mms.auth.logout'))
             ->assertRedirect();
 
         $this->assertGuest();
 
         // ...and now the real login form is reachable again.
-        $this->get('/admin/login')->assertSuccessful();
+        $this->get('/mms/login')->assertSuccessful();
     }
 
     public function test_settings_use_runtime_memoization_to_prevent_duplicate_queries(): void

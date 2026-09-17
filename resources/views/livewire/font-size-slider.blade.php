@@ -7,7 +7,7 @@
 
     {{--
         The initial font size is already applied server-side, before first
-        paint, via the HEAD_END render hook in AdminPanelProvider (setting
+        paint, via the HEAD_END render hook in MmsPanelProvider (setting
         --user-font-size on :root) — applying it again here on
         DOMContentLoaded (which fires after the page has already rendered)
         caused a visible flash-then-resize. Live updates while dragging the

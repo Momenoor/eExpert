@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('installments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('lease_id')->constrained()->cascadeOnDelete();
             $table->date('due_date');
-            // due_date + the contract's grace_period_days, stamped at
+            // due_date + the lease's grace_period_days, stamped at
             // generation time so the overdue flagger never has to re-derive
-            // it (and a later change to the contract's own grace period
+            // it (and a later change to the lease's own grace period
             // can't silently move a due date already sent to the tenant).
             $table->date('grace_period_expiry_date');
 

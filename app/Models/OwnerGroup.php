@@ -11,10 +11,10 @@ use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * A collective identity for owners administered as one estate — e.g. "Legal
- * Heirs of Mahmoud Kalbat" once a building has passed to several children
- * rather than a single owner. `Building::landlordName()` shows this group's
+ * Heirs of Mahmoud Kalbat" once a property has passed to several children
+ * rather than a single owner. `Property::landlordName()` shows this group's
  * own `name` instead of listing every member individually when every owner
- * on a building shares the same group.
+ * on a property shares the same group.
  *
  * `name` is the group's own field, authoritative on its own — the linked
  * Party exists only to supply the estate's own phone/email, the way

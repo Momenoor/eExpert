@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MatterCommissiong;
 use App\Enums\MatterDifficulty;
-use App\Filament\Widgets\IncentiveSummaryTableWidget;
+use App\Filament\Mms\Widgets\IncentiveSummaryTableWidget;
 use App\Models\Court;
 use App\Models\Fee;
 use App\Models\IncentiveAssistantExtra;
@@ -17,7 +17,7 @@ use App\Models\MatterTypeIncentiveConfig;
 use App\Models\Party;
 use App\Models\Type;
 use App\Models\User;
-use App\Services\IncentiveCalculatorService;
+use App\Services\MMS\IncentiveCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;

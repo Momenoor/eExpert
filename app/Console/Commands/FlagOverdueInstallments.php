@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\PMS\InstallmentPaymentStatus;
 use App\Models\Installment;
-use App\Services\PaymentService;
+use App\Services\MMS\PaymentService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

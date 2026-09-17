@@ -11,7 +11,7 @@ use App\Models\EmployeeProfile;
 use App\Models\EmployeeSalaryComponent;
 use App\Models\LeaveRequest;
 use App\Models\Party;
-use App\Services\LeaveEntitlementService;
+use App\Services\MMS\LeaveEntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;

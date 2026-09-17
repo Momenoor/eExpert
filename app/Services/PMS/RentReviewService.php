@@ -2,31 +2,31 @@
 
 namespace App\Services\PMS;
 
-use App\Models\Contract;
+use App\Models\Lease;
 use Carbon\CarbonInterface;
 
 /**
- * Evaluating a contract's renewal against two UAE statutes — scoped
+ * Evaluating a lease's renewal against two UAE statutes — scoped
  * strictly to that: not a general pricing service, and it changes nothing
- * on the contract itself. Every figure it returns is a proposal for the
- * office to act on (or not) through the normal contract-renewal workflow.
+ * on the lease itself. Every figure it returns is a proposal for the
+ * office to act on (or not) through the normal lease-renewal workflow.
  */
 class RentReviewService
 {
     /**
      * Federal Decree-Law No. 33 of 2008: rent adjustments cannot be
-     * proposed within this many days of the contract's own end date.
+     * proposed within this many days of the lease's own end date.
      */
     private const NOTICE_DAYS = 90;
 
-    public function evaluateRenewal(Contract $contract, CarbonInterface $targetRenewalDate, float $marketAverageRent): RenewalEvaluation
+    public function evaluateRenewal(Lease $lease, CarbonInterface $targetRenewalDate, float $marketAverageRent): RenewalEvaluation
     {
-        $currentRent = (float) $contract->getAttribute('total_base_rent');
+        $currentRent = (float) $lease->getAttribute('total_base_rent');
         $percentBelowMarket = $this->percentBelowMarket($currentRent, $marketAverageRent);
         $allowedIncreasePercent = $this->resolveRentGapBand($percentBelowMarket);
         $maxAllowableRent = round($currentRent * (1 + $allowedIncreasePercent / 100), 2);
 
-        $isWithinNoticeWindow = $this->isWithinNoticeWindow($targetRenewalDate, $contract->getAttribute('end_date'));
+        $isWithinNoticeWindow = $this->isWithinNoticeWindow($targetRenewalDate, $lease->getAttribute('end_date'));
 
         return new RenewalEvaluation(
             currentRent: $currentRent,
@@ -36,7 +36,7 @@ class RentReviewService
             maxAllowableRent: $maxAllowableRent,
             isWithinNoticeWindow: $isWithinNoticeWindow,
             nonComplianceMessage: $isWithinNoticeWindow ? null : __(
-                'Rent adjustments cannot be proposed within :days days of contract expiry (Federal Decree-Law No. 33 of 2008).',
+                'Rent adjustments cannot be proposed within :days days of lease expiry (Federal Decree-Law No. 33 of 2008).',
                 ['days' => self::NOTICE_DAYS],
             ),
         );
@@ -72,7 +72,7 @@ class RentReviewService
 
     /**
      * Whether at least `NOTICE_DAYS` remain between the proposal date and
-     * the contract's end date.
+     * the lease's end date.
      */
     private function isWithinNoticeWindow(CarbonInterface $targetRenewalDate, CarbonInterface $contractEnd): bool
     {

@@ -40,8 +40,10 @@ class CheckSystemOffline
 
         // 3. Allow login & logout endpoints (GET & POST)
         if (
-            $request->is('admin/login*') ||
-            $request->is('admin/logout*') ||
+            $request->is('mms/login*') ||
+            $request->is('mms/logout*') ||
+            $request->is('pms/login*') ||
+            $request->is('pms/logout*') ||
             $request->routeIs('filament.*.auth.login')
 
         ) {
@@ -62,9 +64,9 @@ class CheckSystemOffline
             }
         }
 
-        // 5. If user is unauthenticated AND trying to access admin panel, send to login
-        if (! $user && ($request->is('admin*') || $request->routeIs('filament.*'))) {
-            return response()->redirectToRoute('filament.admin.auth.login');
+        // 5. If user is unauthenticated AND trying to access a Filament panel, send to login
+        if (! $user && ($request->is('mms*') || $request->is('pms*') || $request->routeIs('filament.*'))) {
+            return response()->redirectToRoute($request->is('pms*') ? 'filament.pms.auth.login' : 'filament.mms.auth.login');
         }
 
         // 6. Everyone else (unauthenticated visitors or non-admin users) gets redirected to system-down

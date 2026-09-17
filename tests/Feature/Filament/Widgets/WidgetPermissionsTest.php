@@ -2,19 +2,19 @@
 
 namespace Tests\Feature\Filament\Widgets;
 
-use App\Filament\Widgets\AssistantMatterCountTableWidget;
-use App\Filament\Widgets\AssistantMattersCountChartWidget;
-use App\Filament\Widgets\AttentionNeededWidget;
-use App\Filament\Widgets\CalendarWidget;
-use App\Filament\Widgets\CollectionsAgingWidget;
-use App\Filament\Widgets\IncentiveExtraRulesOverviewWidget;
-use App\Filament\Widgets\IncentiveMetaAdjustmentsOverviewWidget;
-use App\Filament\Widgets\IncentiveSummaryTableWidget;
-use App\Filament\Widgets\IncentiveTypeConfigsOverviewWidget;
-use App\Filament\Widgets\MattersPerYearWidget;
-use App\Filament\Widgets\MatterStatsWidget;
-use App\Filament\Widgets\UpcomingSessionsWidget;
-use App\Filament\Widgets\VacationCalendarWidget;
+use App\Filament\Mms\Widgets\AssistantMatterCountTableWidget;
+use App\Filament\Mms\Widgets\AssistantMattersCountChartWidget;
+use App\Filament\Mms\Widgets\AttentionNeededWidget;
+use App\Filament\Mms\Widgets\CalendarWidget;
+use App\Filament\Mms\Widgets\CollectionsAgingWidget;
+use App\Filament\Mms\Widgets\IncentiveExtraRulesOverviewWidget;
+use App\Filament\Mms\Widgets\IncentiveMetaAdjustmentsOverviewWidget;
+use App\Filament\Mms\Widgets\IncentiveSummaryTableWidget;
+use App\Filament\Mms\Widgets\IncentiveTypeConfigsOverviewWidget;
+use App\Filament\Mms\Widgets\MattersPerYearWidget;
+use App\Filament\Mms\Widgets\MatterStatsWidget;
+use App\Filament\Mms\Widgets\UpcomingSessionsWidget;
+use App\Filament\Mms\Widgets\VacationCalendarWidget;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;

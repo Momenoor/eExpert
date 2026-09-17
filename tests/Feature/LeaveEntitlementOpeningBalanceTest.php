@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\EmployeeProfile;
 use App\Models\Party;
-use App\Services\LeaveEntitlementService;
+use App\Services\MMS\LeaveEntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;

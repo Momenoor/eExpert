@@ -8,7 +8,7 @@ use App\Models\IncentiveLine;
 use App\Models\Matter;
 use App\Models\Party;
 use App\Models\User;
-use App\Services\IncentiveCalculatorService;
+use App\Services\MMS\IncentiveCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;

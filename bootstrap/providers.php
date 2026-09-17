@@ -1,9 +1,11 @@
 <?php
 
 use App\Providers\AppServiceProvider;
-use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\Filament\MmsPanelProvider;
+use App\Providers\Filament\PmsPanelProvider;
 
 return [
     AppServiceProvider::class,
-    AdminPanelProvider::class,
+    MmsPanelProvider::class,
+    PmsPanelProvider::class,
 ];

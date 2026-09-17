@@ -7,16 +7,16 @@ use App\Enums\LoanKind;
 use App\Enums\PayrollRunStatus;
 use App\Enums\RequestStatus;
 use App\Enums\SalaryComponent;
-use App\Filament\Concerns\PayrollRefresh;
-use App\Filament\Pages\Payroll\EndOfServiceGratuityClosingVoucher;
-use App\Filament\Resources\EmployeeLoans\EmployeeLoanResource;
-use App\Filament\Resources\EmployeeProfiles\EmployeeProfileResource;
-use App\Filament\Resources\LeaveRequests\LeaveRequestResource;
-use App\Filament\Resources\LeaveRequests\Pages\CreateLeaveRequest;
-use App\Filament\Resources\LeaveRequests\Pages\ListLeaveRequests;
-use App\Filament\Resources\PayrollRuns\Pages\ListPayrollRuns;
-use App\Filament\Resources\PayrollRuns\Pages\ViewPayrollRun;
-use App\Filament\Resources\PayrollRuns\PayrollRunResource;
+use App\Filament\Mms\Concerns\PayrollRefresh;
+use App\Filament\Mms\Pages\Payroll\EndOfServiceGratuityClosingVoucher;
+use App\Filament\Mms\Resources\EmployeeLoans\EmployeeLoanResource;
+use App\Filament\Mms\Resources\EmployeeProfiles\EmployeeProfileResource;
+use App\Filament\Mms\Resources\LeaveRequests\LeaveRequestResource;
+use App\Filament\Mms\Resources\LeaveRequests\Pages\CreateLeaveRequest;
+use App\Filament\Mms\Resources\LeaveRequests\Pages\ListLeaveRequests;
+use App\Filament\Mms\Resources\PayrollRuns\Pages\ListPayrollRuns;
+use App\Filament\Mms\Resources\PayrollRuns\Pages\ViewPayrollRun;
+use App\Filament\Mms\Resources\PayrollRuns\PayrollRunResource;
 use App\Models\EmployeeLoan;
 use App\Models\EmployeeProfile;
 use App\Models\EmployeeSalaryComponent;
@@ -26,9 +26,9 @@ use App\Models\Party;
 use App\Models\PartyLeave;
 use App\Models\PayrollRun;
 use App\Models\User;
-use App\Services\LoanScheduleService;
-use App\Services\PayrollJournalVoucherService;
-use App\Services\PayrollService;
+use App\Services\MMS\LoanScheduleService;
+use App\Services\MMS\PayrollJournalVoucherService;
+use App\Services\MMS\PayrollService;
 use Database\Seeders\PayrollModulePermissionsSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -69,7 +69,7 @@ class PayrollModuleResourcesTest extends TestCase
         $this->admin->assignRole('super_admin');
         $this->actingAs($this->admin);
 
-        Filament::setCurrentPanel('admin');
+        Filament::setCurrentPanel(Filament::getPanel('mms'));
     }
 
     private function employee(): Party

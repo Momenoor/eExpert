@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PayrollRun;
 use App\Models\Setting;
-use App\Services\PayrollJournalVoucherService;
+use App\Services\MMS\PayrollJournalVoucherService;
 use Illuminate\Contracts\View\View;
 
 class PayrollJournalVoucherPrintController extends Controller

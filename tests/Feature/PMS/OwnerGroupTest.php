@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Models\Building;
 use App\Models\OwnerGroup;
 use App\Models\OwnerProfile;
 use App\Models\Party;
+use App\Models\Property;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * `Building::landlordName()` shows a shared estate's collective name (e.g.
- * "Legal Heirs of Mahmoud Kalbat") when every owner on the building belongs
+ * `Property::landlordName()` shows a shared estate's collective name (e.g.
+ * "Legal Heirs of Mahmoud Kalbat") when every owner on the property belongs
  * to the same `OwnerGroup`, and falls back to listing each owner's own name
  * otherwise.
  */
@@ -38,13 +38,13 @@ class OwnerGroupTest extends TestCase
         $sonOne = $this->ownerWithGroup($group);
         $sonTwo = $this->ownerWithGroup($group);
 
-        $building = Building::factory()->create();
-        $building->owners()->attach([
+        $property = Property::factory()->create();
+        $property->owners()->attach([
             $sonOne->id => ['ownership_percentage' => 50],
             $sonTwo->id => ['ownership_percentage' => 50],
         ]);
 
-        $this->assertSame('Legal Heirs of Mahmoud Kalbat', $building->landlordName());
+        $this->assertSame('Legal Heirs of Mahmoud Kalbat', $property->landlordName());
     }
 
     public function test_landlord_name_falls_back_to_individual_names_when_owners_have_no_shared_group(): void
@@ -52,15 +52,15 @@ class OwnerGroupTest extends TestCase
         $ownerOne = $this->ownerWithGroup();
         $ownerTwo = $this->ownerWithGroup();
 
-        $building = Building::factory()->create();
-        $building->owners()->attach([
+        $property = Property::factory()->create();
+        $property->owners()->attach([
             $ownerOne->id => ['ownership_percentage' => 60],
             $ownerTwo->id => ['ownership_percentage' => 40],
         ]);
 
         $this->assertSame(
             "{$ownerOne->name}, {$ownerTwo->name}",
-            $building->landlordName(),
+            $property->landlordName(),
         );
     }
 
@@ -72,15 +72,15 @@ class OwnerGroupTest extends TestCase
         $ownerOne = $this->ownerWithGroup($groupOne);
         $ownerTwo = $this->ownerWithGroup($groupTwo);
 
-        $building = Building::factory()->create();
-        $building->owners()->attach([
+        $property = Property::factory()->create();
+        $property->owners()->attach([
             $ownerOne->id => ['ownership_percentage' => 50],
             $ownerTwo->id => ['ownership_percentage' => 50],
         ]);
 
         $this->assertSame(
             "{$ownerOne->name}, {$ownerTwo->name}",
-            $building->landlordName(),
+            $property->landlordName(),
         );
     }
 
@@ -88,16 +88,16 @@ class OwnerGroupTest extends TestCase
     {
         $owner = $this->ownerWithGroup();
 
-        $building = Building::factory()->create();
-        $building->owners()->attach($owner->id, ['ownership_percentage' => 100]);
+        $property = Property::factory()->create();
+        $property->owners()->attach($owner->id, ['ownership_percentage' => 100]);
 
-        $this->assertSame($owner->name, $building->landlordName());
+        $this->assertSame($owner->name, $property->landlordName());
     }
 
-    public function test_a_building_with_no_owners_has_a_blank_landlord_name(): void
+    public function test_a_property_with_no_owners_has_a_blank_landlord_name(): void
     {
-        $building = Building::factory()->create();
+        $property = Property::factory()->create();
 
-        $this->assertSame('', $building->landlordName());
+        $this->assertSame('', $property->landlordName());
     }
 }

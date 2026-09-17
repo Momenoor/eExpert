@@ -15,7 +15,7 @@ class TrackUserLastSeenTest extends TestCase
         $user = User::factory()->create(['last_seen_at' => null]);
         $this->actingAs($user);
 
-        $this->get('/admin')->assertSuccessful();
+        $this->get('/mms')->assertSuccessful();
 
         $this->assertNotNull($user->fresh()->last_seen_at);
     }
@@ -26,7 +26,7 @@ class TrackUserLastSeenTest extends TestCase
         $stamped = $user->last_seen_at;
         $this->actingAs($user);
 
-        $this->get('/admin');
+        $this->get('/mms');
 
         $this->assertTrue($user->fresh()->last_seen_at->equalTo($stamped));
     }
@@ -36,13 +36,13 @@ class TrackUserLastSeenTest extends TestCase
         $user = User::factory()->create(['last_seen_at' => now()->subMinutes(5)]);
         $this->actingAs($user);
 
-        $this->get('/admin');
+        $this->get('/mms');
 
         $this->assertTrue($user->fresh()->last_seen_at->gt(now()->subMinute()));
     }
 
     public function test_guests_do_not_error_the_middleware(): void
     {
-        $this->get('/admin')->assertRedirect();
+        $this->get('/mms')->assertRedirect();
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quotation;
-use App\Services\QuotationService;
+use App\Services\PMS\QuotationService;
 use Illuminate\Contracts\View\View;
 
 class QuotationPrintController extends Controller

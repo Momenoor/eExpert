@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Filament\Pages;
 
-use App\Filament\Pages\Chat;
+use App\Filament\Mms\Pages\Chat;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;

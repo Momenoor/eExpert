@@ -3,14 +3,14 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\InstallmentPaymentStatus;
-use App\Models\Contract;
 use App\Models\Installment;
+use App\Models\Lease;
 use App\Models\Party;
 use App\Models\Setting;
 use App\Models\Unit;
-use App\Services\ContractService;
-use App\Services\InstallmentGenerator;
-use App\Services\PaymentService;
+use App\Services\MMS\PaymentService;
+use App\Services\PMS\InstallmentGenerator;
+use App\Services\PMS\LeaseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -35,8 +35,8 @@ class PaymentServiceTest extends TestCase
         $unit = Unit::factory()->residential()->create();
         $tenant = Party::factory()->tenant()->create();
 
-        /** @var Contract $contract */
-        $contract = app(ContractService::class)->createFromRawInputs([
+        /** @var Lease $lease */
+        $lease = app(LeaseService::class)->createFromRawInputs([
             'start_date' => now()->addDay()->toDateString(),
             'end_date' => now()->addYear()->addDay()->toDateString(),
             'total_base_rent' => $netAmount,
@@ -44,7 +44,7 @@ class PaymentServiceTest extends TestCase
             ['party_id' => $tenant->id, 'role' => 'primary_tenant'],
         ], [$unit->id]);
 
-        return app(InstallmentGenerator::class)->generateSchedule($contract, 1)->first();
+        return app(InstallmentGenerator::class)->generateSchedule($lease, 1)->first();
     }
 
     public function test_a_full_payment_marks_the_installment_paid(): void

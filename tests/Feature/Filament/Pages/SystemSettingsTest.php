@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Filament\Pages;
 
-use App\Filament\Pages\SystemSettings;
+use App\Filament\Mms\Pages\SystemSettings;
 use App\Models\Setting;
 use App\Models\User;
 use Filament\Facades\Filament;

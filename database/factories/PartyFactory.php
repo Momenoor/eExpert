@@ -58,7 +58,7 @@ class PartyFactory extends Factory
     }
 
     /**
-     * A building owner — the role the PMS module filters on.
+     * A property owner — the role the PMS module filters on.
      */
     public function owner(): static
     {

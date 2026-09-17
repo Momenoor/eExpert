@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PayrollRun;
-use App\Services\SalaryAuthorizationFormService;
+use App\Services\MMS\SalaryAuthorizationFormService;
 use Illuminate\Contracts\View\View;
 
 class SalaryAuthorizationFormPrintController extends Controller

@@ -52,7 +52,7 @@ class InstallerMiddlewareTest extends TestCase
         // The panel's middleware stack is independent of the app's `web` group,
         // so this is the one that would have missed the guard if it had only
         // been registered in bootstrap/app.php.
-        $this->get('/admin')->assertRedirect(route('installer.show'));
+        $this->get('/mms')->assertRedirect(route('installer.show'));
     }
 
     public function test_the_installer_itself_is_reachable_when_not_installed(): void

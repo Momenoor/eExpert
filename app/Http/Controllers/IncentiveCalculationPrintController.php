@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\IncentiveCalculation;
-use App\Services\IncentiveCalculatorService;
-use Illuminate\Http\Request;
+use App\Services\MMS\IncentiveCalculatorService;
 
 class IncentiveCalculationPrintController extends Controller
 {

@@ -3,13 +3,14 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\QuotationStatus;
-use App\Filament\Resources\Quotations\Pages\CreateQuotation;
-use App\Filament\Resources\Quotations\Pages\ViewQuotation;
+use App\Filament\Pms\Resources\Quotations\Pages\CreateQuotation;
+use App\Filament\Pms\Resources\Quotations\Pages\ViewQuotation;
 use App\Models\Party;
 use App\Models\Quotation;
 use App\Models\Unit;
 use App\Models\User;
-use App\Services\QuotationService;
+use App\Services\PMS\QuotationService;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -28,6 +29,8 @@ class QuotationResourceTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('super-admin');
         $this->actingAs($admin);
+
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
     }
 
     public function test_creating_a_quotation_through_the_form_computes_totals_via_the_service(): void

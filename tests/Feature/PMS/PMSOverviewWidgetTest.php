@@ -3,14 +3,15 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\InstallmentPaymentStatus;
-use App\Filament\Widgets\PMSOverviewWidget;
-use App\Models\Contract;
+use App\Filament\Pms\Widgets\PMSOverviewWidget;
+use App\Models\Lease;
 use App\Models\Party;
 use App\Models\Unit;
 use App\Models\User;
-use App\Services\ContractService;
-use App\Services\InstallmentGenerator;
+use App\Services\PMS\InstallmentGenerator;
+use App\Services\PMS\LeaseService;
 use Database\Seeders\AllPermissionsSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -28,14 +29,16 @@ class PMSOverviewWidgetTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('super_admin');
         $this->actingAs($admin);
+
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
     }
 
-    private function contract(): Contract
+    private function lease(): Lease
     {
         $unit = Unit::factory()->residential()->create();
         $tenant = Party::factory()->tenant()->create();
 
-        return app(ContractService::class)->createFromRawInputs([
+        return app(LeaseService::class)->createFromRawInputs([
             'start_date' => now()->addDay()->toDateString(),
             'end_date' => now()->addDays(30)->toDateString(),
             'total_base_rent' => 60000,
@@ -48,8 +51,8 @@ class PMSOverviewWidgetTest extends TestCase
     {
         Unit::factory()->residential()->create(); // vacant
 
-        $contract = $this->contract();
-        $installment = app(InstallmentGenerator::class)->generateSchedule($contract, 1)->first();
+        $lease = $this->lease();
+        $installment = app(InstallmentGenerator::class)->generateSchedule($lease, 1)->first();
         $installment->forceFill([
             'payment_status' => InstallmentPaymentStatus::OVERDUE,
             'balance_due' => 5000,

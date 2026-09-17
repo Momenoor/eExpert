@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\LoanScheduleService;
+use App\Services\MMS\LoanScheduleService;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;

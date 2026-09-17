@@ -9,8 +9,8 @@ use App\Models\EmployeeSalaryComponent;
 use App\Models\Party;
 use App\Models\PayrollRun;
 use App\Models\Setting;
-use App\Services\PayrollService;
-use App\Services\SalaryAuthorizationFormService;
+use App\Services\MMS\PayrollService;
+use App\Services\MMS\SalaryAuthorizationFormService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

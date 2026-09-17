@@ -136,7 +136,7 @@
         <tbody>
             @foreach ($quotation->units as $unit)
                 <tr>
-                    <td>{{ $unit->building?->name }} — {{ $unit->unit_number }}</td>
+                    <td>{{ $unit->property?->name }} — {{ $unit->unit_number }}</td>
                     <td class="amount">{{ number_format($unit->pivot->offered_rent, 2) }}</td>
                     <td class="amount">{{ number_format($unit->pivot->vat_amount, 2) }}</td>
                 </tr>

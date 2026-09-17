@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('building_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('property_id')->constrained()->cascadeOnDelete();
             $table->string('unit_number');
             $table->string('floor')->nullable();
             $table->decimal('rental_rate', 12, 2)->default(0);
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['building_id', 'unit_number']);
+            $table->unique(['property_id', 'unit_number']);
         });
     }
 

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Filament\Resources;
 
-use App\Filament\Resources\Matters\Pages\ListMatters;
-use App\Filament\Widgets\AttentionNeededWidget;
+use App\Filament\Mms\Resources\Matters\Pages\ListMatters;
+use App\Filament\Mms\Widgets\AttentionNeededWidget;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\Party;

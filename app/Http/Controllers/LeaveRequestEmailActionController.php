@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\LeaveRequestDecisionMail;
 use App\Models\LeaveRequest;
-use App\Services\LeaveRequestService;
+use App\Services\MMS\LeaveRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 

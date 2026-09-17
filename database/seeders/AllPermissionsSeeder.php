@@ -24,7 +24,13 @@ class AllPermissionsSeeder extends Seeder
      *
      * @var list<string>
      */
-    private const ADDITIONAL_PERMISSIONS = [];
+    private const ADDITIONAL_PERMISSIONS = [
+        // Gates the Matters/Properties Management System switcher and direct
+        // access to the `pms` panel — separate from the individual PMS
+        // resource permissions (View:Property, etc.), which still control
+        // which PMS resources a role sees once inside that panel.
+        'Access:MultipleSystems',
+    ];
 
     /**
      * Roles that should receive all permissions.

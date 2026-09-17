@@ -21,7 +21,7 @@ use App\Models\Party;
 use App\Models\PartyLeave;
 use App\Models\Setting;
 use App\Models\Type;
-use App\Services\IncentiveCalculatorService;
+use App\Services\MMS\IncentiveCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

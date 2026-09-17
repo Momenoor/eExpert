@@ -20,6 +20,10 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 /**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin \Illuminate\Database\Eloquent\SoftDeletes
+ */
+/**
  * @property mixed $status
  */
 #[ObservedBy(MatterObserver::class)]

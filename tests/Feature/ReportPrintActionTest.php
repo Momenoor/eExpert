@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Reports\AssistantMatterFeesReport;
-use App\Filament\Pages\Reports\AssistantMattersReport;
-use App\Filament\Pages\Reports\CourtWorkloadReport;
-use App\Filament\Pages\Reports\FeeCollectionAgingReport;
-use App\Filament\Pages\Reports\MattersMonthlyReport;
+use App\Filament\Mms\Pages\Reports\AssistantMatterFeesReport;
+use App\Filament\Mms\Pages\Reports\AssistantMattersReport;
+use App\Filament\Mms\Pages\Reports\CourtWorkloadReport;
+use App\Filament\Mms\Pages\Reports\FeeCollectionAgingReport;
+use App\Filament\Mms\Pages\Reports\MattersMonthlyReport;
 use App\Models\User;
 use App\Support\ReportPrintAction;
 use Filament\Actions\Action;

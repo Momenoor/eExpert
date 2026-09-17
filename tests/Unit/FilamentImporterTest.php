@@ -2,12 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Filament\Imports\BulkMailRecipientImporter;
+use App\Filament\Mms\Imports\BulkMailRecipientImporter;
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailRecipient;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class FilamentImporterTest extends TestCase

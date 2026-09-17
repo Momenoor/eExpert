@@ -3,11 +3,11 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\InstallmentPaymentStatus;
-use App\Models\Contract;
+use App\Models\Lease;
 use App\Models\Party;
 use App\Models\Unit;
-use App\Services\ContractService;
-use App\Services\InstallmentGenerator;
+use App\Services\PMS\InstallmentGenerator;
+use App\Services\PMS\LeaseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,12 +21,12 @@ class FlagOverdueInstallmentsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function contract(): Contract
+    private function lease(): Lease
     {
         $unit = Unit::factory()->residential()->create();
         $tenant = Party::factory()->tenant()->create();
 
-        return app(ContractService::class)->createFromRawInputs([
+        return app(LeaseService::class)->createFromRawInputs([
             'start_date' => now()->addDay()->toDateString(),
             'end_date' => now()->addYear()->toDateString(),
             'total_base_rent' => 60000,
@@ -37,8 +37,8 @@ class FlagOverdueInstallmentsTest extends TestCase
 
     public function test_it_flags_installments_past_their_grace_period(): void
     {
-        $contract = $this->contract();
-        $installment = app(InstallmentGenerator::class)->generateSchedule($contract, 1)->first();
+        $lease = $this->lease();
+        $installment = app(InstallmentGenerator::class)->generateSchedule($lease, 1)->first();
         $installment->forceFill(['grace_period_expiry_date' => now()->subDay()])->save();
 
         $this->artisan('pms:flag-overdue-installments')->assertSuccessful();
@@ -48,8 +48,8 @@ class FlagOverdueInstallmentsTest extends TestCase
 
     public function test_it_leaves_installments_still_within_grace_period_alone(): void
     {
-        $contract = $this->contract();
-        $installment = app(InstallmentGenerator::class)->generateSchedule($contract, 1)->first();
+        $lease = $this->lease();
+        $installment = app(InstallmentGenerator::class)->generateSchedule($lease, 1)->first();
 
         $this->artisan('pms:flag-overdue-installments')->assertSuccessful();
 
@@ -58,11 +58,11 @@ class FlagOverdueInstallmentsTest extends TestCase
 
     public function test_a_bad_row_does_not_stop_the_rest_from_being_flagged(): void
     {
-        $contractOne = $this->contract();
+        $contractOne = $this->lease();
         $installmentOne = app(InstallmentGenerator::class)->generateSchedule($contractOne, 1)->first();
         $installmentOne->forceFill(['grace_period_expiry_date' => now()->subDay()])->save();
 
-        $contractTwo = $this->contract();
+        $contractTwo = $this->lease();
         $installmentTwo = app(InstallmentGenerator::class)->generateSchedule($contractTwo, 1)->first();
         $installmentTwo->forceFill(['grace_period_expiry_date' => now()->subDay()])->save();
 

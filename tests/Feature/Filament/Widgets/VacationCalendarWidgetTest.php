@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Filament\Widgets;
 
-use App\Filament\Widgets\VacationCalendarWidget;
+use App\Filament\Mms\Widgets\VacationCalendarWidget;
 use App\Models\Party;
 use App\Models\PartyLeave;
 use App\Models\User;

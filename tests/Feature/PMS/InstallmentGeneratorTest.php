@@ -2,19 +2,20 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Models\Contract;
+use App\Models\Lease;
 use App\Models\OwnerProfile;
 use App\Models\Party;
-use App\Models\TenantProfile;
+use App\Models\Tenant;
 use App\Models\Unit;
-use App\Services\ContractService;
-use App\Services\InstallmentGenerator;
+use App\Services\PMS\InstallmentGenerator;
+use App\Services\PMS\LeaseService;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
 
 /**
- * A 12-installment schedule must sum exactly to the contract's rent + VAT —
+ * A 12-installment schedule must sum exactly to the lease's rent + VAT —
  * the rounding drift from an uneven split lands entirely on the last
  * installment, never spread invisibly across all of them.
  */
@@ -24,21 +25,22 @@ class InstallmentGeneratorTest extends TestCase
 
     private InstallmentGenerator $generator;
 
-    private ContractService $contracts;
+    private LeaseService $leases;
 
     protected function setUp(): void
     {
         parent::setUp();
 
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
         $this->generator = app(InstallmentGenerator::class);
-        $this->contracts = app(ContractService::class);
+        $this->leases = app(LeaseService::class);
     }
 
-    private function contractOn(Unit $unit, float $rent = 120000): Contract
+    private function contractOn(Unit $unit, float $rent = 120000): Lease
     {
         $tenant = Party::factory()->tenant()->create();
 
-        return $this->contracts->createFromRawInputs([
+        return $this->leases->createFromRawInputs([
             'start_date' => '2026-01-01',
             'end_date' => '2027-01-01',
             'grace_period_days' => 5,
@@ -51,9 +53,9 @@ class InstallmentGeneratorTest extends TestCase
     public function test_a_twelve_installment_schedule_on_a_commercial_contract_sums_exactly(): void
     {
         $unit = Unit::factory()->commercial()->create();
-        $contract = $this->contractOn($unit, 120000);
+        $lease = $this->contractOn($unit, 120000);
 
-        $installments = $this->generator->generateSchedule($contract, 12);
+        $installments = $this->generator->generateSchedule($lease, 12);
 
         $this->assertCount(12, $installments);
 
@@ -76,9 +78,9 @@ class InstallmentGeneratorTest extends TestCase
     public function test_a_residential_contract_has_no_vat(): void
     {
         $unit = Unit::factory()->residential()->create();
-        $contract = $this->contractOn($unit, 60000);
+        $lease = $this->contractOn($unit, 60000);
 
-        $installments = $this->generator->generateSchedule($contract, 4);
+        $installments = $this->generator->generateSchedule($lease, 4);
 
         $this->assertTrue($installments->every(fn ($i) => (float) $i->vat_amount === 0.0));
     }
@@ -86,9 +88,9 @@ class InstallmentGeneratorTest extends TestCase
     public function test_grace_period_expiry_is_due_date_plus_the_contracts_grace_days(): void
     {
         $unit = Unit::factory()->residential()->create();
-        $contract = $this->contractOn($unit, 60000);
+        $lease = $this->contractOn($unit, 60000);
 
-        $installments = $this->generator->generateSchedule($contract, 1);
+        $installments = $this->generator->generateSchedule($lease, 1);
         $installment = $installments->first();
 
         $this->assertSame(
@@ -101,12 +103,12 @@ class InstallmentGeneratorTest extends TestCase
     {
         $unit = Unit::factory()->commercial()->create();
         $owner = Party::factory()->owner()->create();
-        $unit->building->owners()->attach($owner->id, ['ownership_percentage' => 100]);
+        $unit->property->owners()->attach($owner->id, ['ownership_percentage' => 100]);
         OwnerProfile::create(['party_id' => $owner->id, 'trn' => '100000000000001']);
 
-        $contract = $this->contractOn($unit, 60000);
-        $tenantParty = $contract->primaryTenant()->party;
-        TenantProfile::create([
+        $lease = $this->contractOn($unit, 60000);
+        $tenantParty = $lease->primaryTenant()->party;
+        Tenant::create([
             'party_id' => $tenantParty->id,
             'tenant_type' => 'person',
             'identification_type' => 'emirates_id',
@@ -114,7 +116,7 @@ class InstallmentGeneratorTest extends TestCase
             'trn' => '100000000000002',
         ]);
 
-        $installments = $this->generator->generateSchedule($contract->fresh(), 1);
+        $installments = $this->generator->generateSchedule($lease->fresh(), 1);
         $installment = $installments->first();
 
         $this->assertSame('100000000000001', $installment->landlord_trn);
@@ -124,22 +126,22 @@ class InstallmentGeneratorTest extends TestCase
     public function test_a_contract_cannot_be_scheduled_twice(): void
     {
         $unit = Unit::factory()->residential()->create();
-        $contract = $this->contractOn($unit, 60000);
+        $lease = $this->contractOn($unit, 60000);
 
-        $this->generator->generateSchedule($contract, 4);
+        $this->generator->generateSchedule($lease, 4);
 
         $this->expectException(RuntimeException::class);
 
-        $this->generator->generateSchedule($contract, 4);
+        $this->generator->generateSchedule($lease, 4);
     }
 
     public function test_a_tax_exempt_contract_has_no_vat_even_on_a_commercial_unit(): void
     {
         $unit = Unit::factory()->commercial()->create();
-        $contract = $this->contractOn($unit, 60000);
-        $contract->update(['tax_exemption_reason' => 'Transfer of Going Concern']);
+        $lease = $this->contractOn($unit, 60000);
+        $lease->update(['tax_exemption_reason' => 'Transfer of Going Concern']);
 
-        $installments = $this->generator->generateSchedule($contract->fresh(), 1);
+        $installments = $this->generator->generateSchedule($lease->fresh(), 1);
 
         $this->assertSame(0.0, (float) $installments->first()->vat_amount);
     }

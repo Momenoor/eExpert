@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Filament\Widgets;
 
-use App\Filament\Widgets\CalendarWidget;
+use App\Filament\Mms\Widgets\CalendarWidget;
 use App\Models\CalendarEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

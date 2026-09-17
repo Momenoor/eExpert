@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Filament\Resources\Types;
 
-use App\Filament\Resources\Types\Pages\CreateType;
-use App\Filament\Resources\Types\TypeResource;
+use App\Filament\Mms\Resources\Types\Pages\CreateType;
+use App\Filament\Mms\Resources\Types\TypeResource;
 use App\Models\Type;
 use App\Models\User;
 use Filament\Facades\Filament;

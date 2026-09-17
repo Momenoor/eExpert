@@ -11,7 +11,7 @@ use App\Models\MatterParty;
 use App\Models\Party;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\FeeDataRepairService;
+use App\Services\MMS\FeeDataRepairService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

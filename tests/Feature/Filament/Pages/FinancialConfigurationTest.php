@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Filament\Pages;
 
-use App\Filament\Pages\FinancialConfiguration;
+use App\Filament\Mms\Pages\FinancialConfiguration;
 use App\Models\Setting;
 use App\Models\User;
 use Filament\Facades\Filament;

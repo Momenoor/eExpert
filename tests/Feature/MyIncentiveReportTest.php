@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\Reports\MyIncentiveReport;
+use App\Filament\Mms\Pages\Reports\MyIncentiveReport;
 use App\Models\IncentiveAssistantExtra;
 use App\Models\IncentiveAssistantLine;
 use App\Models\IncentiveCalculation;

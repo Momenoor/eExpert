@@ -113,12 +113,12 @@
             <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">
                 {{ __('Signed in as :name — this account does not have maintenance access.', ['name' => auth()->user()->name]) }}
             </p>
-            <form method="POST" action="{{ route('filament.admin.auth.logout') }}" style="display:inline">
+            <form method="POST" action="{{ route('filament.mms.auth.logout') }}" style="display:inline">
                 @csrf
                 <button type="submit" class="btn">{{ __('Sign Out') }}</button>
             </form>
         @else
-            <a href="{{ url('/admin/login') }}" class="btn">{{ __('Admin Login') }}</a>
+            <a href="{{ url('/mms/login') }}" class="btn">{{ __('Admin Login') }}</a>
         @endauth
     </div>
 </div>

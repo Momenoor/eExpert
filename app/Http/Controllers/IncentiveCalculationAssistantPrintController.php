@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IncentiveCalculation;
 use App\Models\Party;
-use App\Services\IncentiveCalculatorService;
+use App\Services\MMS\IncentiveCalculatorService;
 
 class IncentiveCalculationAssistantPrintController extends Controller
 {

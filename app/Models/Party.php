@@ -177,9 +177,9 @@ class Party extends Model
         return $this->hasOne(EmployeeProfile::class);
     }
 
-    public function tenantProfile(): HasOne
+    public function tenant(): HasOne
     {
-        return $this->hasOne(TenantProfile::class);
+        return $this->hasOne(Tenant::class);
     }
 
     public function ownerProfile(): HasOne
@@ -256,14 +256,14 @@ class Party extends Model
     }
 
     /**
-     * Buildings this party holds a stake in (role 'owner'), with the pivot's
+     * Properties this party holds a stake in (role 'owner'), with the pivot's
      * ownership_percentage.
      *
-     * @return BelongsToMany<Building, $this>
+     * @return BelongsToMany<Property, $this>
      */
-    public function ownedBuildings(): BelongsToMany
+    public function ownedProperties(): BelongsToMany
     {
-        return $this->belongsToMany(Building::class, 'owner_building', 'owner_party_id', 'building_id')
+        return $this->belongsToMany(Property::class, 'owner_property', 'owner_party_id', 'property_id')
             ->withPivot('ownership_percentage')
             ->withTimestamps();
     }

@@ -112,6 +112,10 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($panel->getId() === 'pms') {
+            return $this->can('Access:MultipleSystems');
+        }
+
         return true;
     }
 

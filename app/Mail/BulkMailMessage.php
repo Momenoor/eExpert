@@ -4,7 +4,7 @@ namespace App\Mail;
 
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailRecipient;
-use App\Services\BulkMailService;
+use App\Services\MMS\BulkMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;

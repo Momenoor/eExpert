@@ -34,13 +34,13 @@ Route::get('/mail/unsubscribe/{token}', function ($token) {
     return __('You have been successfully unsubscribed.');
 })->name('bulk-mail.unsubscribe');
 
-Route::get('admin/system-down', function () {
+Route::get('system-down', function () {
     $message = session('maintenance_message') ?: Setting::getOfflineMessage();
 
     return view('errors.maintenance', compact('message'));
 })->name('system-down');
 
-Route::get('/login', fn () => redirect()->route('filament.admin.auth.login'))->name('login');
+Route::get('/login', fn () => redirect()->route('filament.mms.auth.login'))->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class, '__invoke'])

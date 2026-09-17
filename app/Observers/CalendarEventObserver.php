@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\CalendarEvent;
-use App\Services\OutlookCalendarService;
+use App\Services\MMS\OutlookCalendarService;
 use Illuminate\Support\Facades\Log;
 
 class CalendarEventObserver

@@ -2,17 +2,17 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Models\Building;
 use App\Models\OwnerProfile;
 use App\Models\Party;
-use App\Models\TenantProfile;
+use App\Models\Property;
+use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
  * Tenant and Owner reuse `Party`'s existing role-tag system rather than
  * standalone tables — `isTenant()`/`isOwner()` mirror the already-established
- * `isEmployee()`/`isExpert()`, and `TenantProfile`/`OwnerProfile` mirror
+ * `isEmployee()`/`isExpert()`, and `Tenant`/`OwnerProfile` mirror
  * `EmployeeProfile`'s split of generic identity from role-specific detail.
  */
 class PartyRoleTest extends TestCase
@@ -47,11 +47,11 @@ class PartyRoleTest extends TestCase
         $this->assertSame(1, Party::withRole('tenant')->count());
     }
 
-    public function test_tenant_profile_holds_role_specific_fields_separate_from_the_party(): void
+    public function test_tenant_holds_role_specific_fields_separate_from_the_party(): void
     {
         $party = Party::factory()->tenant()->create(['name' => 'Acme Trading LLC']);
 
-        $profile = TenantProfile::create([
+        $profile = Tenant::create([
             'party_id' => $party->id,
             'tenant_type' => 'company',
             'identification_type' => 'trade_license',
@@ -59,7 +59,7 @@ class PartyRoleTest extends TestCase
             'trn' => '100123456700003',
         ]);
 
-        $this->assertTrue($party->fresh()->tenantProfile->is($profile));
+        $this->assertTrue($party->fresh()->tenant->is($profile));
         $this->assertTrue($profile->isCompany());
         $this->assertSame('Acme Trading LLC', $party->name);
     }
@@ -76,39 +76,39 @@ class PartyRoleTest extends TestCase
         $this->assertTrue($party->fresh()->ownerProfile->is($profile));
     }
 
-    public function test_a_party_can_hold_a_stake_in_multiple_buildings(): void
+    public function test_a_party_can_hold_a_stake_in_multiple_properties(): void
     {
         $owner = Party::factory()->owner()->create();
-        $buildingOne = Building::factory()->create();
-        $buildingTwo = Building::factory()->create();
+        $propertyOne = Property::factory()->create();
+        $propertyTwo = Property::factory()->create();
 
-        $owner->ownedBuildings()->attach([
-            $buildingOne->id => ['ownership_percentage' => 100],
-            $buildingTwo->id => ['ownership_percentage' => 50],
+        $owner->ownedProperties()->attach([
+            $propertyOne->id => ['ownership_percentage' => 100],
+            $propertyTwo->id => ['ownership_percentage' => 50],
         ]);
 
-        $this->assertCount(2, $owner->ownedBuildings);
+        $this->assertCount(2, $owner->ownedProperties);
         $this->assertSame(
             50.0,
-            (float) $owner->ownedBuildings()->where('building_id', $buildingTwo->id)->first()->pivot->ownership_percentage,
+            (float) $owner->ownedProperties()->where('property_id', $propertyTwo->id)->first()->pivot->ownership_percentage,
         );
     }
 
-    public function test_a_building_can_have_multiple_owners_with_a_percentage_split(): void
+    public function test_a_property_can_have_multiple_owners_with_a_percentage_split(): void
     {
-        $building = Building::factory()->create();
+        $property = Property::factory()->create();
         $ownerOne = Party::factory()->owner()->create();
         $ownerTwo = Party::factory()->owner()->create();
 
-        $building->owners()->attach([
+        $property->owners()->attach([
             $ownerOne->id => ['ownership_percentage' => 60],
             $ownerTwo->id => ['ownership_percentage' => 40],
         ]);
 
-        $this->assertCount(2, $building->owners);
+        $this->assertCount(2, $property->owners);
         $this->assertSame(
             100.0,
-            (float) $building->owners->sum(fn (Party $owner): float => (float) $owner->pivot->ownership_percentage),
+            (float) $property->owners->sum(fn (Party $owner): float => (float) $owner->pivot->ownership_percentage),
         );
     }
 }

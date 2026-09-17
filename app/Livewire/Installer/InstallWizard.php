@@ -231,7 +231,7 @@ class InstallWizard extends Component
         Artisan::call('route:clear');
         Artisan::call('view:clear');
 
-        $this->redirect('/admin/login', navigate: false);
+        $this->redirect('/mms/login', navigate: false);
     }
 
     private function validateDatabaseFields(): void

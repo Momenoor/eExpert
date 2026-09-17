@@ -156,7 +156,7 @@
         @endif
 
         <div class="actions">
-            <a href="{{ url('/admin/matter-requests/' . $matterRequest->id) }}" class="btn">
+            <a href="{{ url('/mms/matter-requests/' . $matterRequest->id) }}" class="btn">
                 {{ __('View Request Details') }}
             </a>
         </div>

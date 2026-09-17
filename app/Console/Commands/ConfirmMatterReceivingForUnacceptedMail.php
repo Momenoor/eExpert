@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\RequestStatus;
 use App\Enums\RequestType;
 use App\Models\MatterRequest;
-use App\Services\Requests\RequestServiceFactory;
+use App\Services\MMS\Requests\RequestServiceFactory;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

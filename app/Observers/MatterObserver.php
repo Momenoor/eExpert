@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use App\Enums\MatterCollectionStatus;
 use App\Models\Matter;
-use App\Services\NewMatterNotification;
+use App\Services\MMS\NewMatterNotification;
 use Illuminate\Support\Facades\Log;
 
 class MatterObserver

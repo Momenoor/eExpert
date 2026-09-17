@@ -8,7 +8,7 @@ use App\Mail\BulkMailMessage;
 use App\Models\BulkMailCampaign;
 use App\Models\BulkMailLog;
 use App\Models\BulkMailRecipient;
-use App\Services\BulkMailService;
+use App\Services\MMS\BulkMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

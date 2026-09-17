@@ -1,15 +1,16 @@
 <?php
 
 declare(strict_types=1);
-use App\Filament\Resources\BulkMailCampaigns\BulkMailCampaignResource;
-use App\Filament\Resources\CalendarEvents\CalendarEventResource;
-use App\Filament\Resources\EmployeeLoans\EmployeeLoanResource;
-use App\Filament\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource;
-use App\Filament\Resources\Incentive\IncentiveMetaAdjustments\IncentiveMetaAdjustmentResource;
-use App\Filament\Resources\LeaveRequests\LeaveRequestResource;
-use App\Filament\Resources\LetterTemplates\LetterTemplateResource;
-use App\Filament\Resources\Matters\MatterResource;
-use App\Filament\Resources\PayrollRuns\PayrollRunResource;
+
+use App\Filament\Mms\Resources\BulkMailCampaigns\BulkMailCampaignResource;
+use App\Filament\Mms\Resources\CalendarEvents\CalendarEventResource;
+use App\Filament\Mms\Resources\EmployeeLoans\EmployeeLoanResource;
+use App\Filament\Mms\Resources\Incentive\IncentiveCalculations\IncentiveCalculationResource;
+use App\Filament\Mms\Resources\Incentive\IncentiveMetaAdjustments\IncentiveMetaAdjustmentResource;
+use App\Filament\Mms\Resources\LeaveRequests\LeaveRequestResource;
+use App\Filament\Mms\Resources\LetterTemplates\LetterTemplateResource;
+use App\Filament\Mms\Resources\Matters\MatterResource;
+use App\Filament\Mms\Resources\PayrollRuns\PayrollRunResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;

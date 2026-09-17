@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\PMS;
 
-use App\Filament\Pages\PMSSettings;
+use App\Filament\Pms\Pages\PMSSettings;
 use App\Models\Setting;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -21,6 +22,8 @@ class PMSSettingsTest extends TestCase
         Setting::clearCache();
 
         Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+
+        Filament::setCurrentPanel(Filament::getPanel('pms'));
     }
 
     public function test_the_page_prefills_from_code_defaults_when_nothing_is_saved(): void
