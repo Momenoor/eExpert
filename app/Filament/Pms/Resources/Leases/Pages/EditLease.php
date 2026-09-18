@@ -4,6 +4,7 @@ namespace App\Filament\Pms\Resources\Leases\Pages;
 
 use App\Filament\Pms\Resources\Leases\LeaseResource;
 use App\Models\Lease;
+use App\Models\LeaseParty;
 use App\Services\PMS\LeaseService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -22,6 +23,26 @@ class EditLease extends EditRecord
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    /**
+     * `tenants`/`units` aren't columns on `leases` — `LeaseForm`'s repeater
+     * and multi-select for them start blank unless explicitly filled here
+     * from the lease's actual `leaseParties`/`units` relationships.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        /** @var Lease $lease */
+        $lease = $this->getRecord();
+
+        $data['tenants'] = $lease->leaseParties->map(fn (LeaseParty $leaseParty): array => [
+            'party_id' => $leaseParty->getAttribute('party_id'),
+            'role' => $leaseParty->getAttribute('role')->value,
+        ])->all();
+
+        $data['units'] = $lease->units->pluck('id')->all();
+
+        return $data;
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model

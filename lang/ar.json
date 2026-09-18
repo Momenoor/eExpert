@@ -2512,5 +2512,10 @@
     "Y %": "الموضع الرأسي %",
     "Alignment": "المحاذاة",
     "Center": "وسط",
+    "Start Align": "محاذاة البداية",
+    "Center Align": "محاذاة الوسط",
+    "End Align": "محاذاة النهاية",
+    "Align Start": "محاذاة للبداية",
+    "Align End": "محاذاة للنهاية",
     "Tip: click the marker on the image, then use the arrow keys to nudge it (hold Shift for bigger steps).": "نصيحة: انقر على العلامة في الصورة، ثم استخدم أسهم لوحة المفاتيح لتحريكها قليلاً (اضغط مع الاستمرار على Shift لخطوات أكبر)."
 }

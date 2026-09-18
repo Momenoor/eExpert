@@ -132,4 +132,33 @@ class LeaseCreationWizardTest extends TestCase
         $this->assertArrayHasKey($unitInPropertyOne->id, $options);
         $this->assertArrayNotHasKey($unitInPropertyTwo->id, $options);
     }
+
+    public function test_selecting_a_property_defaults_the_units_step_to_its_first_unit(): void
+    {
+        $property = Property::factory()->create();
+        $firstUnit = Unit::factory()->residential()->create(['property_id' => $property->id, 'unit_number' => '101']);
+        Unit::factory()->residential()->create(['property_id' => $property->id, 'unit_number' => '102']);
+
+        Livewire::test(CreateLease::class)
+            ->fillForm(['property_id' => $property->id])
+            ->assertSchemaStateSet([
+                'units' => [
+                    ['unit_id' => $firstUnit->id],
+                ],
+            ]);
+    }
+
+    public function test_switching_property_replaces_the_default_unit_rather_than_clearing_it(): void
+    {
+        $propertyOne = Property::factory()->create();
+        $unitOne = Unit::factory()->residential()->create(['property_id' => $propertyOne->id, 'unit_number' => '101']);
+        $propertyTwo = Property::factory()->create();
+        $unitTwo = Unit::factory()->residential()->create(['property_id' => $propertyTwo->id, 'unit_number' => '201']);
+
+        Livewire::test(CreateLease::class)
+            ->fillForm(['property_id' => $propertyOne->id])
+            ->assertSchemaStateSet(['units' => [['unit_id' => $unitOne->id]]])
+            ->fillForm(['property_id' => $propertyTwo->id])
+            ->assertSchemaStateSet(['units' => [['unit_id' => $unitTwo->id]]]);
+    }
 }

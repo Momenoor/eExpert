@@ -5,6 +5,7 @@ namespace Tests\Feature\PMS;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
 use App\Filament\Pms\Resources\Leases\Pages\CreateLease;
+use App\Filament\Pms\Resources\Leases\Pages\EditLease;
 use App\Filament\Pms\Resources\Leases\Pages\ViewLease;
 use App\Filament\Pms\Resources\Quotations\Pages\ViewQuotation;
 use App\Models\Lease;
@@ -132,5 +133,80 @@ class LeaseResourceTest extends TestCase
 
         // A what-if, not a mutation — the lease's own rent is untouched.
         $this->assertSame('80000.00', $lease->fresh()->total_base_rent);
+    }
+
+    public function test_edit_page_prefills_the_leases_existing_tenants_and_units(): void
+    {
+        $tenant = Party::factory()->tenant()->create();
+        $unit = Unit::factory()->residential()->create();
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
+            'total_base_rent' => 70000,
+        ], [
+            ['party_id' => $tenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        // 'units' is a plain multi-select, so its prefilled state can be
+        // asserted directly. 'tenants' is a Repeater, whose rows Filament
+        // always keys by an internal UUID rather than 0, 1, 2… — the
+        // save-without-changes test below proves that one was prefilled
+        // correctly instead (an empty/wrong prefill would fail its
+        // required-tenant validation or silently drop the tenant on save).
+        Livewire::test(EditLease::class, ['record' => $lease->getKey()])
+            ->assertSchemaStateSet(['units' => [$unit->id]]);
+    }
+
+    public function test_saving_a_draft_lease_without_changes_keeps_its_tenant_and_unit(): void
+    {
+        $tenant = Party::factory()->tenant()->create();
+        $unit = Unit::factory()->residential()->create();
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
+            'total_base_rent' => 70000,
+        ], [
+            ['party_id' => $tenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        Livewire::test(EditLease::class, ['record' => $lease->getKey()])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $lease->refresh();
+        $this->assertSame([$unit->id], $lease->units->pluck('id')->all());
+        $this->assertSame([$tenant->id], $lease->leaseParties->pluck('party_id')->all());
+    }
+
+    public function test_editing_a_draft_lease_persists_changed_units_and_tenants(): void
+    {
+        $originalTenant = Party::factory()->tenant()->create();
+        $originalUnit = Unit::factory()->residential()->create();
+        $newTenant = Party::factory()->tenant()->create();
+        $newUnit = Unit::factory()->residential()->create();
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
+            'total_base_rent' => 70000,
+        ], [
+            ['party_id' => $originalTenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$originalUnit->id]);
+
+        Livewire::test(EditLease::class, ['record' => $lease->getKey()])
+            ->fillForm([
+                'tenants' => [
+                    ['party_id' => $newTenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+                ],
+                'units' => [$newUnit->id],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $lease->refresh();
+        $this->assertSame([$newUnit->id], $lease->units->pluck('id')->all());
+        $this->assertSame([$newTenant->id], $lease->leaseParties->pluck('party_id')->all());
     }
 }

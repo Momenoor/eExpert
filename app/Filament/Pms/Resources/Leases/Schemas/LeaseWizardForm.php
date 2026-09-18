@@ -43,7 +43,8 @@ class LeaseWizardForm
     public static function steps(): array
     {
         return [
-            self::propertyAndUnitsStep(),
+            self::propertyStep(),
+            self::unitsStep(),
             self::tenantsStep(),
             self::contractDetailsStep(),
             self::installmentsStep(),
@@ -51,14 +52,9 @@ class LeaseWizardForm
         ];
     }
 
-    /**
-     * Property first, units second, both in the one step the wizard can't
-     * leave without at least one unit picked — a lease can't mean anything
-     * yet without knowing what it covers.
-     */
-    private static function propertyAndUnitsStep(): Step
+    private static function propertyStep(): Step
     {
-        return Step::make(__('Property & Units'))
+        return Step::make(__('Property'))
             ->schema([
                 ToggleButtons::make('property_id')
                     ->label(__('Select the Property'))
@@ -73,14 +69,29 @@ class LeaseWizardForm
                     ->afterStateUpdated(function (Set $set, Get $get, ?int $state): void {
                         // A new property invalidates any units already
                         // picked for the old one, and the template suggestion
-                        // that went with them.
-                        $set('units', []);
+                        // that went with them — replaced with a fresh default
+                        // (the property's first unit) rather than left empty,
+                        // so the Units step is never blank on arrival.
+                        $set('units', self::defaultUnitRows($state));
                         $set('condition_template_id', null);
 
                         if ($state !== null && blank($get('government_contract_number'))) {
                             $set('government_contract_number', self::suggestContractNumber($state));
                         }
                     }),
+            ]);
+    }
+
+    /**
+     * Its own step, scoped to whichever property was picked on the step
+     * before — defaults to that property's first unit already selected
+     * rather than an empty required row, since a lease can't mean anything
+     * yet without knowing what it covers.
+     */
+    private static function unitsStep(): Step
+    {
+        return Step::make(__('Units'))
+            ->schema([
                 Repeater::make('units')
                     ->label(__('Units'))
                     ->schema([
@@ -108,6 +119,7 @@ class LeaseWizardForm
                     ])
                     ->minItems(1)
                     ->defaultItems(1)
+                    ->default(fn (Get $get): array => self::defaultUnitRows($get('property_id')))
                     ->addActionLabel(__('Add Unit'))
                     ->live()
                     ->afterStateUpdated(function (Set $set, Get $get, ?array $state): void {
@@ -118,6 +130,24 @@ class LeaseWizardForm
                     })
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * One repeater row pre-filled with the property's first unit (by
+     * `unit_number`) — the Units step's default state, and what the
+     * Property step resets to whenever the property selection changes.
+     *
+     * @return list<array{unit_id: int}>
+     */
+    private static function defaultUnitRows(?int $propertyId): array
+    {
+        if ($propertyId === null) {
+            return [];
+        }
+
+        $unitId = Unit::query()->where('property_id', $propertyId)->orderBy('unit_number')->value('id');
+
+        return $unitId !== null ? [['unit_id' => $unitId]] : [];
     }
 
     private static function tenantsStep(): Step

@@ -53,10 +53,10 @@
                 </label>
                 <div style="display: flex; gap: 6px;">
                     <button type="button" wire:click="alignAll('left')" style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff;">
-                        {{ __('Left') }}
+                        {{ __('Align Start') }}
                     </button>
                     <button type="button" wire:click="alignAll('right')" style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff;">
-                        {{ __('Right') }}
+                        {{ __('Align End') }}
                     </button>
                 </div>
                 <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
@@ -75,7 +75,7 @@
                         @disabled(count($selectedIndexes) < 2)
                         style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 2 ? '0.5' : '1' }};"
                     >
-                        {{ __('Left') }}
+                        {{ __('Align Start') }}
                     </button>
                     <button
                         type="button"
@@ -83,7 +83,7 @@
                         @disabled(count($selectedIndexes) < 2)
                         style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 2 ? '0.5' : '1' }};"
                     >
-                        {{ __('Right') }}
+                        {{ __('Align End') }}
                     </button>
                 </div>
                 <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
@@ -118,9 +118,9 @@
                 <label style="display: block; font-size: 11px; margin-top: 8px;">
                     {{ __('Alignment') }}
                     <select wire:model="fields.{{ $selectedIndex }}.text_align" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
-                        <option value="left">{{ __('Left') }}</option>
-                        <option value="center">{{ __('Center') }}</option>
-                        <option value="right">{{ __('Right') }}</option>
+                        <option value="left">{{ __('Start Align') }}</option>
+                        <option value="center">{{ __('Center Align') }}</option>
+                        <option value="right">{{ __('End Align') }}</option>
                     </select>
                 </label>
 
