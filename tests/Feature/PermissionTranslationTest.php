@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use BezhanSalleh\FilamentShield\Support\Utils;
 use Database\Seeders\AllPermissionsSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Lang;
 use Spatie\Permission\Models\Permission;
@@ -43,19 +44,29 @@ class PermissionTranslationTest extends TestCase
         $this->assertSame([], $missing, "Untranslated resource affixes:\n".implode("\n", $missing));
     }
 
+    /**
+     * Shield's own entity discovery (`getPages()`/`getWidgets()`) is scoped
+     * to whichever panel is "current" when called — the `mms` panel by
+     * default, since it's the app's default panel (see `MmsPanelProvider`).
+     * Checking only that default silently skipped every `pms` panel page
+     * and widget, which is exactly how `View:PMSOverviewWidget`'s missing
+     * translation slipped past this test — so both panels are checked here.
+     */
     public function test_all_shield_pages_are_translated_in_arabic(): void
     {
         $missing = [];
 
-        foreach (FilamentShield::getPages() as $page) {
-            foreach ($page['permissions'] as $permKey => $permLabel) {
-                $locKey = Utils::toLocalizationKey($permKey);
-                $fullKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.'.$locKey;
-                $hasShield = Lang::has($fullKey, 'ar');
-                $hasDirect = Lang::has($permKey, 'ar') || filled($permLabel);
+        foreach (['mms', 'pms'] as $panelId) {
+            Filament::setCurrentPanel(Filament::getPanel($panelId));
 
-                if (! $hasShield && ! $hasDirect) {
-                    $missing[] = "Page perm [{$permKey}] => key [{$locKey}]";
+            foreach (FilamentShield::getPages() as $page) {
+                foreach ($page['permissions'] as $permKey => $permLabel) {
+                    $locKey = Utils::toLocalizationKey($permKey);
+                    $fullKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.'.$locKey;
+
+                    if (! Lang::has($fullKey, 'ar')) {
+                        $missing[] = "[{$panelId}] Page perm [{$permKey}] => key [{$locKey}]";
+                    }
                 }
             }
         }
@@ -67,15 +78,17 @@ class PermissionTranslationTest extends TestCase
     {
         $missing = [];
 
-        foreach (FilamentShield::getWidgets() as $widget) {
-            foreach ($widget['permissions'] as $permKey => $permLabel) {
-                $locKey = Utils::toLocalizationKey($permKey);
-                $fullKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.'.$locKey;
-                $hasShield = Lang::has($fullKey, 'ar');
-                $hasDirect = Lang::has($permKey, 'ar') || filled($permLabel);
+        foreach (['mms', 'pms'] as $panelId) {
+            Filament::setCurrentPanel(Filament::getPanel($panelId));
 
-                if (! $hasShield && ! $hasDirect) {
-                    $missing[] = "Widget perm [{$permKey}] => key [{$locKey}]";
+            foreach (FilamentShield::getWidgets() as $widget) {
+                foreach ($widget['permissions'] as $permKey => $permLabel) {
+                    $locKey = Utils::toLocalizationKey($permKey);
+                    $fullKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.'.$locKey;
+
+                    if (! Lang::has($fullKey, 'ar')) {
+                        $missing[] = "[{$panelId}] Widget perm [{$permKey}] => key [{$locKey}]";
+                    }
                 }
             }
         }
@@ -83,6 +96,15 @@ class PermissionTranslationTest extends TestCase
         $this->assertSame([], $missing, "Untranslated widgets:\n".implode("\n", $missing));
     }
 
+    /**
+     * Matches exactly what `HasLabelResolver::getCustomPermissionLabel()`
+     * checks at render time — no fallback to a raw-key `lang/ar.json` entry,
+     * because Shield's own UI has no such fallback either. A JSON entry can
+     * make this test pass while the live Role editor still shows the
+     * untranslated `Str::headline()` fallback, which is exactly how
+     * `View:EosgClosingVoucher`/`Generate:EosgClosingVoucher` went
+     * unnoticed despite this test passing.
+     */
     public function test_all_shield_custom_permissions_are_translated_in_arabic(): void
     {
         $missing = [];
@@ -91,7 +113,7 @@ class PermissionTranslationTest extends TestCase
             $locKey = Utils::toLocalizationKey($key);
             $fullKey = 'filament-shield::filament-shield.resource_permission_prefixes_labels.'.$locKey;
 
-            if (! Lang::has($fullKey, 'ar') && ! Lang::has($key, 'ar')) {
+            if (! Lang::has($fullKey, 'ar')) {
                 $missing[] = "Custom perm [{$key}] => key [{$locKey}]";
             }
         }

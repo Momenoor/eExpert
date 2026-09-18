@@ -51,6 +51,13 @@ return [
         'run_calculation' => 'تشغيل الاحتساب',
         'finalize' => 'اعتماد نهائي',
 
+        // Panel access.
+        'access_multiple_systems' => 'الوصول إلى عدة أنظمة',
+
+        // Payroll — EOSG closing voucher (no Filament Resource of its own).
+        'view_eosg_closing_voucher' => 'عرض سند إقفال مكافأة نهاية الخدمة',
+        'generate_eosg_closing_voucher' => 'توليد سند إقفال مكافأة نهاية الخدمة',
+
         // Matter — scope.
         'view_own' => 'عرض ملفاته فقط',
         'view_trashed' => 'عرض المحذوفات',
@@ -106,6 +113,11 @@ return [
 
         // Pages.
         'view_admin_dashboard' => 'لوحة التحكم',
+        'view_access_control_maintenance' => 'صيانة التحكم بالوصول',
+        'view_chat' => 'الدردشة',
+        'view_financial_configuration' => 'الإعدادات المالية',
+        'view_end_of_service_gratuity_closing_voucher' => 'سند إقفال مكافأة نهاية الخدمة',
+        'view_my_incentive_report' => 'تقرير حافزي',
         'view_assistant_matter_fees_report' => 'تقرير أتعاب المساعدين',
         'view_assistant_matters_count' => 'عدد ملفات المساعدين',
         'view_assistant_matters_report' => 'تقرير ملفات المساعدين',
@@ -151,5 +163,7 @@ return [
         'view_matters_per_year_widget' => 'القضايا المستلمة سنويًا',
         'view_upcoming_sessions_widget' => 'الجلسات القادمة',
         'view_vacation_calendar_widget' => 'تقويم الإجازات',
+        'view_p_m_s_overview_widget' => 'نظرة عامة على نظام إدارة الممتلكات',
+        'view_pms_revenue_chart_widget' => 'رسم إيرادات نظام إدارة الممتلكات',
     ],
 ];

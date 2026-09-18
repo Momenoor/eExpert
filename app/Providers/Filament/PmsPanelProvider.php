@@ -78,9 +78,8 @@ class PmsPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make(fn () => __('Properties')),
-                NavigationGroup::make(fn () => __('Ownership')),
                 NavigationGroup::make(fn () => __('Leasing')),
-                NavigationGroup::make(fn () => __('Templates')),
+                NavigationGroup::make(fn () => __('Ownership')),
                 NavigationGroup::make(fn () => __('Settings')),
                 NavigationGroup::make(fn () => __('filament-shield::filament-shield.nav.group')),
             ])

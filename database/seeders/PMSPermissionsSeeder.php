@@ -11,10 +11,10 @@ use Spatie\Permission\PermissionRegistrar;
  * PMS-only role/permission grants — separate from `AllPermissionsSeeder`
  * (which grants every Shield permission to `super_admin`/`super-admin`/
  * `admin` regardless of module). This seeder exists for a role scoped to
- * *just* PMS: full CRUD on every PMS resource, plus `Access:MultipleSystems`
- * — without that permission, `User::canAccessPanel()` refuses the `pms`
- * panel outright, so a PMS-only role would otherwise hold every PMS
- * permission and still never be able to log in and use any of them.
+ * *just* PMS: full CRUD on every PMS resource, its dashboard widgets, plus
+ * `Access:MultipleSystems` — without that permission, `User::canAccessPanel()`
+ * refuses the `pms` panel outright, so a PMS-only role would otherwise hold
+ * every PMS permission and still never be able to log in and use any of them.
  */
 class PMSPermissionsSeeder extends Seeder
 {
@@ -41,6 +41,19 @@ class PMSPermissionsSeeder extends Seeder
      */
     private const PANEL_ACCESS_PERMISSION = 'Access:MultipleSystems';
 
+    /**
+     * Dashboard widgets that only exist on the `pms` panel. `AllPermissionsSeeder`
+     * discovers pages/widgets via `FilamentShield::getEntitiesPermissions()`,
+     * which is scoped to whichever panel is "current" when it runs — the
+     * default panel is `mms` (see `MmsPanelProvider`), so these two never
+     * actually reached `admin`/`super_admin`/`super-admin` despite that
+     * seeder's grant looking unconditional.
+     */
+    private const PMS_WIDGETS = [
+        'View:PMSOverviewWidget',
+        'View:PmsRevenueChartWidget',
+    ];
+
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -49,6 +62,7 @@ class PMSPermissionsSeeder extends Seeder
             ->crossJoin(self::ABILITIES)
             ->map(fn (array $pair): string => "{$pair[1]}:{$pair[0]}")
             ->push(self::PANEL_ACCESS_PERMISSION)
+            ->concat(self::PMS_WIDGETS)
             ->values();
 
         $permissions = $permissionNames->map(

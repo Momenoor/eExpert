@@ -67,8 +67,15 @@ class LeaseWizardForm
                     ->columns(5)
                     ->extraAttributes(['class' => 'pms-property-picker'])
                     ->afterStateUpdated(function (Set $set, Get $get, ?int $state): void {
+                        $firstUnitId = $state !== null
+                            ? Unit::query()->where('property_id', $state)->orderBy('id')->value('id')
+                            : null;
 
-                        $set('condition_template_id', null);
+                        $set('units', $firstUnitId !== null ? [['unit_id' => $firstUnitId]] : []);
+                        $set('condition_template_id', self::suggestConditionTemplateId(
+                            $state,
+                            $firstUnitId !== null ? [$firstUnitId] : [],
+                        ));
 
                         if ($state !== null && blank($get('government_contract_number'))) {
                             $set('government_contract_number', self::suggestContractNumber($state));
