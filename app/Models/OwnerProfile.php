@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -14,12 +15,15 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 class OwnerProfile extends Model
 {
+    use HasFactory;
     use LogsActivity;
 
     protected $fillable = [
         'party_id',
         'owner_group_id',
         'identification_number',
+        'nationality',
+        'unified_number',
         'trn',
         'bank_name',
         'bank_account_no',

@@ -57,6 +57,12 @@ class TenantForm
                             ->label(__('Identification Number'))
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('unified_number')
+                            ->label(__('Unified No.'))
+                            ->maxLength(255),
+                        TextInput::make('nationality')
+                            ->label(__('Nationality'))
+                            ->maxLength(255),
                         TextInput::make('trn')
                             ->label(__('TRN'))
                             ->maxLength(255)

@@ -80,7 +80,7 @@ class MmsPanelProvider extends PanelProvider
                 fn () => Blade::render('@livewire(\'font-size-slider\')')
             )
             ->renderHook(
-                PanelsRenderHook::TOPBAR_START,
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn () => SystemSwitcher::render()
             )
             ->middleware([

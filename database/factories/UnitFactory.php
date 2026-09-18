@@ -25,7 +25,7 @@ class UnitFactory extends Factory
             'unit_number' => (string) fake()->unique()->numberBetween(100, 9999),
             'floor' => (string) fake()->numberBetween(1, 40),
             'rental_rate' => fake()->numberBetween(20000, 200000),
-            'dewa_premise_number' => fake()->numerify('##########'),
+            'premise_number' => fake()->numerify('##########'),
             'property_classification' => $type->defaultClassification(),
             'unit_type' => $type,
             'status' => UnitStatus::VACANT,

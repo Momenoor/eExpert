@@ -32,9 +32,7 @@ class InstallmentGenerator
         }
 
         $totalRent = (float) $lease->getAttribute('total_base_rent');
-        $vatRate = $lease->vatRate();
-        $landlordTrn = $lease->landlordTrn();
-        $tenantTrn = $lease->tenantTrn();
+        ['vatRate' => $vatRate, 'landlordTrn' => $landlordTrn, 'tenantTrn' => $tenantTrn] = $this->resolveTaxContext($lease);
 
         $netAmounts = $this->splitEvenly($totalRent, $count);
         $dueDates = $this->spreadDueDates($lease, $count);
@@ -68,6 +66,85 @@ class InstallmentGenerator
 
             return $installments;
         });
+    }
+
+    /**
+     * A lease's own payment schedule, declared row by row by the office at
+     * creation time instead of split evenly — the wizard's Installments
+     * step already validated the rows' amounts sum to the right total
+     * (rent + VAT + security deposit), so this only has to persist them.
+     *
+     * @param  list<array{
+     *     payment_method: string,
+     *     payment_date: string,
+     *     amount: float|string,
+     *     reference_number?: string|null,
+     *     is_security_deposit?: bool,
+     * }>  $rows
+     * @return Collection<int, Installment>
+     */
+    public function recordManualSchedule(Lease $lease, array $rows): Collection
+    {
+        if ($rows === []) {
+            throw new RuntimeException('A lease must have at least one instalment.');
+        }
+
+        if ($lease->installments()->exists()) {
+            throw new RuntimeException('This lease already has an instalment schedule.');
+        }
+
+        ['vatRate' => $vatRate, 'landlordTrn' => $landlordTrn, 'tenantTrn' => $tenantTrn] = $this->resolveTaxContext($lease);
+
+        return DB::transaction(function () use ($lease, $rows, $vatRate, $landlordTrn, $tenantTrn): Collection {
+            $installments = collect();
+
+            foreach (array_values($rows) as $index => $row) {
+                $amount = (float) $row['amount'];
+                $isSecurityDeposit = (bool) ($row['is_security_deposit'] ?? false);
+
+                // A refundable security deposit sits outside the scope of
+                // supply under UAE VAT law — it must never be VAT-loaded the
+                // way a rent instalment is.
+                $net = $isSecurityDeposit ? $amount : round($amount / (1 + $vatRate), 2);
+                $vat = $isSecurityDeposit ? 0.0 : round($amount - $net, 2);
+                $dueDate = Carbon::parse($row['payment_date']);
+
+                $installments->push(Installment::create([
+                    'lease_id' => $lease->getKey(),
+                    'is_security_deposit' => $isSecurityDeposit,
+                    'due_date' => $dueDate,
+                    'grace_period_expiry_date' => $dueDate->copy()->addDays((int) $lease->getAttribute('grace_period_days')),
+                    'net_amount' => $net,
+                    'vat_amount' => $vat,
+                    'total_due_amount' => round($net + $vat, 2),
+                    'admin_penalty_amount' => 0,
+                    'paid_amount' => 0,
+                    'balance_due' => round($net + $vat, 2),
+                    'payment_method' => $row['payment_method'],
+                    'transaction_reference' => $row['reference_number'] ?? null,
+                    'payment_status' => InstallmentPaymentStatus::PENDING,
+                    'landlord_trn' => $landlordTrn,
+                    'tenant_trn' => $tenantTrn,
+                    'tax_invoice_serial' => $isSecurityDeposit ? null : sprintf('INV-%d-%02d', $lease->getKey(), $index + 1),
+                    'date_of_supply' => $isSecurityDeposit ? null : $dueDate,
+                    'vat_rate' => $isSecurityDeposit ? 0 : $vatRate,
+                ]));
+            }
+
+            return $installments;
+        });
+    }
+
+    /**
+     * @return array{vatRate: float, landlordTrn: ?string, tenantTrn: ?string}
+     */
+    private function resolveTaxContext(Lease $lease): array
+    {
+        return [
+            'vatRate' => $lease->vatRate(),
+            'landlordTrn' => $lease->landlordTrn(),
+            'tenantTrn' => $lease->tenantTrn(),
+        ];
     }
 
     /**

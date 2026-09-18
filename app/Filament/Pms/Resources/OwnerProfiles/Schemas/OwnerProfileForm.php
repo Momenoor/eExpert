@@ -39,6 +39,12 @@ class OwnerProfileForm
                         TextInput::make('identification_number')
                             ->label(__('Identification Number (Emirates ID / Passport)'))
                             ->maxLength(255),
+                        TextInput::make('unified_number')
+                            ->label(__('Unified No.'))
+                            ->maxLength(255),
+                        TextInput::make('nationality')
+                            ->label(__('Nationality'))
+                            ->maxLength(255),
                         TextInput::make('trn')
                             ->label(__('TRN'))
                             ->maxLength(255),

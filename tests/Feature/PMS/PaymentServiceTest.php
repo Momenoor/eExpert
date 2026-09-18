@@ -82,6 +82,19 @@ class PaymentServiceTest extends TestCase
         $this->assertSame('0.00', $installment->balance_due);
     }
 
+    public function test_two_partial_payments_each_create_their_own_ledger_row(): void
+    {
+        $installment = $this->installment(10000);
+
+        $this->payments->recordPayment($installment, ['amount' => 4000, 'payment_method' => 'cash']);
+        $this->payments->recordPayment($installment->fresh(), ['amount' => 6000, 'payment_method' => 'bank_transfer']);
+
+        $payments = $installment->fresh()->payments;
+        $this->assertCount(2, $payments);
+        $this->assertSame('4000.00', $payments->first()->amount);
+        $this->assertSame('6000.00', $payments->last()->amount);
+    }
+
     public function test_a_fully_paid_installment_refuses_a_further_payment(): void
     {
         $installment = $this->installment(10000);

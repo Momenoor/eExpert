@@ -5,6 +5,7 @@ use App\Http\Controllers\BulkMailController;
 use App\Http\Controllers\EndOfServiceGratuityClosingVoucherPrintController;
 use App\Http\Controllers\IncentiveCalculationAssistantPrintController;
 use App\Http\Controllers\IncentiveCalculationPrintController;
+use App\Http\Controllers\LeasePrintController;
 use App\Http\Controllers\LeaveRequestEmailActionController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Http\Controllers\PayrollJournalVoucherPrintController;
@@ -78,6 +79,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('pms/quotations/{quotation}/print', QuotationPrintController::class)
         ->name('pms.quotations.print')
+        ->middleware(['auth']);
+
+    Route::get('pms/leases/{lease}/print/{format}', LeasePrintController::class)
+        ->name('pms.leases.print')
         ->middleware(['auth']);
 
 });

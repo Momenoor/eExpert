@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PMS\TenantIdentificationType;
 use App\Enums\PMS\TenantType;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -16,13 +17,16 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 class Tenant extends Model
 {
+    use HasFactory;
     use LogsActivity;
 
     protected $fillable = [
         'party_id',
         'tenant_type',
+        'nationality',
         'identification_type',
         'identification_number',
+        'unified_number',
         'trn',
         'emergency_contact_name',
         'emergency_contact_phone',

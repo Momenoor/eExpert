@@ -184,7 +184,8 @@ class ViewIncentiveCalculation extends ViewRecord
                             })
                             ->limit(50)
                             ->get()
-                            ->mapWithKeys(fn ($m) => [$m->id => $this->matterOptionLabel($m)]))
+                            ->mapWithKeys(fn ($m) => [$m->id => $this->matterOptionLabel($m)])
+                            ->all())
                         ->getOptionLabelUsing(fn ($value) => $this->matterOptionLabel(Matter::with(['type', 'court'])->find($value)))
                         ->required(),
                 ])

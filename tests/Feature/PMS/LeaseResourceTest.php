@@ -36,27 +36,34 @@ class LeaseResourceTest extends TestCase
         $this->actingAs($admin);
     }
 
-    public function test_creating_a_contract_through_the_form(): void
+    public function test_creating_a_contract_through_the_wizard(): void
     {
         $tenant = Party::factory()->tenant()->create();
         $unit = Unit::factory()->residential()->create();
 
         Livewire::test(CreateLease::class)
             ->fillForm([
-                'start_date' => now()->toDateString(),
-                'end_date' => now()->addYear()->toDateString(),
-                'total_base_rent' => 70000,
+                'property_id' => $unit->property_id,
                 'tenants' => [
                     ['party_id' => $tenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
                 ],
-                'units' => [$unit->id],
+                'units' => [
+                    ['unit_id' => $unit->id],
+                ],
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->addYear()->toDateString(),
+                'total_base_rent' => 70000,
+                'installments' => [
+                    ['payment_method' => 'cash', 'payment_date' => now()->toDateString(), 'amount' => 70000],
+                ],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $lease = Lease::sole();
-        $this->assertSame(LeaseStatus::PENDING_ATTESTATION, $lease->status);
+        $this->assertSame(LeaseStatus::DRAFT, $lease->status);
         $this->assertCount(1, $lease->units);
+        $this->assertCount(1, $lease->installments);
     }
 
     public function test_converting_an_accepted_quotation_creates_a_contract(): void
@@ -92,6 +99,7 @@ class LeaseResourceTest extends TestCase
         app(QuotationService::class)->accept($quotation);
 
         $lease = app(LeaseService::class)->createFromQuotation($quotation->fresh());
+        app(LeaseService::class)->submitForAttestation($lease);
 
         Livewire::test(ViewLease::class, ['record' => $lease->getKey()])
             ->callAction('attest', [

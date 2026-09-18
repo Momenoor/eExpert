@@ -94,6 +94,7 @@ class InstallmentsRelationManager extends RelationManager
                 $this->generateScheduleAction(),
             ])
             ->recordActions([
+                $this->viewPaymentsAction(),
                 $this->recordPaymentAction(),
                 $this->markBouncedAction(),
             ])
@@ -139,6 +140,24 @@ class InstallmentsRelationManager extends RelationManager
 
                 Notification::make()->success()->title(__('Instalment schedule generated.'))->send();
             });
+    }
+
+    /**
+     * The individual collections behind this instalment's `paid_amount` —
+     * a read-only modal, since the ledger itself is never edited directly.
+     */
+    private function viewPaymentsAction(): Action
+    {
+        return Action::make('view_payments')
+            ->label(__('View Payments'))
+            ->icon('heroicon-o-list-bullet')
+            ->color('gray')
+            ->visible(fn (Installment $record): bool => $record->payments()->exists())
+            ->modalContent(fn (Installment $record) => view('filament.pms.leases.installment-payments-modal', [
+                'payments' => $record->payments()->orderByDesc('paid_date')->get(),
+            ]))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel(__('Close'));
     }
 
     private function recordPaymentAction(): Action

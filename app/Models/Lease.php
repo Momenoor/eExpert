@@ -5,6 +5,10 @@ namespace App\Models;
 use App\Enums\PMS\AttestationFeePayer;
 use App\Enums\PMS\AttestationStatus;
 use App\Enums\PMS\AttestationSystem;
+use App\Enums\PMS\ContractCategory;
+use App\Enums\PMS\ContractType;
+use App\Enums\PMS\DesignatedUse;
+use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeaseDisputeStatus;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
@@ -33,11 +37,24 @@ class Lease extends Model
 
     protected $fillable = [
         'quotation_id',
+        'renewed_from_lease_id',
+        'condition_template_id',
+        'government_contract_number',
+        'issue_date',
         'start_date',
         'end_date',
+        'contract_category',
+        'contract_type',
         'grace_period_days',
         'total_base_rent',
+        'annual_rent',
+        'multiple_rent_amount',
         'security_deposit_amount',
+        'payment_method',
+        'number_of_payments',
+        'allow_multiple_licenses',
+        'designated_use',
+        'number_of_occupants',
         'status',
         'attestation_system',
         'attestation_serial_number',
@@ -46,14 +63,28 @@ class Lease extends Model
         'attestation_status',
         'dispute_status',
         'tax_exemption_reason',
+        'poa_authority_number',
+        'poa_identification_number',
+        'poa_unified_number',
+        'poa_name',
     ];
 
     protected $casts = [
+        'issue_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
+        'contract_category' => ContractCategory::class,
+        'contract_type' => ContractType::class,
         'grace_period_days' => 'integer',
         'total_base_rent' => 'decimal:2',
+        'annual_rent' => 'decimal:2',
+        'multiple_rent_amount' => 'decimal:2',
         'security_deposit_amount' => 'decimal:2',
+        'payment_method' => InstallmentPaymentMethod::class,
+        'number_of_payments' => 'integer',
+        'allow_multiple_licenses' => 'boolean',
+        'designated_use' => DesignatedUse::class,
+        'number_of_occupants' => 'integer',
         'status' => LeaseStatus::class,
         'attestation_system' => AttestationSystem::class,
         'attestation_fee_payer' => AttestationFeePayer::class,
@@ -73,6 +104,30 @@ class Lease extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    /**
+     * @return BelongsTo<Lease, $this>
+     */
+    public function renewedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'renewed_from_lease_id');
+    }
+
+    /**
+     * @return HasMany<Lease, $this>
+     */
+    public function renewals(): HasMany
+    {
+        return $this->hasMany(self::class, 'renewed_from_lease_id');
+    }
+
+    /**
+     * @return BelongsTo<ConditionTemplate, $this>
+     */
+    public function conditionTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ConditionTemplate::class);
     }
 
     /**
@@ -209,5 +264,46 @@ class Lease extends Model
     public function tenantTrn(): ?string
     {
         return $this->primaryTenant()?->party?->tenant?->getAttribute('trn');
+    }
+
+    /**
+     * A human-readable "Rent Duration" (e.g. "1 Year", "18 Months") derived
+     * from the lease's own dates rather than stored separately, so it can
+     * never drift from `start_date`/`end_date`.
+     */
+    public function rentDuration(): string
+    {
+        $start = $this->getAttribute('start_date');
+        $end = $this->getAttribute('end_date');
+
+        if ($start === null || $end === null) {
+            return '';
+        }
+
+        $months = (int) $start->diffInMonths($end);
+
+        if ($months > 0 && $months % 12 === 0) {
+            $years = intdiv($months, 12);
+
+            return trans_choice(':count Year|:count Years', $years, ['count' => $years]);
+        }
+
+        return trans_choice(':count Month|:count Months', $months, ['count' => $months]);
+    }
+
+    /**
+     * How many distinct owners sit behind this lease's units — declared on
+     * the printed contract but not worth storing separately from the
+     * property's own `owners()` relation.
+     */
+    public function numberOfLessors(): int
+    {
+        return $this->units()->with('property.owners')->get()
+            ->pluck('property')
+            ->filter()
+            ->unique('id')
+            ->flatMap(fn (Property $property): Collection => $property->owners)
+            ->unique('id')
+            ->count();
     }
 }

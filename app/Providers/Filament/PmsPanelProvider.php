@@ -55,7 +55,7 @@ class PmsPanelProvider extends PanelProvider
             ->login(CustomLogin::class)
             ->sidebarWidth('17rem')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Green,
             ])
             ->sidebarCollapsibleOnDesktop()
             ->font('Boutros MBC Dinkum', asset('fonts/Boutros.css'), provider: LocalFontProvider::class)
@@ -84,7 +84,7 @@ class PmsPanelProvider extends PanelProvider
                 NavigationGroup::make(fn () => __('filament-shield::filament-shield.nav.group')),
             ])
             ->renderHook(
-                PanelsRenderHook::TOPBAR_START,
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn () => SystemSwitcher::render()
             )
             ->middleware([

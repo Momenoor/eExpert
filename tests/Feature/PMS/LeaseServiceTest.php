@@ -3,6 +3,7 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\AttestationStatus;
+use App\Enums\PMS\ContractCategory;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
 use App\Models\LeaseParty;
@@ -63,7 +64,7 @@ class LeaseServiceTest extends TestCase
 
         $lease = $this->leases->createFromQuotation($quotation);
 
-        $this->assertSame(LeaseStatus::PENDING_ATTESTATION, $lease->status);
+        $this->assertSame(LeaseStatus::DRAFT, $lease->status);
         $this->assertSame(AttestationStatus::UNREGISTERED, $lease->attestation_status);
         $this->assertSame('60000.00', $lease->total_base_rent);
         $this->assertSame('5000.00', $lease->security_deposit_amount);
@@ -204,5 +205,109 @@ class LeaseServiceTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         $this->leases->terminate($lease->fresh());
+    }
+
+    public function test_a_freshly_drafted_lease_is_categorized_as_new(): void
+    {
+        $lease = $this->leases->createFromRawInputs([
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
+            'total_base_rent' => 60000,
+        ], [
+            ['party_id' => $this->tenant()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [Unit::factory()->residential()->create()->id]);
+
+        $this->assertSame(ContractCategory::NEW, $lease->contract_category);
+    }
+
+    public function test_renewing_an_active_lease_creates_a_linked_renewal_and_marks_the_original_renewed(): void
+    {
+        $quotation = $this->acceptedQuotation();
+        $lease = $this->leases->createFromQuotation($quotation);
+        $this->leases->attest($lease, [
+            'attestation_system' => 'ejari_dubai',
+            'attestation_serial_number' => 'EJ-99999',
+        ]);
+
+        $renewal = $this->leases->renew($lease->fresh(), ['total_base_rent' => 65000]);
+
+        $this->assertSame(ContractCategory::RENEWAL, $renewal->contract_category);
+        $this->assertSame($lease->id, $renewal->renewed_from_lease_id);
+        $this->assertSame('65000.00', $renewal->total_base_rent);
+        $this->assertSame($lease->primaryTenant()->party_id, $renewal->primaryTenant()->party_id);
+        $this->assertCount(1, $renewal->units);
+
+        $this->assertSame(LeaseStatus::RENEWED, $lease->fresh()->status);
+    }
+
+    public function test_a_lease_pending_attestation_cannot_be_renewed(): void
+    {
+        $quotation = $this->acceptedQuotation();
+        $lease = $this->leases->createFromQuotation($quotation);
+
+        $this->expectException(RuntimeException::class);
+
+        $this->leases->renew($lease);
+    }
+
+    public function test_submitting_a_draft_lease_moves_it_to_pending_attestation(): void
+    {
+        $quotation = $this->acceptedQuotation();
+        $lease = $this->leases->createFromQuotation($quotation);
+
+        $this->leases->submitForAttestation($lease);
+
+        $this->assertSame(LeaseStatus::PENDING_ATTESTATION, $lease->fresh()->status);
+    }
+
+    public function test_a_lease_that_is_not_draft_cannot_be_submitted_for_attestation(): void
+    {
+        $quotation = $this->acceptedQuotation();
+        $lease = $this->leases->createFromQuotation($quotation);
+        $this->leases->submitForAttestation($lease);
+
+        $this->expectException(RuntimeException::class);
+
+        $this->leases->submitForAttestation($lease->fresh());
+    }
+
+    public function test_updating_a_draft_lease_replaces_its_tenants_and_units(): void
+    {
+        $lease = $this->leases->createFromRawInputs([
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
+            'total_base_rent' => 60000,
+        ], [
+            ['party_id' => $this->tenant()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [Unit::factory()->residential()->create()->id]);
+
+        $newTenant = $this->tenant();
+        $newUnit = Unit::factory()->residential()->create();
+
+        $updated = $this->leases->updateDraft(
+            $lease,
+            ['total_base_rent' => 70000],
+            [['party_id' => $newTenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value]],
+            [$newUnit->id],
+        );
+
+        $this->assertSame('70000.00', $updated->total_base_rent);
+        $this->assertSame($newTenant->id, $updated->primaryTenant()->party_id);
+        $this->assertCount(1, $updated->units);
+        $this->assertSame($newUnit->id, $updated->units->first()->id);
+        $this->assertTrue($newUnit->fresh()->isVacant() === false);
+    }
+
+    public function test_a_lease_that_is_not_draft_cannot_be_updated(): void
+    {
+        $quotation = $this->acceptedQuotation();
+        $lease = $this->leases->createFromQuotation($quotation);
+        $this->leases->submitForAttestation($lease);
+
+        $this->expectException(RuntimeException::class);
+
+        $this->leases->updateDraft($lease->fresh(), [], [
+            ['party_id' => $this->tenant()->id],
+        ], [Unit::factory()->residential()->create()->id]);
     }
 }

@@ -20,9 +20,9 @@ class PropertiesTable
                     ->label(__('Property Name'))
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('city')
-                    ->label(__('City / Emirate'))
-                    ->searchable(),
+                TextColumn::make('emirate')
+                    ->label(__('Emirate'))
+                    ->badge(),
                 TextColumn::make('units_count')
                     ->label(__('Units')),
                 TextColumn::make('landlord')

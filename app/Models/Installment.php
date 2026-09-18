@@ -7,6 +7,7 @@ use App\Enums\PMS\InstallmentPaymentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -24,6 +25,7 @@ class Installment extends Model
 
     protected $fillable = [
         'lease_id',
+        'is_security_deposit',
         'due_date',
         'grace_period_expiry_date',
         'net_amount',
@@ -44,6 +46,7 @@ class Installment extends Model
     ];
 
     protected $casts = [
+        'is_security_deposit' => 'boolean',
         'due_date' => 'date',
         'grace_period_expiry_date' => 'date',
         'net_amount' => 'decimal:2',
@@ -71,6 +74,14 @@ class Installment extends Model
     public function lease(): BelongsTo
     {
         return $this->belongsTo(Lease::class);
+    }
+
+    /**
+     * @return HasMany<InstallmentPayment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(InstallmentPayment::class);
     }
 
     public function isPaid(): bool

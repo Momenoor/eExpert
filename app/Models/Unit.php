@@ -33,7 +33,9 @@ class Unit extends Model
         'unit_number',
         'floor',
         'rental_rate',
-        'dewa_premise_number',
+        'area_sqm',
+        'number_of_rooms',
+        'premise_number',
         'property_classification',
         'unit_type',
         'status',
@@ -41,6 +43,8 @@ class Unit extends Model
 
     protected $casts = [
         'rental_rate' => 'decimal:2',
+        'area_sqm' => 'decimal:2',
+        'number_of_rooms' => 'integer',
         'property_classification' => PropertyClassification::class,
         'unit_type' => UnitType::class,
         'status' => UnitStatus::class,

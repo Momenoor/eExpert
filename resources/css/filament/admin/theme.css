@@ -354,3 +354,35 @@ html {
         box-shadow: none !important;
     }
 }
+
+/*
+ * The lease wizard's property picker (LeaseWizardForm::propertyAndUnitsStep()):
+ * square "hero" tiles with the icon stacked above the name, instead of
+ * ToggleButtons' default inline icon-then-label row. Forces column flow on
+ * the button's own content rather than the outer container, since that
+ * content — not `.fi-fo-toggle-buttons-btn-ctn` itself — is what Filament
+ * lays out as a row.
+ */
+.pms-property-picker.fi-fo-toggle-buttons {
+    gap: 1rem;
+}
+
+.pms-property-picker .fi-fo-toggle-buttons-btn-ctn {
+    aspect-ratio: 1;
+}
+
+.pms-property-picker .fi-fo-toggle-buttons-btn-ctn > * {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+
+.pms-property-picker .fi-fo-toggle-buttons-btn-ctn svg {
+    width: 2.5rem;
+    height: 2.5rem;
+}

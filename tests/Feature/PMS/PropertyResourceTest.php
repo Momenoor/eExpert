@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\PMS;
 
+use App\Enums\PMS\Emirate;
 use App\Filament\Pms\Resources\Properties\Pages\CreateProperty;
 use App\Models\Party;
 use App\Models\Property;
@@ -49,7 +50,7 @@ class PropertyResourceTest extends TestCase
         Livewire::test(CreateProperty::class)
             ->fillForm([
                 'name' => 'Marina Tower',
-                'city' => 'Dubai',
+                'emirate' => Emirate::DUBAI->value,
                 'owners' => [
                     ['party_id' => $ownerOne->id, 'ownership_percentage' => 60],
                     ['party_id' => $ownerTwo->id, 'ownership_percentage' => 40],

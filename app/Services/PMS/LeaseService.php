@@ -4,6 +4,7 @@ namespace App\Services\PMS;
 
 use App\Enums\PMS\AttestationFeePayer;
 use App\Enums\PMS\AttestationStatus;
+use App\Enums\PMS\ContractCategory;
 use App\Enums\PMS\LeaseDisputeStatus;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
@@ -23,6 +24,29 @@ use RuntimeException;
  */
 class LeaseService
 {
+    /**
+     * Optional lease-detail fields carried straight through from `$data`
+     * into `Lease::create()` under the same key — government/attestation
+     * paperwork fields that have no default worth computing.
+     */
+    private const PASSTHROUGH_FIELDS = [
+        'government_contract_number',
+        'issue_date',
+        'contract_type',
+        'annual_rent',
+        'multiple_rent_amount',
+        'payment_method',
+        'number_of_payments',
+        'allow_multiple_licenses',
+        'designated_use',
+        'number_of_occupants',
+        'condition_template_id',
+        'poa_authority_number',
+        'poa_identification_number',
+        'poa_unified_number',
+        'poa_name',
+    ];
+
     /**
      * @param  array{
      *     tenants?: list<array{party_id: int, role?: string}>,
@@ -64,8 +88,44 @@ class LeaseService
     }
 
     /**
+     * Renews an active (or expired, not yet re-let) lease: a new lease
+     * record covering the same tenants and units, marked `RENEWAL`, linked
+     * back to the original — which itself moves to `RENEWED` so it stops
+     * appearing as the unit's current occupancy record.
+     *
+     * @param  array{start_date?: string, end_date?: string, total_base_rent?: float|string}  $overrides
+     */
+    public function renew(Lease $lease, array $overrides = []): Lease
+    {
+        if (! in_array($lease->getAttribute('status'), [LeaseStatus::ACTIVE, LeaseStatus::EXPIRED], true)) {
+            throw new RuntimeException('Only an active or expired lease can be renewed.');
+        }
+
+        $tenants = $lease->leaseParties->map(fn (LeaseParty $leaseParty): array => [
+            'party_id' => $leaseParty->getAttribute('party_id'),
+            'role' => $leaseParty->getAttribute('role')->value,
+        ])->all();
+        $unitIds = $lease->units()->pluck('units.id')->all();
+
+        return DB::transaction(function () use ($lease, $overrides, $tenants, $unitIds): Lease {
+            $renewal = $this->draft([
+                'renewed_from_lease_id' => $lease->getKey(),
+                'start_date' => $overrides['start_date'] ?? $lease->getAttribute('end_date')->addDay()->toDateString(),
+                'end_date' => $overrides['end_date'] ?? $lease->getAttribute('end_date')->addYear()->toDateString(),
+                'total_base_rent' => $overrides['total_base_rent'] ?? $lease->getAttribute('total_base_rent'),
+                'security_deposit_amount' => $lease->getAttribute('security_deposit_amount'),
+            ], $tenants, $unitIds, ContractCategory::RENEWAL);
+
+            $lease->forceFill(['status' => LeaseStatus::RENEWED])->save();
+
+            return $renewal;
+        });
+    }
+
+    /**
      * @param  array{
      *     quotation_id?: int|null,
+     *     renewed_from_lease_id?: int|null,
      *     start_date: string,
      *     end_date: string,
      *     grace_period_days?: int,
@@ -75,7 +135,7 @@ class LeaseService
      * @param  list<array{party_id: int, role?: string}>  $tenants
      * @param  list<int>  $unitIds
      */
-    private function draft(array $data, array $tenants, array $unitIds): Lease
+    private function draft(array $data, array $tenants, array $unitIds, ContractCategory $category = ContractCategory::NEW): Lease
     {
         if ($tenants === []) {
             throw new RuntimeException('A lease must have at least one tenant.');
@@ -85,23 +145,27 @@ class LeaseService
             throw new RuntimeException('A lease must cover at least one unit.');
         }
 
-        return DB::transaction(function () use ($data, $tenants, $unitIds): Lease {
-            $lease = Lease::create([
-                'quotation_id' => $data['quotation_id'] ?? null,
-                'start_date' => $data['start_date'],
-                'end_date' => $data['end_date'],
-                'grace_period_days' => $data['grace_period_days'] ?? 0,
-                'total_base_rent' => $data['total_base_rent'],
-                'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
-                // Attestation happens after the office has the paperwork —
-                // never assumed as part of drafting. Set explicitly (rather
-                // than left to the column default) so the in-memory model
-                // returned here already reflects it, with no extra refresh.
-                'status' => LeaseStatus::PENDING_ATTESTATION,
-                'attestation_status' => AttestationStatus::UNREGISTERED,
-                'attestation_fee_payer' => AttestationFeePayer::TENANT,
-                'dispute_status' => LeaseDisputeStatus::NONE,
-            ]);
+        return DB::transaction(function () use ($data, $tenants, $unitIds, $category): Lease {
+            $lease = Lease::create(array_merge(
+                array_intersect_key($data, array_flip(self::PASSTHROUGH_FIELDS)),
+                [
+                    'quotation_id' => $data['quotation_id'] ?? null,
+                    'renewed_from_lease_id' => $data['renewed_from_lease_id'] ?? null,
+                    'start_date' => $data['start_date'],
+                    'end_date' => $data['end_date'],
+                    'contract_category' => $category,
+                    'grace_period_days' => $data['grace_period_days'] ?? 0,
+                    'total_base_rent' => $data['total_base_rent'],
+                    'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
+                    // A freshly drafted lease is still correctable — it only
+                    // moves to Pending Attestation once the office explicitly
+                    // submits it via `submitForAttestation()`.
+                    'status' => LeaseStatus::DRAFT,
+                    'attestation_status' => AttestationStatus::UNREGISTERED,
+                    'attestation_fee_payer' => AttestationFeePayer::TENANT,
+                    'dispute_status' => LeaseDisputeStatus::NONE,
+                ],
+            ));
 
             foreach ($tenants as $tenant) {
                 LeaseParty::create([
@@ -120,6 +184,75 @@ class LeaseService
             Unit::whereIn('id', $unitIds)->update(['status' => UnitStatus::OCCUPIED->value]);
 
             return $lease->load(['leaseParties.party', 'units']);
+        });
+    }
+
+    /**
+     * The office is done correcting the draft and hands it off for
+     * attestation — the point past which `Lease::isEditable()` stops
+     * allowing changes.
+     */
+    public function submitForAttestation(Lease $lease): Lease
+    {
+        if ($lease->getAttribute('status') !== LeaseStatus::DRAFT) {
+            throw new RuntimeException('Only a draft lease can be submitted for attestation.');
+        }
+
+        $lease->forceFill(['status' => LeaseStatus::PENDING_ATTESTATION])->save();
+
+        return $lease;
+    }
+
+    /**
+     * Corrects a draft lease's own fields and its tenants/units — the
+     * `EditLease` page's only entry point, since `LeaseResource::canEdit()`
+     * already refuses anything past `DRAFT`.
+     *
+     * @param  list<array{party_id: int, role?: string}>  $tenants
+     * @param  list<int>  $unitIds
+     */
+    public function updateDraft(Lease $lease, array $data, array $tenants, array $unitIds): Lease
+    {
+        if ($lease->getAttribute('status') !== LeaseStatus::DRAFT) {
+            throw new RuntimeException('Only a draft lease can be edited.');
+        }
+
+        if ($tenants === []) {
+            throw new RuntimeException('A lease must have at least one tenant.');
+        }
+
+        if ($unitIds === []) {
+            throw new RuntimeException('A lease must cover at least one unit.');
+        }
+
+        return DB::transaction(function () use ($lease, $data, $tenants, $unitIds): Lease {
+            $lease->update(array_intersect_key($data, array_flip([
+                ...self::PASSTHROUGH_FIELDS,
+                'start_date', 'end_date', 'grace_period_days',
+                'total_base_rent', 'security_deposit_amount',
+            ])));
+
+            $previousUnitIds = $lease->units()->pluck('units.id')->all();
+            $lease->units()->sync($unitIds);
+
+            // Units dropped from the lease go back on the market; newly
+            // added ones stop being offered — the same bookkeeping `draft()`
+            // does when the lease is first created.
+            Unit::whereIn('id', array_diff($previousUnitIds, $unitIds))->update(['status' => UnitStatus::VACANT->value]);
+            Unit::whereIn('id', array_diff($unitIds, $previousUnitIds))->update(['status' => UnitStatus::OCCUPIED->value]);
+
+            $lease->leaseParties()->delete();
+
+            foreach ($tenants as $tenant) {
+                LeaseParty::create([
+                    'lease_id' => $lease->getKey(),
+                    'party_id' => $tenant['party_id'],
+                    'role' => $tenant['role'] ?? LeasePartyRole::PRIMARY_TENANT->value,
+                    'parent_id' => $tenant['parent_id'] ?? null,
+                ]);
+            }
+
+            return $lease->fresh(['leaseParties.party', 'units']);
         });
     }
 

@@ -5,9 +5,11 @@ namespace App\Filament\Pms\Resources\Properties\RelationManagers;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
+use App\Filament\Pms\Imports\UnitImporter;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ImportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -54,8 +56,19 @@ class UnitsRelationManager extends RelationManager
                 ->minValue(0)
                 ->step(0.01)
                 ->required(),
-            TextInput::make('dewa_premise_number')
-                ->label(__('DEWA Premise Number'))
+            TextInput::make('area_sqm')
+                ->label(__('Area (Square Meter)'))
+                ->numeric()
+                ->minValue(0)
+                ->step(0.01),
+            TextInput::make('number_of_rooms')
+                ->label(__('No. of Rooms'))
+                ->numeric()
+                ->minValue(0)
+                ->helperText(__('Residential units only.')),
+            TextInput::make('premise_number')
+                ->label(__('Premise Number'))
+                ->helperText(__('DEWA/SEWA/etc. premise number, depending on the property\'s emirate.'))
                 ->maxLength(255),
             Select::make('status')
                 ->label(__('Status'))
@@ -100,6 +113,9 @@ class UnitsRelationManager extends RelationManager
                     ->options(PropertyClassification::class),
             ])
             ->headerActions([
+                ImportAction::make()
+                    ->importer(UnitImporter::class)
+                    ->pluralModelLabel(__('Units')),
                 CreateAction::make(),
             ])
             ->recordActions([

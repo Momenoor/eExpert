@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\PMS\Emirate;
+use App\Enums\PMS\PropertyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,13 +20,24 @@ class Property extends Model
 
     protected $fillable = [
         'name',
+        'emirate',
         'address',
-        'city',
+        'municipality',
+        'suburb',
+        'area',
+        'title_deed_number',
+        'title_deed_date',
+        'plot_number',
+        'property_type',
+        'property_number',
         'total_units',
         'year_built',
     ];
 
     protected $casts = [
+        'emirate' => Emirate::class,
+        'property_type' => PropertyType::class,
+        'title_deed_date' => 'date',
         'total_units' => 'integer',
         'year_built' => 'integer',
     ];

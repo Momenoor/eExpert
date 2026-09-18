@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pms\Resources\Properties\Schemas;
 
+use App\Enums\PMS\Emirate;
+use App\Enums\PMS\PropertyType;
 use App\Models\Party;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,9 +27,6 @@ class PropertyForm
                         TextInput::make('address')
                             ->label(__('Address'))
                             ->maxLength(255),
-                        TextInput::make('city')
-                            ->label(__('City / Emirate'))
-                            ->maxLength(255),
                         TextInput::make('total_units')
                             ->label(__('Total Units'))
                             ->numeric()
@@ -36,6 +36,38 @@ class PropertyForm
                             ->numeric()
                             ->minValue(1900)
                             ->maxValue((int) now()->format('Y')),
+                        Select::make('emirate')
+                            ->label(__('Emirate'))
+                            ->options(Emirate::class)
+                            ->helperText(__('Determines which government tenancy contract format applies (Ejari, Sharjawi, …).')),
+                    ])->columns(3),
+
+                Section::make(__('Government Property Details'))
+                    ->description(__('Fields required by the emirate\'s own tenancy contract / attestation system.'))
+                    ->schema([
+                        TextInput::make('municipality')
+                            ->label(__('Municipality'))
+                            ->maxLength(255),
+                        TextInput::make('suburb')
+                            ->label(__('Suburb'))
+                            ->maxLength(255),
+                        TextInput::make('area')
+                            ->label(__('Area'))
+                            ->maxLength(255),
+                        TextInput::make('title_deed_number')
+                            ->label(__('Title Deed No.'))
+                            ->maxLength(255),
+                        DatePicker::make('title_deed_date')
+                            ->label(__('Title Deed Date')),
+                        TextInput::make('plot_number')
+                            ->label(__('Government No.'))
+                            ->maxLength(255),
+                        Select::make('property_type')
+                            ->label(__('Property Type'))
+                            ->options(PropertyType::class),
+                        TextInput::make('property_number')
+                            ->label(__('Property No.'))
+                            ->maxLength(255),
                     ])->columns(3),
 
                 Section::make(__('Owners'))

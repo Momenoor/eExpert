@@ -3,6 +3,7 @@
 namespace App\Filament\Pms\Resources\Leases;
 
 use App\Filament\Pms\Resources\Leases\Pages\CreateLease;
+use App\Filament\Pms\Resources\Leases\Pages\EditLease;
 use App\Filament\Pms\Resources\Leases\Pages\ListLeases;
 use App\Filament\Pms\Resources\Leases\Pages\ViewLease;
 use App\Filament\Pms\Resources\Leases\RelationManagers\InstallmentsRelationManager;
@@ -14,6 +15,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class LeaseResource extends Resource
@@ -74,6 +76,16 @@ class LeaseResource extends Resource
             'index' => ListLeases::route('/'),
             'create' => CreateLease::route('/create'),
             'view' => ViewLease::route('/{record}'),
+            'edit' => EditLease::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * A lease stops being a correctable draft once it's submitted for
+     * attestation — see `Lease::isEditable()`.
+     */
+    public static function canEdit(Model $record): bool
+    {
+        return parent::canEdit($record) && $record instanceof Lease && $record->isEditable();
     }
 }
