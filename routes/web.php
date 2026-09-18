@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
-
+Route::get('admin', function () {
+    return redirect()->route('filament.mms.pages.admin-dashboard');
+});
 // Named `installer.*` deliberately — RedirectToInstaller bypasses any route
 // whose name matches that prefix, so nothing here can end up redirecting to
 // itself.
@@ -41,7 +43,7 @@ Route::get('system-down', function () {
     return view('errors.maintenance', compact('message'));
 })->name('system-down');
 
-Route::get('/login', fn () => redirect()->route('filament.mms.auth.login'))->name('login');
+Route::get('/login', fn() => redirect()->route('filament.mms.auth.login'))->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class, '__invoke'])

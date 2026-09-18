@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @method static where(string $string, $token)
+ */
 class BulkMailRecipient extends Model
 {
     protected $fillable = [

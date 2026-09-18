@@ -64,15 +64,10 @@ class LeaseWizardForm
                         ->all())
                     ->required()
                     ->live()
-                    ->columns(3)
+                    ->columns(5)
                     ->extraAttributes(['class' => 'pms-property-picker'])
                     ->afterStateUpdated(function (Set $set, Get $get, ?int $state): void {
-                        // A new property invalidates any units already
-                        // picked for the old one, and the template suggestion
-                        // that went with them — replaced with a fresh default
-                        // (the property's first unit) rather than left empty,
-                        // so the Units step is never blank on arrival.
-                        $set('units', self::defaultUnitRows($state));
+
                         $set('condition_template_id', null);
 
                         if ($state !== null && blank($get('government_contract_number'))) {
@@ -119,7 +114,6 @@ class LeaseWizardForm
                     ])
                     ->minItems(1)
                     ->defaultItems(1)
-                    ->default(fn (Get $get): array => self::defaultUnitRows($get('property_id')))
                     ->addActionLabel(__('Add Unit'))
                     ->live()
                     ->afterStateUpdated(function (Set $set, Get $get, ?array $state): void {
@@ -130,24 +124,6 @@ class LeaseWizardForm
                     })
                     ->columnSpanFull(),
             ]);
-    }
-
-    /**
-     * One repeater row pre-filled with the property's first unit (by
-     * `unit_number`) — the Units step's default state, and what the
-     * Property step resets to whenever the property selection changes.
-     *
-     * @return list<array{unit_id: int}>
-     */
-    private static function defaultUnitRows(?int $propertyId): array
-    {
-        if ($propertyId === null) {
-            return [];
-        }
-
-        $unitId = Unit::query()->where('property_id', $propertyId)->orderBy('unit_number')->value('id');
-
-        return $unitId !== null ? [['unit_id' => $unitId]] : [];
     }
 
     private static function tenantsStep(): Step

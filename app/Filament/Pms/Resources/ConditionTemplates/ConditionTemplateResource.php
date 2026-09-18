@@ -26,7 +26,7 @@ class ConditionTemplateResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Templates';
 
     protected static ?int $navigationSort = 7;
 
@@ -47,7 +47,7 @@ class ConditionTemplateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('Contracts');
+        return __('Templates');
     }
 
     public static function form(Schema $schema): Schema

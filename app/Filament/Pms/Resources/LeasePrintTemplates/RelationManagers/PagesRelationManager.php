@@ -19,6 +19,20 @@ class PagesRelationManager extends RelationManager
 {
     protected static string $relationship = 'pages';
 
+    public static function getModelLabel(): string
+    {
+        return __('Page Template');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Page Templates');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Page Templates');
+    }
     public function form(Schema $schema): Schema
     {
         return $schema->components([
