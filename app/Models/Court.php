@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -25,7 +26,10 @@ class Court extends Model
         'address',
     ];
 
-    public function matters()
+    /**
+     * @return HasMany<Matter, $this>
+     */
+    public function matters(): HasMany
     {
         return $this->hasMany(Matter::class);
     }

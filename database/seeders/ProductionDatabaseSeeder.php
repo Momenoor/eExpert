@@ -44,6 +44,7 @@ class ProductionDatabaseSeeder extends Seeder
             PayrollModulePermissionsSeeder::class,
             CalendarEventPermissionsSeeder::class,
             IncentiveCalculationPermissionsSeeder::class,
+            PMSPermissionsSeeder::class,
             PMSConditionTemplatesSeeder::class,
             PMSPrintTemplatesSeeder::class,
             PMSDemoSeeder::class,
