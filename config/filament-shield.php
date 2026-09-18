@@ -345,6 +345,12 @@ return [
         // next time anyone saved one — see the PayrollRun caution above.
         'View:EosgClosingVoucher',
         'Generate:EosgClosingVoucher',
+
+        // Gates the PMS panel itself (see User::canAccessPanel()) — not tied
+        // to any one resource, so without this the role editor can't see or
+        // grant it, and would silently strip it from pms-admin/super-admin/
+        // admin the next time anyone saved those roles through the UI.
+        'Access:MultipleSystems',
     ],
 
     /*
