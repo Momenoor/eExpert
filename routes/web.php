@@ -43,7 +43,7 @@ Route::get('system-down', function () {
     return view('errors.maintenance', compact('message'));
 })->name('system-down');
 
-Route::get('/login', fn() => redirect()->route('filament.mms.auth.login'))->name('login');
+Route::get('/login', fn () => redirect()->route('filament.mms.auth.login'))->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::get('bulk-mail/preview/{campaign}/{recipient}', [BulkMailController::class, '__invoke'])

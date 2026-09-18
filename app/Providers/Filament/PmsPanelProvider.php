@@ -70,23 +70,23 @@ class PmsPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Pms/Widgets'), for: 'App\Filament\Pms\Widgets')
             ->renderHook(
                 PanelsRenderHook::USER_MENU_PROFILE_AFTER,
-                fn() => Blade::render('@livewire(\'font-size-slider\')')
+                fn () => Blade::render('@livewire(\'font-size-slider\')')
             )
             ->pages([
                 PmsDashboard::class,
                 PMSSettings::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make(fn() => __('Properties')),
-                NavigationGroup::make(fn() => __('Ownership')),
-                NavigationGroup::make(fn() => __('Leasing')),
-                NavigationGroup::make(fn() => __('Templates')),
-                NavigationGroup::make(fn() => __('Settings')),
-                NavigationGroup::make(fn() => __('filament-shield::filament-shield.nav.group')),
+                NavigationGroup::make(fn () => __('Properties')),
+                NavigationGroup::make(fn () => __('Ownership')),
+                NavigationGroup::make(fn () => __('Leasing')),
+                NavigationGroup::make(fn () => __('Templates')),
+                NavigationGroup::make(fn () => __('Settings')),
+                NavigationGroup::make(fn () => __('filament-shield::filament-shield.nav.group')),
             ])
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
-                fn() => SystemSwitcher::render()
+                fn () => SystemSwitcher::render()
             )
             ->middleware([
                 // Same ordering/rationale as MmsPanelProvider — this
@@ -120,7 +120,7 @@ class PmsPanelProvider extends PanelProvider
                     ->editable()
                     ->selectable(),
                 ActivityLogPlugin::make()
-                    ->navigationGroup(fn() => __('Settings'))
+                    ->navigationGroup(fn () => __('Settings'))
                     ->navigationSort(99),
                 // FilamentUiSwitcherPlugin::make(),
                 FilamentLanguageSwitcherPlugin::make()

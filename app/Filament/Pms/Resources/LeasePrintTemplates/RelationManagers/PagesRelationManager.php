@@ -33,6 +33,7 @@ class PagesRelationManager extends RelationManager
     {
         return __('Page Templates');
     }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
