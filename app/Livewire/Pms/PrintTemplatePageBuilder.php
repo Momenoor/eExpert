@@ -21,7 +21,7 @@ class PrintTemplatePageBuilder extends Component
     public int $pageId;
 
     /**
-     * @var list<array{id: int|null, field_key: string, x_percent: float, y_percent: float, font_size: int, text_align: string, rtl: bool}>
+     * @var list<array{id: int|null, field_key: string, x_percent: float, y_percent: float, width_percent: float|null, height_percent: float|null, font_size: int, text_align: string, rtl: bool}>
      */
     public array $fields = [];
 
@@ -50,6 +50,8 @@ class PrintTemplatePageBuilder extends Component
                 'field_key' => $field->field_key,
                 'x_percent' => (float) $field->x_percent,
                 'y_percent' => (float) $field->y_percent,
+                'width_percent' => $field->width_percent !== null ? (float) $field->width_percent : null,
+                'height_percent' => $field->height_percent !== null ? (float) $field->height_percent : null,
                 'font_size' => $field->font_size,
                 'text_align' => $field->text_align,
                 'rtl' => $field->rtl,
@@ -68,6 +70,8 @@ class PrintTemplatePageBuilder extends Component
             'field_key' => $this->selectedFieldKey,
             'x_percent' => $this->clamp($xPercent),
             'y_percent' => $this->clamp($yPercent),
+            'width_percent' => null,
+            'height_percent' => null,
             'font_size' => 10,
             'text_align' => 'left',
             'rtl' => false,
@@ -112,8 +116,11 @@ class PrintTemplatePageBuilder extends Component
     }
 
     /**
-     * Moves the selected field one step in the given direction â€” bound to
-     * the marker's own arrow-key presses in the Blade view.
+     * Moves the field one step in the given direction — bound to the
+     * marker's own arrow-key presses in the Blade view. When the field is
+     * part of a multi-selection, the whole selection moves together and
+     * keeps its relative layout (the step shrinks so none of them leaves
+     * the page).
      */
     public function nudgeField(int $index, string $direction, bool $big = false): void
     {
@@ -131,9 +138,20 @@ class PrintTemplatePageBuilder extends Component
             default => [0, 0],
         };
 
-        $this->fields[$index]['x_percent'] = $this->clamp($this->fields[$index]['x_percent'] + $dx);
-        $this->fields[$index]['y_percent'] = $this->clamp($this->fields[$index]['y_percent'] + $dy);
-        $this->selectedIndexes = [$index];
+        $indexes = in_array($index, $this->selectedIndexes, true) && count($this->selectedIndexes) > 1
+            ? $this->selectedIndexes
+            : [$index];
+
+        foreach (['x_percent' => $dx, 'y_percent' => $dy] as $axis => $delta) {
+            $values = array_map(fn (int $i): float => $this->fields[$i][$axis], $indexes);
+            $delta = $delta < 0 ? max($delta, -min($values)) : min($delta, 100.0 - max($values));
+
+            foreach ($indexes as $i) {
+                $this->fields[$i][$axis] = $this->clamp($this->fields[$i][$axis] + $delta);
+            }
+        }
+
+        $this->selectedIndexes = $indexes;
     }
 
     public function removeField(int $index): void
@@ -191,16 +209,42 @@ class PrintTemplatePageBuilder extends Component
         }
     }
 
+    /**
+     * Spaces the selected fields evenly from top to bottom: the topmost and
+     * bottommost stay where they are and the ones between are redistributed
+     * at equal intervals, in their current top-to-bottom order. Needs three
+     * or more fields — with two there is nothing in between to space.
+     */
+    public function distributeVertically(): void
+    {
+        if (count($this->selectedIndexes) < 3) {
+            return;
+        }
+
+        $ordered = $this->selectedIndexes;
+        usort($ordered, fn (int $a, int $b): int => $this->fields[$a]['y_percent'] <=> $this->fields[$b]['y_percent']);
+
+        $top = $this->fields[$ordered[0]]['y_percent'];
+        $bottom = $this->fields[$ordered[array_key_last($ordered)]]['y_percent'];
+        $gap = ($bottom - $top) / (count($ordered) - 1);
+
+        foreach ($ordered as $position => $index) {
+            $this->fields[$index]['y_percent'] = $this->clamp($top + $gap * $position);
+        }
+    }
+
     public function updated(string $name): void
     {
         // Manual X/Y typed directly into the panel â€” clamp the same way a
         // drag or keyboard nudge would, so a typo can't place a field
         // off the page.
-        if (preg_match('/^fields\.(\d+)\.(x_percent|y_percent)$/', $name, $matches)) {
+        if (preg_match('/^fields\.(\d+)\.(x_percent|y_percent|width_percent|height_percent)$/', $name, $matches)) {
             $index = (int) $matches[1];
             $key = $matches[2];
 
-            if (isset($this->fields[$index][$key])) {
+            if (in_array($key, ['width_percent', 'height_percent'], true) && blank($this->fields[$index][$key] ?? null)) {
+                $this->fields[$index][$key] = null;
+            } elseif (isset($this->fields[$index][$key])) {
                 $this->fields[$index][$key] = $this->clamp((float) $this->fields[$index][$key]);
             }
         }
@@ -218,6 +262,8 @@ class PrintTemplatePageBuilder extends Component
                 'field_key' => $field['field_key'],
                 'x_percent' => $field['x_percent'],
                 'y_percent' => $field['y_percent'],
+                'width_percent' => $field['width_percent'] ?? null,
+                'height_percent' => $field['height_percent'] ?? null,
                 'font_size' => $field['font_size'],
                 'text_align' => $field['text_align'],
                 'rtl' => $field['rtl'],

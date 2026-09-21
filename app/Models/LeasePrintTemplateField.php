@@ -12,6 +12,8 @@ class LeasePrintTemplateField extends Model
         'field_key',
         'x_percent',
         'y_percent',
+        'width_percent',
+        'height_percent',
         'font_size',
         'text_align',
         'rtl',
@@ -20,6 +22,8 @@ class LeasePrintTemplateField extends Model
     protected $casts = [
         'x_percent' => 'decimal:3',
         'y_percent' => 'decimal:3',
+        'width_percent' => 'decimal:3',
+        'height_percent' => 'decimal:3',
         'font_size' => 'integer',
         'rtl' => 'boolean',
     ];

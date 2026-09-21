@@ -42,6 +42,14 @@
             line-height: 1.2;
         }
 
+        .field.boxed {
+            display: flex;
+            align-items: center;
+            direction: ltr;
+        }
+
+        .field.boxed span { max-width: 100%; }
+
         .not-configured {
             padding: 60px 40px;
             font-size: 12pt;
@@ -83,16 +91,21 @@
                     @foreach ($page->fields as $field)
                         @php $value = $resolver->resolve($lease, $field->field_key); @endphp
                         @if (filled($value))
-                            <span
-                                class="field {{ $field->rtl ? 'arabic' : '' }}"
-                                dir="{{ $field->rtl ? 'rtl' : 'ltr' }}"
+                            @php $hasBox = filled($field->width_percent); @endphp
+                            <div
+                                class="field {{ $hasBox ? 'boxed' : '' }} {{ $field->rtl ? 'arabic' : '' }}"
                                 style="
                                     left: {{ $field->x_percent }}%;
                                     top: {{ $field->y_percent }}%;
                                     font-size: {{ $field->font_size }}pt;
                                     text-align: {{ $field->text_align }};
+                                    @if ($hasBox)
+                                        width: {{ $field->width_percent }}%;
+                                        @if (filled($field->height_percent)) height: {{ $field->height_percent }}%; @endif
+                                        justify-content: {{ ['left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end'][$field->text_align] ?? 'flex-start' }};
+                                    @endif
                                 "
-                            >{{ $value }}</span>
+                            ><span dir="{{ $field->rtl ? 'rtl' : 'ltr' }}">{{ $value }}</span></div>
                         @endif
                     @endforeach
                 </div>

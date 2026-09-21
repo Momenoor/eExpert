@@ -189,4 +189,99 @@ class PrintTemplatePageBuilderTest extends TestCase
         $this->assertSame(1, $page->fields()->count());
         $this->assertSame('government_contract_number', $page->fields()->first()->field_key);
     }
+
+    public function test_box_size_is_saved_and_clamped_and_blank_means_auto(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'tenant_name')
+            ->call('placeField', 10, 10)
+            ->set('fields.0.width_percent', 250)
+            ->assertSet('fields.0.width_percent', 100.0)
+            ->set('fields.0.width_percent', 30)
+            ->set('fields.0.height_percent', 4)
+            ->call('save');
+
+        $field = $page->fields()->first();
+        $this->assertSame('30.000', $field->width_percent);
+        $this->assertSame('4.000', $field->height_percent);
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('fields.0.width_percent', '')
+            ->assertSet('fields.0.width_percent', null);
+    }
+
+    public function test_arrow_nudge_moves_every_selected_field_together(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'government_contract_number')
+            ->call('placeField', 10, 10)
+            ->set('selectedFieldKey', 'tenant_name')
+            ->call('placeField', 30, 20)
+            ->call('selectMarker', 0, false)
+            ->call('selectMarker', 1, true)
+            ->call('nudgeField', 0, 'right', true)
+            ->assertSet('fields.0.x_percent', 11.0)
+            ->assertSet('fields.1.x_percent', 31.0)
+            ->call('nudgeField', 1, 'up', true)
+            ->assertSet('fields.0.y_percent', 9.0)
+            ->assertSet('fields.1.y_percent', 19.0)
+            ->assertSet('selectedIndexes', [0, 1]);
+    }
+
+    public function test_group_nudge_stops_at_the_edge_without_distorting_the_layout(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'government_contract_number')
+            ->call('placeField', 0.4, 10)
+            ->set('selectedFieldKey', 'tenant_name')
+            ->call('placeField', 20, 10)
+            ->call('selectMarker', 0, false)
+            ->call('selectMarker', 1, true)
+            ->call('nudgeField', 0, 'left', true)
+            ->assertSet('fields.0.x_percent', 0.0)
+            ->assertSet('fields.1.x_percent', 19.6);
+    }
+
+    public function test_distribute_vertically_keeps_first_and_last_and_spaces_the_middle_equally(): void
+    {
+        $page = $this->page();
+
+        $component = Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id]);
+
+        foreach ([[10, 50], [10, 10], [10, 20], [10, 90]] as [$x, $y]) {
+            $component->set('selectedFieldKey', 'tenant_name')->call('placeField', $x, $y);
+        }
+
+        $component
+            ->call('selectMarker', 0, false)
+            ->call('selectMarker', 1, true)
+            ->call('selectMarker', 2, true)
+            ->call('selectMarker', 3, true)
+            ->call('distributeVertically')
+            ->assertSet('fields.1.y_percent', 10.0)
+            ->assertSet('fields.2.y_percent', 36.667)
+            ->assertSet('fields.0.y_percent', 63.333)
+            ->assertSet('fields.3.y_percent', 90.0);
+    }
+
+    public function test_distribute_vertically_needs_three_selected_fields(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'tenant_name')
+            ->call('placeField', 10, 10)
+            ->set('selectedFieldKey', 'tenant_name')
+            ->call('placeField', 10, 40)
+            ->call('selectMarker', 0, false)
+            ->call('selectMarker', 1, true)
+            ->call('distributeVertically')
+            ->assertSet('fields.1.y_percent', 40.0);
+    }
 }

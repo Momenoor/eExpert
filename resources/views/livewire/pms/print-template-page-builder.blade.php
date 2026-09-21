@@ -86,6 +86,14 @@
                         {{ __('Align End') }}
                     </button>
                 </div>
+                <button
+                    type="button"
+                    wire:click="distributeVertically"
+                    @disabled(count($selectedIndexes) < 3)
+                    style="width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 3 ? '0.5' : '1' }};"
+                >
+                    {{ __('Distribute Vertically') }}
+                </button>
                 <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
                     {{ __('Snaps the selected fields to a shared left/right edge. Shift-click (or ctrl/cmd-click) markers or list rows to select more than one.') }}
                 </p>
@@ -109,6 +117,18 @@
                         <input type="number" step="0.1" min="0" max="100" wire:model.blur="fields.{{ $selectedIndex }}.y_percent" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
                     </label>
                 </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <label style="flex: 1; font-size: 11px;">
+                        {{ __('Box Width %') }}
+                        <input type="number" step="0.1" min="0" max="100" placeholder="{{ __('Auto') }}" wire:model.blur="fields.{{ $selectedIndex }}.width_percent" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
+                    </label>
+                    <label style="flex: 1; font-size: 11px;">
+                        {{ __('Box Height %') }}
+                        <input type="number" step="0.1" min="0" max="100" placeholder="{{ __('Auto') }}" wire:model.blur="fields.{{ $selectedIndex }}.height_percent" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
+                    </label>
+                </div>
+                <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">{{ __('With a box width set, the text is aligned inside the box using the Alignment below.') }}</p>
 
                 <label style="display: block; font-size: 11px; margin-top: 8px;">
                     {{ __('Font Size') }}
@@ -175,7 +195,7 @@
                     @keydown.down.prevent="$wire.nudgeField({{ $i }}, 'down', $event.shiftKey)"
                     @keydown.left.prevent="$wire.nudgeField({{ $i }}, 'left', $event.shiftKey)"
                     @keydown.right.prevent="$wire.nudgeField({{ $i }}, 'right', $event.shiftKey)"
-                    style="position: absolute; left: {{ $field['x_percent'] }}%; top: {{ $field['y_percent'] }}%; background: {{ in_array($i, $selectedIndexes, true) ? '#dc2626' : '#2563eb' }}; color: #fff; font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: move; white-space: nowrap; transform: translate(-2px, -2px); user-select: none; outline: none; box-shadow: {{ in_array($i, $selectedIndexes, true) ? '0 0 0 2px #fff, 0 0 0 4px #dc2626' : 'none' }};"
+                    style="position: absolute; left: {{ $field['x_percent'] }}%; top: {{ $field['y_percent'] }}%; background: {{ in_array($i, $selectedIndexes, true) ? '#dc2626' : '#2563eb' }}; color: #fff; font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: move; box-sizing: border-box; white-space: nowrap; {{ filled($field['width_percent'] ?? null) ? 'width: '.$field['width_percent'].'%; overflow: hidden; text-overflow: ellipsis; text-align: '.$field['text_align'].';' : '' }} {{ filled($field['height_percent'] ?? null) ? 'height: '.$field['height_percent'].'%;' : '' }} {{ filled($field['width_percent'] ?? null) ? 'outline: 1px dashed #fff; outline-offset: -2px;' : '' }} user-select: none; outline: none; box-shadow: {{ in_array($i, $selectedIndexes, true) ? '0 0 0 2px #fff, 0 0 0 4px #dc2626' : 'none' }};"
                 >{{ \App\Services\PMS\LeasePrintFieldResolver::label($field['field_key']) }}</div>
             @endforeach
         @else
