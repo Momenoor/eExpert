@@ -5,6 +5,7 @@ namespace App\Services\PMS;
 use App\Enums\PMS\AttestationFeePayer;
 use App\Enums\PMS\AttestationStatus;
 use App\Enums\PMS\ContractCategory;
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\LeaseDisputeStatus;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
@@ -32,6 +33,7 @@ class LeaseService
     private const PASSTHROUGH_FIELDS = [
         'government_contract_number',
         'issue_date',
+        'contract_type',
         'multiple_rent_amount',
         'payment_method',
         'number_of_payments',
@@ -142,6 +144,8 @@ class LeaseService
             throw new RuntimeException('A lease must cover at least one unit.');
         }
 
+        $this->assertContractTypeAllowed($data['contract_type'] ?? null, $unitIds);
+
         return DB::transaction(function () use ($data, $tenants, $unitIds, $category): Lease {
             $lease = Lease::create(array_merge(
                 array_intersect_key($data, array_flip(self::PASSTHROUGH_FIELDS)),
@@ -152,7 +156,6 @@ class LeaseService
                     'end_date' => $data['end_date'],
                     'contract_category' => $category,
                     'annual_rent' => Lease::annualRentFor($data['start_date'], $data['end_date'], $data['total_base_rent']),
-                    'contract_type' => Lease::detectContractType($unitIds)?->value,
                     'grace_period_days' => $data['grace_period_days'] ?? 0,
                     'total_base_rent' => $data['total_base_rent'],
                     'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
@@ -224,6 +227,10 @@ class LeaseService
             throw new RuntimeException('A lease must cover at least one unit.');
         }
 
+        if (array_key_exists('contract_type', $data)) {
+            $this->assertContractTypeAllowed($data['contract_type'], $unitIds);
+        }
+
         return DB::transaction(function () use ($lease, $data, $tenants, $unitIds): Lease {
             $lease->update(array_intersect_key($data, array_flip([
                 ...self::PASSTHROUGH_FIELDS,
@@ -251,16 +258,35 @@ class LeaseService
                 ]);
             }
 
-            // Annual rent and contract type follow from the (possibly changed)
-            // dates, rent and units — never typed in.
+            // Annual rent follows from the (possibly changed) dates and rent
+            // — never typed in.
             $lease->refresh();
             $lease->update([
                 'annual_rent' => Lease::annualRentFor($lease->getAttribute('start_date'), $lease->getAttribute('end_date'), $lease->getAttribute('total_base_rent')),
-                'contract_type' => Lease::detectContractType($unitIds)?->value,
             ]);
 
             return $lease->fresh(['leaseParties.party', 'units']);
         });
+    }
+
+    /**
+     * The contract type is picked on the lease, but only from the types that
+     * fit the classification of the units it covers.
+     *
+     * @param  list<int>  $unitIds
+     */
+    private function assertContractTypeAllowed(mixed $contractType, array $unitIds): void
+    {
+        if (blank($contractType)) {
+            return;
+        }
+
+        $value = $contractType instanceof ContractType ? $contractType->value : (string) $contractType;
+        $allowed = array_map(fn (ContractType $type): string => $type->value, Lease::allowedContractTypes($unitIds));
+
+        if (! in_array($value, $allowed, true)) {
+            throw new RuntimeException('That contract type does not fit the selected units.');
+        }
     }
 
     public function attest(Lease $lease, array $data): Lease

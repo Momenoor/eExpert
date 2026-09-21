@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\PMS\ContractType;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
@@ -29,7 +28,6 @@ class UnitFactory extends Factory
             'premise_number' => fake()->numerify('##########'),
             'property_classification' => $type->defaultClassification(),
             'unit_type' => $type,
-            'rental_type' => ContractType::defaultForUnitType($type) ?? ContractType::FAMILY,
             'status' => UnitStatus::VACANT,
         ];
     }
@@ -38,7 +36,6 @@ class UnitFactory extends Factory
     {
         return $this->state(fn (): array => [
             'unit_type' => UnitType::APARTMENT,
-            'rental_type' => ContractType::FAMILY,
             'property_classification' => PropertyClassification::RESIDENTIAL,
         ]);
     }
@@ -47,7 +44,6 @@ class UnitFactory extends Factory
     {
         return $this->state(fn (): array => [
             'unit_type' => UnitType::OFFICE,
-            'rental_type' => ContractType::OFFICE,
             'property_classification' => PropertyClassification::COMMERCIAL,
         ]);
     }

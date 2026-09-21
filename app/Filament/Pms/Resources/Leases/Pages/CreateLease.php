@@ -54,6 +54,7 @@ class CreateLease extends CreateRecord
                 'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
                 'government_contract_number' => $data['government_contract_number'] ?? null,
                 'issue_date' => $data['issue_date'] ?? null,
+                'contract_type' => $data['contract_type'] ?? null,
                 'multiple_rent_amount' => $data['multiple_rent_amount'] ?? YesNo::NO->value,
                 'payment_method' => $installmentRows[0]['payment_method'] ?? null,
                 'number_of_payments' => count($installmentRows),

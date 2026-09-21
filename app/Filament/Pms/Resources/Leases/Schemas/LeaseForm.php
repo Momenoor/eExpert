@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pms\Resources\Leases\Schemas;
 
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeasePartyRole;
@@ -13,7 +14,6 @@ use App\Models\Party;
 use App\Models\Unit;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -99,10 +99,10 @@ class LeaseForm
                         TextInput::make('government_contract_number')
                             ->label(__('Contract No.'))
                             ->maxLength(255),
-                        Placeholder::make('contract_type_detected')
+                        Select::make('contract_type')
                             ->label(__('Contract Type'))
-                            ->content(fn (Get $get): string => Lease::detectContractType((array) $get('units'))?->getLabel() ?? '—')
-                            ->helperText(__('Detected from the unit\'s rental type.')),
+                            ->options(fn (Get $get): array => self::contractTypeOptions((array) $get('units')))
+                            ->helperText(__('Only the types that fit the selected units\' classification are offered.')),
                         Select::make('payment_method')
                             ->label(__('Payment Method'))
                             ->options(InstallmentPaymentMethod::class),
@@ -188,13 +188,36 @@ class LeaseForm
                             ->searchable()
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, ?array $state) => $set(
-                                'condition_template_id',
-                                self::suggestConditionTemplateId($state ?? []),
-                            ))
+                            ->afterStateUpdated(function (Set $set, Get $get, ?array $state): void {
+                                $set('condition_template_id', self::suggestConditionTemplateId($state ?? []));
+                                self::syncContractType($set, $get('contract_type'), $state ?? []);
+                            })
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    /**
+     * @param  array<int, int|string|null>  $unitIds
+     * @return array<string, string>
+     */
+    private static function contractTypeOptions(array $unitIds): array
+    {
+        return collect(Lease::allowedContractTypes($unitIds))
+            ->mapWithKeys(fn (ContractType $type): array => [$type->value => $type->getLabel()])
+            ->all();
+    }
+
+    /**
+     * @param  array<int, int|string|null>  $unitIds
+     */
+    private static function syncContractType(Set $set, mixed $current, array $unitIds): void
+    {
+        if (array_key_exists((string) $current, self::contractTypeOptions($unitIds))) {
+            return;
+        }
+
+        $set('contract_type', Lease::suggestContractType($unitIds)?->value);
     }
 
     private static function syncAnnualRent(Set $set, mixed $start, mixed $end, mixed $baseRent): void

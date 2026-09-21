@@ -5,9 +5,8 @@ namespace App\Enums\PMS;
 use Filament\Support\Contracts\HasLabel;
 
 /**
- * What a unit is let for. It is defined once, on the unit (its "rental
- * type"), and every lease on that unit takes its contract type from it —
- * nobody picks it on the lease itself.
+ * What a lease is for. It is chosen on the lease, but only from the types
+ * that fit the classification of the units it covers.
  */
 enum ContractType: string implements HasLabel
 {
@@ -47,21 +46,28 @@ enum ContractType: string implements HasLabel
     }
 
     /**
-     * The rental types a unit of this type can be let as: the four
-     * residential ones for a dwelling, the commercial ones for anything else.
+     * The contract types that fit a unit's classification: the four
+     * residential ones for a residential unit, the commercial ones for a
+     * commercial or industrial one, and both for mixed use.
      *
      * @return list<self>
      */
-    public static function forUnitType(UnitType $type): array
+    public static function forClassification(PropertyClassification $classification): array
     {
-        return in_array($type, [UnitType::STUDIO, UnitType::APARTMENT, UnitType::PENTHOUSE, UnitType::ROOM], true)
-            ? [self::FAMILY, self::BACHELORS, self::LABOUR, self::EMPLOYEES]
-            : [self::SHOP, self::WAREHOUSE, self::STORE, self::OFFICE, self::LAND, self::PARKING];
+        $residential = [self::FAMILY, self::BACHELORS, self::LABOUR, self::EMPLOYEES];
+        $commercial = [self::SHOP, self::WAREHOUSE, self::STORE, self::OFFICE, self::LAND, self::PARKING];
+
+        return match ($classification) {
+            PropertyClassification::RESIDENTIAL => $residential,
+            PropertyClassification::COMMERCIAL, PropertyClassification::INDUSTRIAL => $commercial,
+            PropertyClassification::MIXED_USE => [...$residential, ...$commercial],
+        };
     }
 
     /**
-     * Commercial unit types name their own rental type; a dwelling could be
-     * let to a family, bachelors, labour or employees, so it stays a choice.
+     * A commercial unit type names its own contract type, so it is offered
+     * as the starting choice; a dwelling could be let to a family, bachelors,
+     * labour or employees, so there is no default for it.
      */
     public static function defaultForUnitType(UnitType $type): ?self
     {

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pms\Resources\Leases\Schemas;
 
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeasePartyRole;
@@ -75,6 +76,7 @@ class LeaseWizardForm
                             $state,
                             $firstUnitId !== null ? [$firstUnitId] : [],
                         ));
+                        $set('contract_type', Lease::suggestContractType($firstUnitId !== null ? [$firstUnitId] : [])?->value);
 
                         if ($state !== null && blank($get('government_contract_number'))) {
                             $set('government_contract_number', self::suggestContractNumber($state));
@@ -127,6 +129,7 @@ class LeaseWizardForm
                             $get('property_id'),
                             self::selectedUnitIds($state),
                         ));
+                        self::syncContractType($set, $get('contract_type'), self::selectedUnitIds($state));
                     })
                     ->columnSpanFull(),
             ]);
@@ -231,10 +234,10 @@ class LeaseWizardForm
                             ->label(__('Contract No.'))
                             ->helperText(__('Auto-suggested from the property — change it if needed.'))
                             ->maxLength(255),
-                        Placeholder::make('contract_type_detected')
+                        Select::make('contract_type')
                             ->label(__('Contract Type'))
-                            ->content(fn (Get $get): string => Lease::detectContractType(self::selectedUnitIds($get('units')))?->getLabel() ?? '—')
-                            ->helperText(__('Detected from the unit\'s rental type.')),
+                            ->options(fn (Get $get): array => self::contractTypeOptions(self::selectedUnitIds($get('units'))))
+                            ->helperText(__('Only the types that fit the selected units\' classification are offered.')),
                     ])->columns(2),
 
                 Section::make(__('Occupancy & Use'))
@@ -360,6 +363,32 @@ class LeaseWizardForm
                     ->searchable()
                     ->helperText(__('Auto-suggested from the selected property and units — change it if a different template applies.')),
             ]);
+    }
+
+    /**
+     * @param  list<int>  $unitIds
+     * @return array<string, string>
+     */
+    private static function contractTypeOptions(array $unitIds): array
+    {
+        return collect(Lease::allowedContractTypes($unitIds))
+            ->mapWithKeys(fn (ContractType $type): array => [$type->value => $type->getLabel()])
+            ->all();
+    }
+
+    /**
+     * Keeps the chosen contract type valid as the units change: a type that
+     * no longer fits is replaced by the units' own suggestion, or cleared.
+     *
+     * @param  list<int>  $unitIds
+     */
+    private static function syncContractType(Set $set, mixed $current, array $unitIds): void
+    {
+        if (array_key_exists((string) $current, self::contractTypeOptions($unitIds))) {
+            return;
+        }
+
+        $set('contract_type', Lease::suggestContractType($unitIds)?->value);
     }
 
     /**

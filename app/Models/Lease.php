@@ -11,6 +11,8 @@ use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeaseDisputeStatus;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
+use App\Enums\PMS\PropertyClassification;
+use App\Enums\PMS\UnitType;
 use App\Enums\PMS\YesNo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -225,17 +227,43 @@ class Lease extends Model
     }
 
     /**
-     * A lease's contract type is whatever its unit was defined as — the
-     * first unit's rental type when a lease covers several.
+     * The contract types the given units allow — the union over their
+     * classifications, so a lease over a shop and a flat can be either kind.
+     *
+     * @param  array<int, int|string|null>  $unitIds
+     * @return list<ContractType>
+     */
+    public static function allowedContractTypes(array $unitIds): array
+    {
+        $ids = array_values(array_filter($unitIds));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Unit::whereIn('id', $ids)->get()
+            ->map(fn (Unit $unit): ?PropertyClassification => $unit->getAttribute('property_classification'))
+            ->filter()
+            ->unique()
+            ->flatMap(fn (PropertyClassification $classification): array => ContractType::forClassification($classification))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * A starting choice for the Contract Type field: what the first unit's
+     * own type implies, when that is one of the allowed types.
      *
      * @param  array<int, int|string|null>  $unitIds
      */
-    public static function detectContractType(array $unitIds): ?ContractType
+    public static function suggestContractType(array $unitIds): ?ContractType
     {
         $first = collect($unitIds)->filter()->first();
-        $rentalType = $first !== null ? Unit::find($first)?->getAttribute('rental_type') : null;
+        $unitType = $first !== null ? Unit::find($first)?->getAttribute('unit_type') : null;
+        $suggestion = $unitType instanceof UnitType ? ContractType::defaultForUnitType($unitType) : null;
 
-        return $rentalType instanceof ContractType ? $rentalType : null;
+        return $suggestion !== null && in_array($suggestion, self::allowedContractTypes($unitIds), true) ? $suggestion : null;
     }
 
     public function isEditable(): bool

@@ -611,6 +611,7 @@
     "Detected from the unit's rental type.": "يُحدد تلقائيًا من نوع إيجار الوحدة.",
     "Calculated from the contract period and the base rent — a full year equals the base rent.": "يُحتسب من مدة العقد وقيمة الإيجار الأساسي — السنة الكاملة تساوي الإيجار الأساسي.",
     "Defaults to a full year — the day before the start date's anniversary. Adjust if the contract runs differently.": "يُحدد افتراضيًا بسنة كاملة — اليوم السابق لذكرى تاريخ البداية. عدّله إذا كانت مدة العقد مختلفة.",
+    "Only the types that fit the selected units' classification are offered.": "تُعرض فقط الأنواع المناسبة لتصنيف الوحدات المحددة.",
     "Submit for Attestation": "إرسال للتصديق",
     "Lease submitted for attestation.": "تم إرسال العقد للتصديق.",
     "View Payments": "عرض الدفعات",

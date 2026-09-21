@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PMS\ContractType;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
@@ -39,7 +38,6 @@ class Unit extends Model
         'premise_number',
         'property_classification',
         'unit_type',
-        'rental_type',
         'status',
     ];
 
@@ -49,7 +47,6 @@ class Unit extends Model
         'number_of_rooms' => 'integer',
         'property_classification' => PropertyClassification::class,
         'unit_type' => UnitType::class,
-        'rental_type' => ContractType::class,
         'status' => UnitStatus::class,
     ];
 

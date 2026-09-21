@@ -4,6 +4,7 @@ namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\ContractType;
 use App\Enums\PMS\LeasePartyRole;
+use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitType;
 use App\Enums\PMS\YesNo;
 use App\Filament\Pms\Resources\Leases\Pages\CreateLease;
@@ -15,6 +16,7 @@ use App\Services\PMS\LeaseService;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -59,17 +61,17 @@ class LeaseContractTermsTest extends TestCase
         $this->assertNull(Lease::annualRentFor('2026-01-01', '2026-12-31', null));
     }
 
-    public function test_a_drafted_lease_calculates_annual_rent_and_takes_its_contract_type_from_the_unit(): void
+    public function test_a_drafted_lease_calculates_annual_rent_and_keeps_the_chosen_contract_type(): void
     {
-        $unit = Unit::factory()->residential()->create(['rental_type' => ContractType::BACHELORS]);
+        $unit = Unit::factory()->residential()->create();
 
         $lease = app(LeaseService::class)->createFromRawInputs([
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
             'total_base_rent' => 48000,
-            // Whatever a caller sends for these is ignored — they are derived.
+            // Annual rent is always derived, whatever a caller sends.
             'annual_rent' => 1,
-            'contract_type' => 'shop',
+            'contract_type' => 'bachelors',
         ], [
             ['party_id' => Party::factory()->tenant()->create()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
         ], [$unit->id]);
@@ -78,9 +80,25 @@ class LeaseContractTermsTest extends TestCase
         $this->assertSame(ContractType::BACHELORS, $lease->contract_type);
     }
 
-    public function test_updating_a_draft_recalculates_annual_rent_and_contract_type(): void
+    public function test_a_contract_type_that_does_not_fit_the_units_classification_is_refused(): void
     {
-        $family = Unit::factory()->residential()->create(['rental_type' => ContractType::FAMILY]);
+        $residential = Unit::factory()->residential()->create();
+
+        $this->expectException(RuntimeException::class);
+
+        app(LeaseService::class)->createFromRawInputs([
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'total_base_rent' => 48000,
+            'contract_type' => 'warehouse',
+        ], [
+            ['party_id' => Party::factory()->tenant()->create()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$residential->id]);
+    }
+
+    public function test_updating_a_draft_recalculates_annual_rent_and_revalidates_the_contract_type(): void
+    {
+        $family = Unit::factory()->residential()->create();
         $office = Unit::factory()->commercial()->create();
 
         $service = app(LeaseService::class);
@@ -88,16 +106,21 @@ class LeaseContractTermsTest extends TestCase
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
             'total_base_rent' => 60000,
+            'contract_type' => 'family',
         ], [
             ['party_id' => Party::factory()->tenant()->create()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
         ], [$family->id]);
 
-        $updated = $service->updateDraft($lease, ['end_date' => '2026-06-30'], [
-            ['party_id' => $lease->primaryTenant()->party_id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
-        ], [$office->id]);
+        $tenants = [['party_id' => $lease->primaryTenant()->party_id, 'role' => LeasePartyRole::PRIMARY_TENANT->value]];
+
+        $updated = $service->updateDraft($lease, ['end_date' => '2026-06-30', 'contract_type' => 'office'], $tenants, [$office->id]);
 
         $this->assertSame('120000.00', $updated->annual_rent);
         $this->assertSame(ContractType::OFFICE, $updated->contract_type);
+
+        // Moving back to a residential unit while keeping "office" is refused.
+        $this->expectException(RuntimeException::class);
+        $service->updateDraft($updated, ['contract_type' => 'office'], $tenants, [$family->id]);
     }
 
     public function test_multiple_rent_amount_is_a_yes_no_that_defaults_to_no(): void
@@ -122,17 +145,39 @@ class LeaseContractTermsTest extends TestCase
         $this->assertSame('1 Year', $lease->rentDuration());
     }
 
-    public function test_a_unit_type_only_offers_its_own_rental_types(): void
+    public function test_contract_types_are_filtered_by_classification(): void
     {
         $this->assertSame(
             [ContractType::FAMILY, ContractType::BACHELORS, ContractType::LABOUR, ContractType::EMPLOYEES],
-            ContractType::forUnitType(UnitType::APARTMENT),
+            ContractType::forClassification(PropertyClassification::RESIDENTIAL),
         );
-        $this->assertContains(ContractType::SHOP, ContractType::forUnitType(UnitType::SHOP));
-        $this->assertNotContains(ContractType::FAMILY, ContractType::forUnitType(UnitType::WAREHOUSE));
 
-        $this->assertSame(ContractType::WAREHOUSE, ContractType::defaultForUnitType(UnitType::WAREHOUSE));
-        $this->assertNull(ContractType::defaultForUnitType(UnitType::APARTMENT));
+        foreach ([PropertyClassification::COMMERCIAL, PropertyClassification::INDUSTRIAL] as $classification) {
+            $types = ContractType::forClassification($classification);
+            $this->assertContains(ContractType::SHOP, $types);
+            $this->assertContains(ContractType::WAREHOUSE, $types);
+            $this->assertNotContains(ContractType::FAMILY, $types);
+        }
+
+        $this->assertContains(ContractType::FAMILY, ContractType::forClassification(PropertyClassification::MIXED_USE));
+        $this->assertContains(ContractType::SHOP, ContractType::forClassification(PropertyClassification::MIXED_USE));
+    }
+
+    public function test_allowed_types_follow_the_selected_units_and_a_commercial_unit_type_is_suggested(): void
+    {
+        $flat = Unit::factory()->residential()->create();
+        $warehouse = Unit::factory()->create([
+            'unit_type' => UnitType::WAREHOUSE,
+            'property_classification' => PropertyClassification::INDUSTRIAL,
+        ]);
+
+        $this->assertContains(ContractType::LABOUR, Lease::allowedContractTypes([$flat->id]));
+        $this->assertNotContains(ContractType::SHOP, Lease::allowedContractTypes([$flat->id]));
+        $this->assertContains(ContractType::SHOP, Lease::allowedContractTypes([$flat->id, $warehouse->id]));
+        $this->assertSame([], Lease::allowedContractTypes([]));
+
+        $this->assertSame(ContractType::WAREHOUSE, Lease::suggestContractType([$warehouse->id]));
+        $this->assertNull(Lease::suggestContractType([$flat->id]));
     }
 
     public function test_the_wizard_fills_a_full_year_end_date_and_the_annual_rent(): void
@@ -143,7 +188,7 @@ class LeaseContractTermsTest extends TestCase
         $admin->assignRole('super-admin');
         $this->actingAs($admin);
 
-        $unit = Unit::factory()->residential()->create(['rental_type' => ContractType::EMPLOYEES]);
+        $unit = Unit::factory()->residential()->create();
 
         Livewire::test(CreateLease::class)
             ->fillForm(['property_id' => $unit->property_id])

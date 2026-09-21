@@ -3,7 +3,6 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\ContractCategory;
-use App\Enums\PMS\ContractType;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\LeasePartyRole;
 use App\Models\ConditionTemplate;
@@ -206,13 +205,14 @@ class LeasePrintFieldResolverTest extends TestCase
 
     public function test_enum_fields_print_in_the_language_chosen_for_the_field(): void
     {
-        $unit = Unit::factory()->commercial()->create(['rental_type' => ContractType::SHOP]);
+        $unit = Unit::factory()->commercial()->create();
         $tenant = Party::factory()->tenant()->create();
 
         $lease = app(LeaseService::class)->createFromRawInputs([
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
             'total_base_rent' => 60000,
+            'contract_type' => 'shop',
             'multiple_rent_amount' => 'yes',
             'allow_multiple_licenses' => true,
         ], [
@@ -221,7 +221,6 @@ class LeasePrintFieldResolverTest extends TestCase
 
         app()->setLocale('en');
 
-        // The contract type is not typed in — it comes from the unit.
         $this->assertSame('Shop', $this->resolver->resolve($lease, 'contract_type', 'en'));
         $this->assertSame('محل', $this->resolver->resolve($lease, 'contract_type', 'ar'));
         $this->assertSame('Yes', $this->resolver->resolve($lease, 'multiple_rent_amount', 'en'));
