@@ -284,4 +284,25 @@ class PrintTemplatePageBuilderTest extends TestCase
             ->call('distributeVertically')
             ->assertSet('fields.1.y_percent', 40.0);
     }
+
+    public function test_apply_box_size_sets_width_and_height_on_every_selected_field_only(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'tenant_name')->call('placeField', 10, 10)
+            ->set('selectedFieldKey', 'tenant_name')->call('placeField', 10, 20)
+            ->set('selectedFieldKey', 'tenant_name')->call('placeField', 10, 30)
+            ->call('selectMarker', 0, false)
+            ->call('selectMarker', 1, true)
+            ->set('bulkWidthPercent', 25)
+            ->set('bulkHeightPercent', 3.5)
+            ->call('applyBoxSizeToSelected')
+            ->assertSet('fields.0.width_percent', 25.0)
+            ->assertSet('fields.1.height_percent', 3.5)
+            ->assertSet('fields.2.width_percent', null)
+            ->set('bulkWidthPercent', null)
+            ->call('applyBoxSizeToSelected')
+            ->assertSet('fields.0.width_percent', null);
+    }
 }

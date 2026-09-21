@@ -27,6 +27,10 @@ class PrintTemplatePageBuilder extends Component
 
     public ?string $selectedFieldKey = null;
 
+    public ?float $bulkWidthPercent = null;
+
+    public ?float $bulkHeightPercent = null;
+
     /**
      * @var list<int>
      */
@@ -206,6 +210,18 @@ class PrintTemplatePageBuilder extends Component
 
         foreach ($this->selectedIndexes as $index) {
             $this->fields[$index]['x_percent'] = $target;
+        }
+    }
+
+    /**
+     * Gives every selected field the same box size in one go. A blank
+     * width or height means Auto, exactly as in the per-field inputs.
+     */
+    public function applyBoxSizeToSelected(): void
+    {
+        foreach ($this->selectedIndexes as $index) {
+            $this->fields[$index]['width_percent'] = $this->bulkWidthPercent !== null ? $this->clamp($this->bulkWidthPercent) : null;
+            $this->fields[$index]['height_percent'] = $this->bulkHeightPercent !== null ? $this->clamp($this->bulkHeightPercent) : null;
         }
     }
 

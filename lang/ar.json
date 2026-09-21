@@ -585,6 +585,7 @@
     "Auto": "تلقائي",
     "With a box width set, the text is aligned inside the box using the Alignment below.": "عند تحديد عرض للصندوق، تتم محاذاة النص داخله وفق المحاذاة أدناه.",
     "Distribute Vertically": "توزيع رأسي متساوٍ",
+    "Apply Box Size to Selected": "تطبيق حجم الصندوق على المحدد",
     "Submit for Attestation": "إرسال للتصديق",
     "Lease submitted for attestation.": "تم إرسال العقد للتصديق.",
     "View Payments": "عرض الدفعات",

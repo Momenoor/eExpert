@@ -86,6 +86,24 @@
                         {{ __('Align End') }}
                     </button>
                 </div>
+                <div style="display: flex; gap: 6px; margin-top: 8px; align-items: flex-end;">
+                    <label style="flex: 1; font-size: 11px;">
+                        {{ __('Box Width %') }}
+                        <input type="number" step="0.1" min="0" max="100" placeholder="{{ __('Auto') }}" wire:model="bulkWidthPercent" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
+                    </label>
+                    <label style="flex: 1; font-size: 11px;">
+                        {{ __('Box Height %') }}
+                        <input type="number" step="0.1" min="0" max="100" placeholder="{{ __('Auto') }}" wire:model="bulkHeightPercent" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
+                    </label>
+                </div>
+                <button
+                    type="button"
+                    wire:click="applyBoxSizeToSelected"
+                    @disabled(count($selectedIndexes) < 1)
+                    style="width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 1 ? '0.5' : '1' }};"
+                >
+                    {{ __('Apply Box Size to Selected') }}
+                </button>
                 <button
                     type="button"
                     wire:click="distributeVertically"
