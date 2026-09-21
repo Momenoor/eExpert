@@ -13,7 +13,7 @@ class OwnerGroupsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->withCount('ownerProfiles'))
+            ->modifyQueryUsing(fn ($query) => $query->withCount(['ownerProfiles', 'bankAccounts', 'properties']))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('Group Name'))
@@ -24,15 +24,12 @@ class OwnerGroupsTable
                 TextColumn::make('trn')
                     ->label(__('TRN'))
                     ->placeholder('—'),
-                TextColumn::make('bank_name')
-                    ->label(__('Bank Name'))
-                    ->placeholder('—'),
-                TextColumn::make('iban')
-                    ->label(__('IBAN'))
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('bank_accounts_count')
+                    ->label(__('Bank Accounts')),
+                TextColumn::make('properties_count')
+                    ->label(__('Properties')),
             ])
-            ->defaultSort('party.name')
+            ->defaultSort('name')
             ->recordActions([
                 EditAction::make()->iconButton(),
                 DeleteAction::make()->iconButton(),

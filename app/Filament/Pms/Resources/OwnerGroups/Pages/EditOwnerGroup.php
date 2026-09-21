@@ -47,9 +47,6 @@ class EditOwnerGroup extends EditRecord
         $record->update([
             'name' => $data['name'],
             'trn' => $data['trn'] ?? null,
-            'bank_name' => $data['bank_name'] ?? null,
-            'bank_account_no' => $data['bank_account_no'] ?? null,
-            'iban' => $data['iban'] ?? null,
         ]);
 
         return $record;

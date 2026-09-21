@@ -2,8 +2,11 @@
 
 namespace App\Filament\Pms\Resources\OwnerGroups\Schemas;
 
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -40,24 +43,40 @@ class OwnerGroupForm
                             ->maxLength(255),
                     ])->columns(2),
 
-                Section::make(__('Banking'))
-                    ->description(__('The estate\'s own account — where its share of the rent is paid, distinct from any individual heir\'s account.'))
+                Section::make(__('Bank Accounts'))
+                    ->description(__('The estate\'s own accounts — where its share of the rent is paid, distinct from any individual heir\'s account. Each property in the group is linked to one of them.'))
                     ->schema([
-                        TextInput::make('bank_name')
-                            ->label(__('Bank Name'))
-                            ->maxLength(255),
-                        TextInput::make('bank_account_no')
-                            ->label(__('Account No'))
-                            ->maxLength(255),
-                        TextInput::make('iban')
-                            ->label(__('IBAN'))
-                            ->maxLength(34)
-                            ->rule('regex:/^AE\d{21}$/')
-                            ->validationMessages([
-                                'regex' => __('A UAE IBAN is AE followed by 21 digits.'),
+                        Repeater::make('bankAccounts')
+                            ->relationship()
+                            ->label(__('Bank Accounts'))
+                            ->schema([
+                                TextInput::make('bank_name')
+                                    ->label(__('Bank Name'))
+                                    ->required()
+                                    ->maxLength(255),
+                                TextInput::make('account_no')
+                                    ->label(__('Account No'))
+                                    ->maxLength(255),
+                                TextInput::make('iban')
+                                    ->label(__('IBAN'))
+                                    ->maxLength(34)
+                                    ->rule('regex:/^AE\d{21}$/')
+                                    ->validationMessages([
+                                        'regex' => __('A UAE IBAN is AE followed by 21 digits.'),
+                                    ])
+                                    ->placeholder('AE070331234567890123456'),
+                                Toggle::make('is_default')
+                                    ->label(__('Default')),
                             ])
-                            ->placeholder('AE070331234567890123456'),
-                    ])->columns(3),
+                            ->table([
+                                TableColumn::make(__('Bank Name')),
+                                TableColumn::make(__('Account No')),
+                                TableColumn::make(__('IBAN')),
+                                TableColumn::make(__('Default')),
+                            ])
+                            ->addActionLabel(__('Add Bank Account'))
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 }

@@ -4,12 +4,16 @@ namespace App\Filament\Pms\Resources\Properties\Schemas;
 
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\PropertyType;
+use App\Models\OwnerGroup;
+use App\Models\OwnerGroupBankAccount;
 use App\Models\Party;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class PropertyForm
@@ -41,6 +45,25 @@ class PropertyForm
                             ->options(Emirate::class)
                             ->helperText(__('Determines which government tenancy contract format applies (Ejari, Sharjawi, …).')),
                     ])->columns(3),
+
+                Section::make(__('Owner Group & Bank Account'))
+                    ->description(__('Optional. Put the property under an owner group and choose which of the group\'s bank accounts its rent is paid into.'))
+                    ->schema([
+                        Select::make('owner_group_id')
+                            ->label(__('Owner Group'))
+                            ->options(fn (): array => OwnerGroup::orderBy('name')->pluck('name', 'id')->all())
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?int $state): void {
+                                $set('owner_group_bank_account_id', $state === null ? null : self::defaultAccountId($state));
+                            }),
+                        Select::make('owner_group_bank_account_id')
+                            ->label(__('Bank Account'))
+                            ->options(fn (Get $get): array => self::accountOptions($get('owner_group_id')))
+                            ->visible(fn (Get $get): bool => filled($get('owner_group_id')))
+                            ->required(fn (Get $get): bool => filled($get('owner_group_id')) && self::accountOptions($get('owner_group_id')) !== [])
+                            ->helperText(__('Only this group\'s own accounts are offered.')),
+                    ])->columns(2),
 
                 Section::make(__('Government Property Details'))
                     ->description(__('Fields required by the emirate\'s own tenancy contract / attestation system.'))
@@ -122,5 +145,28 @@ class PropertyForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function accountOptions(mixed $groupId): array
+    {
+        if (blank($groupId)) {
+            return [];
+        }
+
+        return OwnerGroupBankAccount::where('owner_group_id', $groupId)
+            ->orderByDesc('is_default')
+            ->get()
+            ->mapWithKeys(fn (OwnerGroupBankAccount $account): array => [$account->getKey() => $account->label()])
+            ->all();
+    }
+
+    private static function defaultAccountId(int $groupId): ?int
+    {
+        $id = OwnerGroupBankAccount::where('owner_group_id', $groupId)->orderByDesc('is_default')->orderBy('id')->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 }

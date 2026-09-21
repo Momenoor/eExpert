@@ -29,9 +29,6 @@ class OwnerGroup extends Model
         'party_id',
         'name',
         'trn',
-        'bank_name',
-        'bank_account_no',
-        'iban',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -54,5 +51,21 @@ class OwnerGroup extends Model
     public function ownerProfiles(): HasMany
     {
         return $this->hasMany(OwnerProfile::class);
+    }
+
+    /**
+     * @return HasMany<OwnerGroupBankAccount, $this>
+     */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(OwnerGroupBankAccount::class);
+    }
+
+    /**
+     * @return HasMany<Property, $this>
+     */
+    public function properties(): HasMany
+    {
+        return $this->hasMany(Property::class);
     }
 }

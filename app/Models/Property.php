@@ -6,6 +6,7 @@ use App\Enums\PMS\Emirate;
 use App\Enums\PMS\PropertyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -30,6 +31,8 @@ class Property extends Model
         'plot_number',
         'property_type',
         'property_number',
+        'owner_group_id',
+        'owner_group_bank_account_id',
         'total_units',
         'year_built',
     ];
@@ -41,6 +44,35 @@ class Property extends Model
         'total_units' => 'integer',
         'year_built' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        // A bank account only means something inside its own group — a
+        // property that leaves the group (or never had one) keeps no account.
+        static::saving(function (Property $property): void {
+            if ($property->getAttribute('owner_group_id') === null) {
+                $property->setAttribute('owner_group_bank_account_id', null);
+            }
+        });
+    }
+
+    /**
+     * @return BelongsTo<OwnerGroup, $this>
+     */
+    public function ownerGroup(): BelongsTo
+    {
+        return $this->belongsTo(OwnerGroup::class);
+    }
+
+    /**
+     * The group account this property's rent is paid into.
+     *
+     * @return BelongsTo<OwnerGroupBankAccount, $this>
+     */
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(OwnerGroupBankAccount::class, 'owner_group_bank_account_id');
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

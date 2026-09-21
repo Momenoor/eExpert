@@ -34,13 +34,13 @@ class OwnerGroupResourceTest extends TestCase
             ->fillForm([
                 'name' => 'Legal Heirs of Mahmoud Kalbat',
                 'phone' => ['0501112222'],
-                'iban' => 'AE070331234567890123456',
+                'bankAccounts' => [['bank_name' => 'ADCB', 'iban' => 'AE070331234567890123456']],
             ])
             ->call('create')
             ->assertHasNoFormErrors();
 
         $group = OwnerGroup::where('name', 'Legal Heirs of Mahmoud Kalbat')->sole();
-        $this->assertSame('AE070331234567890123456', $group->iban);
+        $this->assertSame('AE070331234567890123456', $group->bankAccounts()->sole()->iban);
 
         $party = $group->party;
         $this->assertTrue($party->isOwnerGroup());
@@ -54,13 +54,13 @@ class OwnerGroupResourceTest extends TestCase
         Livewire::test(EditOwnerGroup::class, ['record' => $group->getKey()])
             ->fillForm([
                 'name' => 'Legal Heirs of Ahmed',
-                'bank_name' => 'Mashreq Bank',
+                'bankAccounts' => [['bank_name' => 'Mashreq Bank']],
             ])
             ->call('save')
             ->assertHasNoFormErrors();
 
         $this->assertSame('Legal Heirs of Ahmed', $group->fresh()->name);
         $this->assertSame('Legal Heirs of Ahmed', $group->party->fresh()->name);
-        $this->assertSame('Mashreq Bank', $group->fresh()->bank_name);
+        $this->assertSame('Mashreq Bank', $group->bankAccounts()->sole()->bank_name);
     }
 }

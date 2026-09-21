@@ -34,9 +34,6 @@ class CreateOwnerGroup extends CreateRecord
                 'party_id' => $party->getKey(),
                 'name' => $data['name'],
                 'trn' => $data['trn'] ?? null,
-                'bank_name' => $data['bank_name'] ?? null,
-                'bank_account_no' => $data['bank_account_no'] ?? null,
-                'iban' => $data['iban'] ?? null,
             ]);
         });
     }

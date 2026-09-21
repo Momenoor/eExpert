@@ -5,6 +5,7 @@ namespace App\Filament\Pms\Resources\OwnerGroups;
 use App\Filament\Pms\Resources\OwnerGroups\Pages\CreateOwnerGroup;
 use App\Filament\Pms\Resources\OwnerGroups\Pages\EditOwnerGroup;
 use App\Filament\Pms\Resources\OwnerGroups\Pages\ListOwnerGroups;
+use App\Filament\Pms\Resources\OwnerGroups\RelationManagers\PropertiesRelationManager;
 use App\Filament\Pms\Resources\OwnerGroups\Schemas\OwnerGroupForm;
 use App\Filament\Pms\Resources\OwnerGroups\Tables\OwnerGroupsTable;
 use App\Models\OwnerGroup;
@@ -57,6 +58,13 @@ class OwnerGroupResource extends Resource
     public static function table(Table $table): Table
     {
         return OwnerGroupsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            PropertiesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
