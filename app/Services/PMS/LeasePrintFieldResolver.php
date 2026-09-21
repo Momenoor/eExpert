@@ -43,7 +43,6 @@ class LeasePrintFieldResolver
                 'payment_method' => 'Payment Method / Mode of Payment',
                 'number_of_payments' => 'No. of Payments',
                 'allow_multiple_licenses' => 'Allow Multiple Licenses',
-                'designated_use' => 'Designated Use',
                 'number_of_occupants' => 'No. of Occupants',
             ],
             'Lessor / Owner' => [
@@ -96,6 +95,33 @@ class LeasePrintFieldResolver
         ];
     }
 
+    /**
+     * Fields whose printed value is a translatable word or phrase (an enum
+     * label, Yes/No, "1 Year") rather than a name, number or date. Only
+     * these carry a per-field language in the builder — placing the same
+     * field twice, once as Arabic and once as English, is how a bilingual
+     * form gets both.
+     *
+     * @var list<string>
+     */
+    private const LOCALIZABLE_FIELDS = [
+        'contract_category',
+        'contract_type',
+        'payment_method',
+        'multiple_rent_amount',
+        'allow_multiple_licenses',
+        'rent_duration',
+        'grace_period',
+        'property_emirate',
+        'property_type',
+        'unit_type',
+    ];
+
+    public static function isLocalizable(string $fieldKey): bool
+    {
+        return in_array($fieldKey, self::LOCALIZABLE_FIELDS, true);
+    }
+
     public static function label(string $fieldKey): string
     {
         foreach (self::availableFields() as $fields) {
@@ -107,12 +133,47 @@ class LeasePrintFieldResolver
         return $fieldKey;
     }
 
+    /**
+     * The builder's marker/list text: the field's label, tagged with its
+     * language when it prints in a specific one — that tag is what tells
+     * two placements of the same field (Arabic and English) apart.
+     */
+    public static function labelWithLanguage(string $fieldKey, ?string $language): string
+    {
+        $label = self::label($fieldKey);
+
+        if (! self::isLocalizable($fieldKey) || ! in_array($language, ['ar', 'en'], true)) {
+            return $label;
+        }
+
+        return $label.' ('.strtoupper($language).')';
+    }
+
     public static function groupLabel(string $group): string
     {
         return __($group);
     }
 
-    public function resolve(Lease $lease, string $fieldKey): ?string
+    /**
+     * @param  'ar'|'en'|null  $language  null keeps the app's current language
+     */
+    public function resolve(Lease $lease, string $fieldKey, ?string $language = null): ?string
+    {
+        if ($language === null || ! self::isLocalizable($fieldKey) || ! in_array($language, ['ar', 'en'], true)) {
+            return $this->resolveValue($lease, $fieldKey);
+        }
+
+        $previous = app()->getLocale();
+        app()->setLocale($language);
+
+        try {
+            return $this->resolveValue($lease, $fieldKey);
+        } finally {
+            app()->setLocale($previous);
+        }
+    }
+
+    private function resolveValue(Lease $lease, string $fieldKey): ?string
     {
         $property = $lease->units->first()?->property;
         $unit = $lease->units->first();
@@ -127,13 +188,12 @@ class LeasePrintFieldResolver
             'grace_period' => $this->formatGracePeriod($lease),
             'total_base_rent' => $this->formatMoney($lease->getAttribute('total_base_rent')),
             'annual_rent' => $this->formatMoney($lease->getAttribute('annual_rent')),
-            'multiple_rent_amount' => $this->formatMoney($lease->getAttribute('multiple_rent_amount')),
+            'multiple_rent_amount' => $lease->getAttribute('multiple_rent_amount')?->getLabel(),
             'security_deposit_amount' => $this->formatMoney($lease->getAttribute('security_deposit_amount')),
             'contract_type' => $lease->getAttribute('contract_type')?->getLabel(),
             'payment_method' => $lease->getAttribute('payment_method')?->getLabel(),
             'number_of_payments' => (string) $lease->getAttribute('number_of_payments'),
-            'allow_multiple_licenses' => $lease->getAttribute('allow_multiple_licenses') ? 'Yes' : 'No',
-            'designated_use' => $lease->getAttribute('designated_use')?->getLabel(),
+            'allow_multiple_licenses' => $lease->getAttribute('allow_multiple_licenses') ? __('Yes') : __('No'),
             'number_of_occupants' => (string) $lease->getAttribute('number_of_occupants'),
 
             'owner_name' => $property?->landlordName(),

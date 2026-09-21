@@ -89,7 +89,7 @@
                 <div class="page">
                     <img class="background" src="{{ $page->imageUrl() }}" alt="">
                     @foreach ($page->fields as $field)
-                        @php $value = $resolver->resolve($lease, $field->field_key); @endphp
+                        @php $value = $resolver->resolve($lease, $field->field_key, $field->language); @endphp
                         @if (filled($value))
                             @php $hasBox = filled($field->width_percent); @endphp
                             <div

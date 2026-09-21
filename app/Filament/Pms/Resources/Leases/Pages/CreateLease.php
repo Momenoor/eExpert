@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pms\Resources\Leases\Pages;
 
+use App\Enums\PMS\YesNo;
 use App\Filament\Pms\Resources\Leases\LeaseResource;
 use App\Filament\Pms\Resources\Leases\Schemas\LeaseWizardForm;
 use App\Models\Lease;
@@ -53,13 +54,10 @@ class CreateLease extends CreateRecord
                 'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
                 'government_contract_number' => $data['government_contract_number'] ?? null,
                 'issue_date' => $data['issue_date'] ?? null,
-                'contract_type' => $data['contract_type'] ?? null,
-                'annual_rent' => $data['annual_rent'] ?? null,
-                'multiple_rent_amount' => $data['multiple_rent_amount'] ?? null,
+                'multiple_rent_amount' => $data['multiple_rent_amount'] ?? YesNo::NO->value,
                 'payment_method' => $installmentRows[0]['payment_method'] ?? null,
                 'number_of_payments' => count($installmentRows),
                 'allow_multiple_licenses' => $data['allow_multiple_licenses'] ?? false,
-                'designated_use' => $data['designated_use'] ?? null,
                 'number_of_occupants' => $data['number_of_occupants'] ?? null,
                 'condition_template_id' => $data['condition_template_id'] ?? null,
                 'poa_authority_number' => $data['poa_authority_number'] ?? null,

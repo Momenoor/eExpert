@@ -17,6 +17,7 @@ class LeasePrintTemplateField extends Model
         'font_size',
         'text_align',
         'rtl',
+        'language',
     ];
 
     protected $casts = [

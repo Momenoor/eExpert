@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pms\Imports;
 
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
@@ -60,6 +61,10 @@ class UnitImporter extends Importer
                 ->example('two_bedroom')
                 ->castStateUsing(fn (?string $state) => $state ? UnitType::tryFrom(strtolower(trim($state)))?->value : null)
                 ->rules(['required']),
+            ImportColumn::make('rental_type')
+                ->label(__('Rental Type'))
+                ->example('family')
+                ->castStateUsing(fn (?string $state) => $state ? ContractType::tryFrom(strtolower(trim($state)))?->value : null),
             ImportColumn::make('property_classification')
                 ->label(__('Property Classification'))
                 ->example('residential')

@@ -198,7 +198,7 @@ class PMSDemoSeeder extends Seeder
         $leaseService = app(LeaseService::class);
         $lease = $leaseService->createFromRawInputs([
             'start_date' => now()->toDateString(),
-            'end_date' => now()->addYear()->toDateString(),
+            'end_date' => now()->addYear()->subDay()->toDateString(),
             'total_base_rent' => (float) $unit->rental_rate,
             'security_deposit_amount' => 5000,
             'government_contract_number' => 'SHJ-'.fake()->numerify('######'),

@@ -32,13 +32,10 @@ class LeaseService
     private const PASSTHROUGH_FIELDS = [
         'government_contract_number',
         'issue_date',
-        'contract_type',
-        'annual_rent',
         'multiple_rent_amount',
         'payment_method',
         'number_of_payments',
         'allow_multiple_licenses',
-        'designated_use',
         'number_of_occupants',
         'condition_template_id',
         'poa_authority_number',
@@ -71,7 +68,7 @@ class LeaseService
         return $this->draft([
             'quotation_id' => $quotation->getKey(),
             'start_date' => $overrides['start_date'] ?? now()->toDateString(),
-            'end_date' => $overrides['end_date'] ?? now()->addYear()->toDateString(),
+            'end_date' => $overrides['end_date'] ?? Lease::fullYearEnd($overrides['start_date'] ?? now())->toDateString(),
             'grace_period_days' => $overrides['grace_period_days'] ?? 0,
             'total_base_rent' => (float) $quotation->getAttribute('base_rent'),
             'security_deposit_amount' => (float) $quotation->getAttribute('security_deposit'),
@@ -154,6 +151,8 @@ class LeaseService
                     'start_date' => $data['start_date'],
                     'end_date' => $data['end_date'],
                     'contract_category' => $category,
+                    'annual_rent' => Lease::annualRentFor($data['start_date'], $data['end_date'], $data['total_base_rent']),
+                    'contract_type' => Lease::detectContractType($unitIds)?->value,
                     'grace_period_days' => $data['grace_period_days'] ?? 0,
                     'total_base_rent' => $data['total_base_rent'],
                     'security_deposit_amount' => $data['security_deposit_amount'] ?? 0,
@@ -251,6 +250,14 @@ class LeaseService
                     'parent_id' => $tenant['parent_id'] ?? null,
                 ]);
             }
+
+            // Annual rent and contract type follow from the (possibly changed)
+            // dates, rent and units — never typed in.
+            $lease->refresh();
+            $lease->update([
+                'annual_rent' => Lease::annualRentFor($lease->getAttribute('start_date'), $lease->getAttribute('end_date'), $lease->getAttribute('total_base_rent')),
+                'contract_type' => Lease::detectContractType($unitIds)?->value,
+            ]);
 
             return $lease->fresh(['leaseParties.party', 'units']);
         });

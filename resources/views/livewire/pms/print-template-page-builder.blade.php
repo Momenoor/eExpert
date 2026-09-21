@@ -122,7 +122,7 @@
             @php($selectedIndex = $selectedIndexes[0])
             <div style="margin-top: 12px; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;">
                 <p style="font-weight: 600; font-size: 12px; margin: 0 0 8px;">
-                    {{ \App\Services\PMS\LeasePrintFieldResolver::label($fields[$selectedIndex]['field_key']) }}
+                    {{ \App\Services\PMS\LeasePrintFieldResolver::labelWithLanguage($fields[$selectedIndex]['field_key'], $fields[$selectedIndex]['language'] ?? null) }}
                 </p>
 
                 <div style="display: flex; gap: 8px;">
@@ -162,6 +162,18 @@
                     </select>
                 </label>
 
+                @if (\App\Services\PMS\LeasePrintFieldResolver::isLocalizable($fields[$selectedIndex]['field_key']))
+                    <label style="display: block; font-size: 11px; margin-top: 8px;">
+                        {{ __('Language') }}
+                        <select wire:model.live="fields.{{ $selectedIndex }}.language" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;">
+                            <option value="">{{ __('Default') }}</option>
+                            <option value="ar">{{ __('Arabic') }}</option>
+                            <option value="en">{{ __('English') }}</option>
+                        </select>
+                    </label>
+                    <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">{{ __('Place the same field twice to print it once in Arabic and once in English.') }}</p>
+                @endif
+
                 <p style="font-size: 10px; color: #9ca3af; margin-top: 8px;">
                     {{ __('Tip: click the marker on the image, then use the arrow keys to nudge it (hold Shift for bigger steps).') }}
                 </p>
@@ -174,7 +186,7 @@
                     @click="$wire.selectMarker({{ $i }}, $event.shiftKey || $event.ctrlKey || $event.metaKey)"
                     style="display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; border: 1px solid {{ in_array($i, $selectedIndexes, true) ? '#2563eb' : '#e5e7eb' }}; border-radius: 6px; padding: 4px 8px; margin-bottom: 4px; cursor: pointer;"
                 >
-                    <span>{{ \App\Services\PMS\LeasePrintFieldResolver::label($field['field_key']) }}</span>
+                    <span>{{ \App\Services\PMS\LeasePrintFieldResolver::labelWithLanguage($field['field_key'], $field['language'] ?? null) }}</span>
                     <span style="display: flex; gap: 6px; align-items: center;">
                         <label style="display:flex; align-items:center; gap:2px; cursor:pointer;" @click.stop>
                             <input type="checkbox" wire:click="toggleRtl({{ $i }})" @checked($field['rtl'])>
@@ -214,7 +226,7 @@
                     @keydown.left.prevent="$wire.nudgeField({{ $i }}, 'left', $event.shiftKey)"
                     @keydown.right.prevent="$wire.nudgeField({{ $i }}, 'right', $event.shiftKey)"
                     style="position: absolute; left: {{ $field['x_percent'] }}%; top: {{ $field['y_percent'] }}%; background: {{ in_array($i, $selectedIndexes, true) ? '#dc2626' : '#2563eb' }}; color: #fff; font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: move; box-sizing: border-box; white-space: nowrap; {{ filled($field['width_percent'] ?? null) ? 'width: '.$field['width_percent'].'%; overflow: hidden; text-overflow: ellipsis; text-align: '.$field['text_align'].';' : '' }} {{ filled($field['height_percent'] ?? null) ? 'height: '.$field['height_percent'].'%;' : '' }} {{ filled($field['width_percent'] ?? null) ? 'outline: 1px dashed #fff; outline-offset: -2px;' : '' }} user-select: none; outline: none; box-shadow: {{ in_array($i, $selectedIndexes, true) ? '0 0 0 2px #fff, 0 0 0 4px #dc2626' : 'none' }};"
-                >{{ \App\Services\PMS\LeasePrintFieldResolver::label($field['field_key']) }}</div>
+                >{{ \App\Services\PMS\LeasePrintFieldResolver::labelWithLanguage($field['field_key'], $field['language'] ?? null) }}</div>
             @endforeach
         @else
             <p style="color: #9ca3af;">{{ __('Upload a background image for this page first.') }}</p>

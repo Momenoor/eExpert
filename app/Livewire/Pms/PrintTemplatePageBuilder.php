@@ -21,7 +21,7 @@ class PrintTemplatePageBuilder extends Component
     public int $pageId;
 
     /**
-     * @var list<array{id: int|null, field_key: string, x_percent: float, y_percent: float, width_percent: float|null, height_percent: float|null, font_size: int, text_align: string, rtl: bool}>
+     * @var list<array{id: int|null, field_key: string, x_percent: float, y_percent: float, width_percent: float|null, height_percent: float|null, font_size: int, text_align: string, rtl: bool, language: string|null}>
      */
     public array $fields = [];
 
@@ -59,6 +59,7 @@ class PrintTemplatePageBuilder extends Component
                 'font_size' => $field->font_size,
                 'text_align' => $field->text_align,
                 'rtl' => $field->rtl,
+                'language' => $field->language,
             ])
             ->all();
     }
@@ -79,6 +80,7 @@ class PrintTemplatePageBuilder extends Component
             'font_size' => 10,
             'text_align' => 'left',
             'rtl' => false,
+            'language' => null,
         ];
 
         $this->selectedIndexes = [array_key_last($this->fields)];
@@ -120,7 +122,7 @@ class PrintTemplatePageBuilder extends Component
     }
 
     /**
-     * Moves the field one step in the given direction � bound to the
+     * Moves the field one step in the given direction — bound to the
      * marker's own arrow-key presses in the Blade view. When the field is
      * part of a multi-selection, the whole selection moves together and
      * keeps its relative layout (the step shrinks so none of them leaves
@@ -229,7 +231,7 @@ class PrintTemplatePageBuilder extends Component
      * Spaces the selected fields evenly from top to bottom: the topmost and
      * bottommost stay where they are and the ones between are redistributed
      * at equal intervals, in their current top-to-bottom order. Needs three
-     * or more fields � with two there is nothing in between to space.
+     * or more fields — with two there is nothing in between to space.
      */
     public function distributeVertically(): void
     {
@@ -251,6 +253,22 @@ class PrintTemplatePageBuilder extends Component
 
     public function updated(string $name): void
     {
+        // Choosing a language for a translatable field also flips the
+        // text direction to match — Arabic right-to-left, English left-to-right.
+        // "Default" leaves the direction as it was.
+        if (preg_match('/^fields\.(\d+)\.language$/', $name, $languageMatch)) {
+            $index = (int) $languageMatch[1];
+            $language = $this->fields[$index]['language'] ?? null;
+
+            if (! in_array($language, ['ar', 'en'], true)) {
+                $this->fields[$index]['language'] = null;
+            } else {
+                $this->fields[$index]['rtl'] = $language === 'ar';
+            }
+
+            return;
+        }
+
         // Manual X/Y typed directly into the panel — clamp the same way a
         // drag or keyboard nudge would, so a typo can't place a field
         // off the page.
@@ -283,6 +301,7 @@ class PrintTemplatePageBuilder extends Component
                 'font_size' => $field['font_size'],
                 'text_align' => $field['text_align'],
                 'rtl' => $field['rtl'],
+                'language' => $field['language'] ?? null,
             ]);
         }
 

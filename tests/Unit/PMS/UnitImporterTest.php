@@ -34,7 +34,7 @@ class UnitImporterTest extends TestCase
         $record = $this->makeImporter([
             'property_name' => 'Marina Tower',
             'unit_number' => '101',
-            'unit_type' => UnitType::TWO_BEDROOM->value,
+            'unit_type' => UnitType::APARTMENT->value,
         ])->resolveRecord();
 
         $this->assertInstanceOf(Unit::class, $record);
@@ -51,7 +51,7 @@ class UnitImporterTest extends TestCase
         $record = $this->makeImporter([
             'property_name' => 'Marina Tower',
             'unit_number' => '101',
-            'unit_type' => UnitType::TWO_BEDROOM->value,
+            'unit_type' => UnitType::APARTMENT->value,
         ])->resolveRecord();
 
         $this->assertTrue($record->exists);
@@ -65,7 +65,7 @@ class UnitImporterTest extends TestCase
         $this->makeImporter([
             'property_name' => 'Nonexistent Tower',
             'unit_number' => '101',
-            'unit_type' => UnitType::TWO_BEDROOM->value,
+            'unit_type' => UnitType::APARTMENT->value,
         ])->resolveRecord();
     }
 }

@@ -31,7 +31,7 @@ class UnitTest extends TestCase
         return Unit::factory()->create([
             'property_id' => Property::factory(),
             'property_classification' => $classification,
-            'unit_type' => UnitType::COMMERCIAL_OFFICE,
+            'unit_type' => UnitType::OFFICE,
         ]);
     }
 
@@ -79,7 +79,7 @@ class UnitTest extends TestCase
     public function test_unit_type_defaults_to_a_sensible_classification(): void
     {
         $this->assertSame(PropertyClassification::RESIDENTIAL, UnitType::STUDIO->defaultClassification());
-        $this->assertSame(PropertyClassification::COMMERCIAL, UnitType::RETAIL_SHOP->defaultClassification());
+        $this->assertSame(PropertyClassification::COMMERCIAL, UnitType::SHOP->defaultClassification());
         $this->assertSame(PropertyClassification::INDUSTRIAL, UnitType::WAREHOUSE->defaultClassification());
         $this->assertSame(PropertyClassification::RESIDENTIAL, UnitType::PARKING_BAY->defaultClassification());
     }

@@ -305,4 +305,34 @@ class PrintTemplatePageBuilderTest extends TestCase
             ->call('applyBoxSizeToSelected')
             ->assertSet('fields.0.width_percent', null);
     }
+
+    public function test_the_same_field_can_be_placed_twice_once_per_language(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 10, 10)
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 60, 10)
+            ->set('fields.0.language', 'en')
+            ->assertSet('fields.0.rtl', false)
+            ->set('fields.1.language', 'ar')
+            ->assertSet('fields.1.rtl', true)
+            ->call('save');
+
+        $saved = $page->fields()->orderBy('id')->get();
+        $this->assertCount(2, $saved);
+        $this->assertSame(['en', 'ar'], $saved->pluck('language')->all());
+        $this->assertSame('contract_type', $saved[0]->field_key);
+        $this->assertSame('contract_type', $saved[1]->field_key);
+    }
+
+    public function test_an_unknown_language_falls_back_to_default(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 10, 10)
+            ->set('fields.0.language', 'fr')
+            ->assertSet('fields.0.language', null);
+    }
 }

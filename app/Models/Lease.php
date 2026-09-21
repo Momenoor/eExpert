@@ -7,17 +7,18 @@ use App\Enums\PMS\AttestationStatus;
 use App\Enums\PMS\AttestationSystem;
 use App\Enums\PMS\ContractCategory;
 use App\Enums\PMS\ContractType;
-use App\Enums\PMS\DesignatedUse;
 use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeaseDisputeStatus;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\LeaseStatus;
+use App\Enums\PMS\YesNo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -53,7 +54,6 @@ class Lease extends Model
         'payment_method',
         'number_of_payments',
         'allow_multiple_licenses',
-        'designated_use',
         'number_of_occupants',
         'status',
         'attestation_system',
@@ -78,12 +78,11 @@ class Lease extends Model
         'grace_period_days' => 'integer',
         'total_base_rent' => 'decimal:2',
         'annual_rent' => 'decimal:2',
-        'multiple_rent_amount' => 'decimal:2',
+        'multiple_rent_amount' => YesNo::class,
         'security_deposit_amount' => 'decimal:2',
         'payment_method' => InstallmentPaymentMethod::class,
         'number_of_payments' => 'integer',
         'allow_multiple_licenses' => 'boolean',
-        'designated_use' => DesignatedUse::class,
         'number_of_occupants' => 'integer',
         'status' => LeaseStatus::class,
         'attestation_system' => AttestationSystem::class,
@@ -188,6 +187,57 @@ class Lease extends Model
         return $this->leaseParties->where('role', LeasePartyRole::GUARANTOR);
     }
 
+    /**
+     * The last day of a full one-year term starting on `$start` — the day
+     * before the anniversary, so a lease starting 1 Jan 2026 ends 31 Dec 2026.
+     */
+    public static function fullYearEnd(mixed $start): Carbon
+    {
+        return Carbon::parse($start)->addYear()->subDay();
+    }
+
+    /**
+     * Annual rent worked out from the contract period and the base rent
+     * for that period: a whole number of months is scaled to twelve (one
+     * full year is exactly the base rent), any other period by its days.
+     */
+    public static function annualRentFor(mixed $start, mixed $end, mixed $baseRent): ?float
+    {
+        if (blank($start) || blank($end) || blank($baseRent)) {
+            return null;
+        }
+
+        $from = Carbon::parse($start)->startOfDay();
+        $until = Carbon::parse($end)->startOfDay()->addDay();
+        $base = (float) $baseRent;
+
+        if ($until->lessThanOrEqualTo($from)) {
+            return round($base, 2);
+        }
+
+        $months = (int) floor($from->diffInMonths($until));
+
+        if ($months > 0 && $from->copy()->addMonths($months)->equalTo($until)) {
+            return round($base * 12 / $months, 2);
+        }
+
+        return round($base * 365 / max(1, (int) round($from->diffInDays($until))), 2);
+    }
+
+    /**
+     * A lease's contract type is whatever its unit was defined as — the
+     * first unit's rental type when a lease covers several.
+     *
+     * @param  array<int, int|string|null>  $unitIds
+     */
+    public static function detectContractType(array $unitIds): ?ContractType
+    {
+        $first = collect($unitIds)->filter()->first();
+        $rentalType = $first !== null ? Unit::find($first)?->getAttribute('rental_type') : null;
+
+        return $rentalType instanceof ContractType ? $rentalType : null;
+    }
+
     public function isEditable(): bool
     {
         return $this->getAttribute('status')->isEditable();
@@ -280,7 +330,9 @@ class Lease extends Model
             return '';
         }
 
-        $months = (int) $start->diffInMonths($end);
+        // Both dates are part of the term, so a lease from 1 Jan to 31 Dec
+        // is a full twelve months, not eleven.
+        $months = (int) $start->diffInMonths($end->copy()->addDay());
 
         if ($months > 0 && $months % 12 === 0) {
             $years = intdiv($months, 12);

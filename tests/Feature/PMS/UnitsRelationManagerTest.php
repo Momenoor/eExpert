@@ -37,7 +37,7 @@ class UnitsRelationManagerTest extends TestCase
         $property = Property::factory()->create();
         $unit = Unit::factory()->for($property)->create([
             'unit_number' => '101',
-            'unit_type' => UnitType::COMMERCIAL_OFFICE,
+            'unit_type' => UnitType::OFFICE,
             'property_classification' => PropertyClassification::COMMERCIAL,
         ]);
 
@@ -53,7 +53,7 @@ class UnitsRelationManagerTest extends TestCase
 
         $unit = $property->units()->create([
             'unit_number' => '101',
-            'unit_type' => UnitType::COMMERCIAL_OFFICE,
+            'unit_type' => UnitType::OFFICE,
             'property_classification' => PropertyClassification::COMMERCIAL,
             'rental_rate' => 50000,
         ]);

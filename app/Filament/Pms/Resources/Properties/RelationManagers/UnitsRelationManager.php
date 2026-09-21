@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pms\Resources\Properties\RelationManagers;
 
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
@@ -13,6 +14,7 @@ use Filament\Actions\ImportAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -41,10 +43,23 @@ class UnitsRelationManager extends RelationManager
                 // The classification a type normally implies, offered as a
                 // default the office can still override — a warehouse inside
                 // a mixed-use tower may need a different rate than usual.
-                ->afterStateUpdated(fn (Set $set, $state) => $set(
-                    'property_classification',
-                    $state ? UnitType::from($state->value)->defaultClassification()->value : null,
-                )),
+                ->afterStateUpdated(function (Set $set, $state): void {
+                    $type = $state instanceof UnitType ? $state : UnitType::tryFrom((string) $state);
+
+                    $set('property_classification', $type?->defaultClassification()->value);
+                    $set('rental_type', $type ? ContractType::defaultForUnitType($type)?->value : null);
+                }),
+            Select::make('rental_type')
+                ->label(__('Rental Type'))
+                ->options(function (Get $get): array {
+                    $state = $get('unit_type');
+                    $type = $state instanceof UnitType ? $state : UnitType::tryFrom((string) $state);
+
+                    return collect($type ? ContractType::forUnitType($type) : [])
+                        ->mapWithKeys(fn (ContractType $rental): array => [$rental->value => $rental->getLabel()])
+                        ->all();
+                })
+                ->helperText(__('Leases on this unit take their contract type from this.')),
             Select::make('property_classification')
                 ->label(__('Property Classification'))
                 ->options(PropertyClassification::class)

@@ -3,6 +3,7 @@
 namespace Tests\Feature\PMS;
 
 use App\Enums\PMS\ContractCategory;
+use App\Enums\PMS\ContractType;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\LeasePartyRole;
 use App\Models\ConditionTemplate;
@@ -201,5 +202,56 @@ class LeasePrintFieldResolverTest extends TestCase
 
         $this->assertSame('No pets allowed.', $this->resolver->resolve($lease, 'special_conditions_en'));
         $this->assertSame('لا يسمح بالحيوانات الأليفة.', $this->resolver->resolve($lease, 'special_conditions_ar'));
+    }
+
+    public function test_enum_fields_print_in_the_language_chosen_for_the_field(): void
+    {
+        $unit = Unit::factory()->commercial()->create(['rental_type' => ContractType::SHOP]);
+        $tenant = Party::factory()->tenant()->create();
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'total_base_rent' => 60000,
+            'multiple_rent_amount' => 'yes',
+            'allow_multiple_licenses' => true,
+        ], [
+            ['party_id' => $tenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        app()->setLocale('en');
+
+        // The contract type is not typed in — it comes from the unit.
+        $this->assertSame('Shop', $this->resolver->resolve($lease, 'contract_type', 'en'));
+        $this->assertSame('محل', $this->resolver->resolve($lease, 'contract_type', 'ar'));
+        $this->assertSame('Yes', $this->resolver->resolve($lease, 'multiple_rent_amount', 'en'));
+        $this->assertSame('نعم', $this->resolver->resolve($lease, 'multiple_rent_amount', 'ar'));
+        $this->assertSame('Yes', $this->resolver->resolve($lease, 'allow_multiple_licenses', 'en'));
+        $this->assertSame('نعم', $this->resolver->resolve($lease, 'allow_multiple_licenses', 'ar'));
+        $this->assertSame('سنة واحدة', $this->resolver->resolve($lease, 'rent_duration', 'ar'));
+        $this->assertSame('1 Year', $this->resolver->resolve($lease, 'rent_duration', 'en'));
+
+        // No language set keeps the app's current one, and the app locale
+        // is restored after a per-field override.
+        $this->assertSame('Shop', $this->resolver->resolve($lease, 'contract_type'));
+        $this->assertSame('en', app()->getLocale());
+    }
+
+    public function test_a_language_never_changes_a_value_that_is_not_translatable(): void
+    {
+        $unit = Unit::factory()->residential()->create();
+        $tenant = Party::factory()->tenant()->create();
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'total_base_rent' => 60000,
+            'government_contract_number' => 'CN-7',
+        ], [
+            ['party_id' => $tenant->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        $this->assertSame('CN-7', $this->resolver->resolve($lease, 'government_contract_number', 'ar'));
+        $this->assertSame('01/01/2026', $this->resolver->resolve($lease, 'start_date', 'ar'));
     }
 }

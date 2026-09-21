@@ -2,25 +2,26 @@
 
 namespace App\Filament\Pms\Resources\Leases\Schemas;
 
-use App\Enums\PMS\ContractType;
-use App\Enums\PMS\DesignatedUse;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\InstallmentPaymentMethod;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\PropertyClassification;
+use App\Enums\PMS\YesNo;
 use App\Models\ConditionTemplate;
+use App\Models\Lease;
 use App\Models\Party;
 use App\Models\Unit;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Carbon;
 
 /**
  * Raw-input lease creation — the other path, converting an accepted
@@ -40,15 +41,19 @@ class LeaseForm
                             ->label(__('Start Date'))
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, ?string $state) => $set(
-                                'end_date',
-                                $state ? Carbon::parse($state)->addYear()->toDateString() : null,
-                            )),
+                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state): void {
+                                $end = $state ? Lease::fullYearEnd($state)->toDateString() : null;
+
+                                $set('end_date', $end);
+                                self::syncAnnualRent($set, $state, $end, $get('total_base_rent'));
+                            }),
                         DatePicker::make('end_date')
                             ->label(__('End Date'))
                             ->required()
                             ->afterOrEqual('start_date')
-                            ->helperText(__('Defaults to one year after the start date — adjust if the contract runs differently.')),
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Set $set, Get $get, ?string $state) => self::syncAnnualRent($set, $get('start_date'), $state, $get('total_base_rent')))
+                            ->helperText(__('Defaults to a full year — the day before the start date\'s anniversary. Adjust if the contract runs differently.')),
                         DatePicker::make('issue_date')
                             ->label(__('Issue Date'))
                             ->default(now()),
@@ -67,17 +72,19 @@ class LeaseForm
                             ->numeric()
                             ->minValue(0)
                             ->step(0.01)
-                            ->required(),
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Set $set, Get $get, $state) => self::syncAnnualRent($set, $get('start_date'), $get('end_date'), $state)),
                         TextInput::make('annual_rent')
                             ->label(__('Annual Rent (AED)'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.01),
-                        TextInput::make('multiple_rent_amount')
-                            ->label(__('Multiple Rent Amount (AED)'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.01),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->helperText(__('Calculated from the contract period and the base rent — a full year equals the base rent.')),
+                        Select::make('multiple_rent_amount')
+                            ->label(__('Multiple Rent Amount'))
+                            ->options(YesNo::class)
+                            ->default(YesNo::NO->value)
+                            ->required(),
                         TextInput::make('security_deposit_amount')
                             ->label(__('Security Deposit (AED)'))
                             ->numeric()
@@ -92,9 +99,10 @@ class LeaseForm
                         TextInput::make('government_contract_number')
                             ->label(__('Contract No.'))
                             ->maxLength(255),
-                        Select::make('contract_type')
+                        Placeholder::make('contract_type_detected')
                             ->label(__('Contract Type'))
-                            ->options(ContractType::class),
+                            ->content(fn (Get $get): string => Lease::detectContractType((array) $get('units'))?->getLabel() ?? '—')
+                            ->helperText(__('Detected from the unit\'s rental type.')),
                         Select::make('payment_method')
                             ->label(__('Payment Method'))
                             ->options(InstallmentPaymentMethod::class),
@@ -111,10 +119,6 @@ class LeaseForm
 
                 Section::make(__('Occupancy & Use'))
                     ->schema([
-                        Select::make('designated_use')
-                            ->label(__('Designated Use'))
-                            ->helperText(__('Commercial/industrial contracts only.'))
-                            ->options(DesignatedUse::class),
                         TextInput::make('number_of_occupants')
                             ->label(__('No. of Occupants'))
                             ->helperText(__('Residential contracts only.'))
@@ -191,6 +195,13 @@ class LeaseForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    private static function syncAnnualRent(Set $set, mixed $start, mixed $end, mixed $baseRent): void
+    {
+        $annual = Lease::annualRentFor($start, $end, $baseRent);
+
+        $set('annual_rent', $annual === null ? null : number_format($annual, 2, '.', ''));
     }
 
     /**
