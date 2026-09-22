@@ -6,6 +6,7 @@ use App\Filament\Pms\Resources\Properties\PropertyResource;
 use App\Models\Party;
 use App\Models\Property;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditProperty extends EditRecord
@@ -20,7 +21,18 @@ class EditProperty extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->before(function (Property $record, DeleteAction $action): void {
+                    if ($record->hasLeaseHistory()) {
+                        Notification::make()
+                            ->danger()
+                            ->title(__('Could not continue'))
+                            ->body(__('This property has units linked to a lease and cannot be deleted.'))
+                            ->send();
+
+                        $action->halt();
+                    }
+                }),
         ];
     }
 

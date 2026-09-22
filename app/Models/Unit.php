@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\PMS\LeaseStatus;
 use App\Enums\PMS\PropertyClassification;
 use App\Enums\PMS\UnitStatus;
 use App\Enums\PMS\UnitType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use RuntimeException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -54,6 +57,84 @@ class Unit extends Model
     {
         return LogOptions::defaults()
             ->logAll();
+    }
+
+    protected static function booted(): void
+    {
+        static::created(fn (Unit $unit) => self::syncPropertyTotalUnits($unit->getAttribute('property_id')));
+        static::deleted(fn (Unit $unit) => self::syncPropertyTotalUnits($unit->getAttribute('property_id')));
+        static::restored(fn (Unit $unit) => self::syncPropertyTotalUnits($unit->getAttribute('property_id')));
+
+        static::updated(function (Unit $unit): void {
+            // A unit moved between properties updates both sides' counts.
+            if ($unit->wasChanged('property_id')) {
+                self::syncPropertyTotalUnits($unit->getAttribute('property_id'));
+                self::syncPropertyTotalUnits($unit->getOriginal('property_id'));
+            }
+
+            if ($unit->wasChanged(['unit_type', 'property_classification'])) {
+                $unit->clearContractTypeOnDraftLeasesIfNoLongerAllowed();
+            }
+        });
+
+        // A unit already tied to a lease is part of that lease's history —
+        // deleting it would leave a contract pointing at nothing.
+        static::deleting(function (Unit $unit): void {
+            if ($unit->hasLeaseHistory()) {
+                throw new RuntimeException('This unit is linked to a lease and cannot be deleted.');
+            }
+        });
+    }
+
+    /**
+     * @return BelongsToMany<Lease, $this>
+     */
+    public function leases(): BelongsToMany
+    {
+        return $this->belongsToMany(Lease::class, 'lease_unit')
+            ->withTimestamps();
+    }
+
+    public function hasLeaseHistory(): bool
+    {
+        return $this->leases()->exists();
+    }
+
+    /**
+     * A unit's type/classification only ever corrects a lease's own
+     * `contract_type` while that lease is still `DRAFT` — an active or
+     * terminated contract's recorded type is history and stays exactly as
+     * attested, whatever the unit is edited to afterward.
+     */
+    private function clearContractTypeOnDraftLeasesIfNoLongerAllowed(): void
+    {
+        $this->leases()
+            ->where('status', LeaseStatus::DRAFT->value)
+            ->get()
+            ->each(function (Lease $lease): void {
+                $allowed = Lease::allowedContractTypes($lease->units()->pluck('units.id')->all());
+                $current = $lease->getAttribute('contract_type');
+
+                if ($current !== null && ! in_array($current, $allowed, true)) {
+                    $lease->forceFill(['contract_type' => null])->save();
+                }
+            });
+    }
+
+    /**
+     * Recomputes a property's `total_units` from its actual (non-trashed)
+     * units, rather than incrementing/decrementing a counter that could
+     * drift out of sync with reality.
+     */
+    private static function syncPropertyTotalUnits(mixed $propertyId): void
+    {
+        if ($propertyId === null) {
+            return;
+        }
+
+        Property::whereKey($propertyId)->update([
+            'total_units' => self::where('property_id', $propertyId)->count(),
+        ]);
     }
 
     /**

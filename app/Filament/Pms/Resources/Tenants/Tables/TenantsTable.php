@@ -3,9 +3,11 @@
 namespace App\Filament\Pms\Resources\Tenants\Tables;
 
 use App\Enums\PMS\TenantType;
+use App\Models\Tenant;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -46,7 +48,19 @@ class TenantsTable
             ])
             ->recordActions([
                 EditAction::make()->iconButton(),
-                DeleteAction::make()->iconButton(),
+                DeleteAction::make()
+                    ->iconButton()
+                    ->before(function (Tenant $record, DeleteAction $action): void {
+                        if ($record->hasLeaseHistory()) {
+                            Notification::make()
+                                ->danger()
+                                ->title(__('Could not continue'))
+                                ->body(__('This tenant is linked to a lease and cannot be deleted.'))
+                                ->send();
+
+                            $action->halt();
+                        }
+                    }),
             ])
             ->emptyStateHeading(__('No tenants yet'))
             ->emptyStateActions([

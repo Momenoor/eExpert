@@ -11,6 +11,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -31,10 +32,9 @@ class PropertyForm
                         TextInput::make('address')
                             ->label(__('Address'))
                             ->maxLength(255),
-                        TextInput::make('total_units')
+                        TextEntry::make('total_units')
                             ->label(__('Total Units'))
-                            ->numeric()
-                            ->minValue(0),
+                            ->numeric(),
                         TextInput::make('year_built')
                             ->label(__('Year Built'))
                             ->numeric()

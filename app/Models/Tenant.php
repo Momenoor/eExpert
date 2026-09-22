@@ -7,6 +7,7 @@ use App\Enums\PMS\TenantType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -43,6 +44,17 @@ class Tenant extends Model
             ->logAll();
     }
 
+    protected static function booted(): void
+    {
+        // A tenant that has been party to a lease is part of that lease's
+        // history — deleting it would leave a contract pointing at nothing.
+        static::deleting(function (Tenant $tenant): void {
+            if ($tenant->hasLeaseHistory()) {
+                throw new RuntimeException('This tenant is linked to a lease and cannot be deleted.');
+            }
+        });
+    }
+
     /**
      * @return BelongsTo<Party, $this>
      */
@@ -54,5 +66,12 @@ class Tenant extends Model
     public function isCompany(): bool
     {
         return $this->getAttribute('tenant_type') === TenantType::COMPANY;
+    }
+
+    public function hasLeaseHistory(): bool
+    {
+        $partyId = $this->getAttribute('party_id');
+
+        return $partyId !== null && LeaseParty::where('party_id', $partyId)->exists();
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use RuntimeException;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -54,6 +55,19 @@ class Property extends Model
                 $property->setAttribute('owner_group_bank_account_id', null);
             }
         });
+
+        // A property with a leased unit is part of that lease's history —
+        // deleting it would leave a contract pointing at nothing.
+        static::deleting(function (Property $property): void {
+            if ($property->hasLeaseHistory()) {
+                throw new RuntimeException('This property has units linked to a lease and cannot be deleted.');
+            }
+        });
+    }
+
+    public function hasLeaseHistory(): bool
+    {
+        return Lease::whereHas('units', fn ($query) => $query->where('property_id', $this->getKey()))->exists();
     }
 
     /**

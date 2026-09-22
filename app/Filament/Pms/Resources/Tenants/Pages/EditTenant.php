@@ -5,6 +5,7 @@ namespace App\Filament\Pms\Resources\Tenants\Pages;
 use App\Filament\Pms\Resources\Tenants\TenantResource;
 use App\Models\Tenant;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,7 +16,18 @@ class EditTenant extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->before(function (Tenant $record, DeleteAction $action): void {
+                    if ($record->hasLeaseHistory()) {
+                        Notification::make()
+                            ->danger()
+                            ->title(__('Could not continue'))
+                            ->body(__('This tenant is linked to a lease and cannot be deleted.'))
+                            ->send();
+
+                        $action->halt();
+                    }
+                }),
         ];
     }
 

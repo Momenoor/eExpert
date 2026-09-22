@@ -180,6 +180,61 @@ class LeaseContractTermsTest extends TestCase
         $this->assertNull(Lease::suggestContractType([$flat->id]));
     }
 
+    public function test_changing_a_units_type_clears_an_invalid_contract_type_only_on_a_draft_lease(): void
+    {
+        $unit = Unit::factory()->residential()->create([
+            'unit_type' => UnitType::APARTMENT,
+            'property_classification' => PropertyClassification::RESIDENTIAL,
+        ]);
+
+        $lease = app(LeaseService::class)->createFromRawInputs([
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'total_base_rent' => 60000,
+            'contract_type' => 'family',
+        ], [
+            ['party_id' => Party::factory()->tenant()->create()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        $this->assertSame(ContractType::FAMILY, $lease->fresh()->contract_type);
+
+        // Reclassifying the unit as commercial makes "family" no longer
+        // valid for this still-draft lease.
+        $unit->update(['unit_type' => UnitType::OFFICE, 'property_classification' => PropertyClassification::COMMERCIAL]);
+
+        $this->assertNull($lease->fresh()->contract_type);
+    }
+
+    public function test_changing_a_units_type_never_touches_a_lease_that_is_no_longer_draft(): void
+    {
+        $unit = Unit::factory()->residential()->create([
+            'unit_type' => UnitType::APARTMENT,
+            'property_classification' => PropertyClassification::RESIDENTIAL,
+        ]);
+
+        $service = app(LeaseService::class);
+        $lease = $service->createFromRawInputs([
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'total_base_rent' => 60000,
+            'contract_type' => 'family',
+        ], [
+            ['party_id' => Party::factory()->tenant()->create()->id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        $service->submitForAttestation($lease);
+        $service->attest($lease, ['attestation_system' => 'ejari_dubai', 'attestation_serial_number' => 'EJ-1']);
+
+        $unit->update(['unit_type' => UnitType::OFFICE, 'property_classification' => PropertyClassification::COMMERCIAL]);
+
+        $this->assertSame(ContractType::FAMILY, $lease->fresh()->contract_type);
+
+        $service->terminate($lease->fresh());
+        $unit->update(['unit_type' => UnitType::WAREHOUSE]);
+
+        $this->assertSame(ContractType::FAMILY, $lease->fresh()->contract_type);
+    }
+
     public function test_the_wizard_fills_a_full_year_end_date_and_the_annual_rent(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('pms'));
