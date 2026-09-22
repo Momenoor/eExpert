@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'server_url' => env('LICENSE_SERVER_URL', 'https://license.mie-app.example'),
+    'server_url' => env('LICENSE_SERVER_URL', 'https://license.jpaemirates.com'),
 
     /*
     |--------------------------------------------------------------------------
