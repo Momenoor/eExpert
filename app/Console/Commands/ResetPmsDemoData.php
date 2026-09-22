@@ -30,9 +30,9 @@ class ResetPmsDemoData extends Command
      * @var list<string>
      */
     private const TABLES = [
-//        'lease_print_template_fields',
-//        'lease_print_template_pages',
-//        'lease_print_templates',
+        //        'lease_print_template_fields',
+        //        'lease_print_template_pages',
+        //        'lease_print_templates',
         'installment_payments',
         'installments',
         'lease_party',
@@ -72,7 +72,7 @@ class ResetPmsDemoData extends Command
 
         DB::statement($isSqlite ? 'PRAGMA foreign_keys = ON' : 'SET FOREIGN_KEY_CHECKS=1');
 
-        //$this->call('db:seed', ['--class' => PMSDemoSeeder::class]);
+        // $this->call('db:seed', ['--class' => PMSDemoSeeder::class]);
 
         $this->info('PMS demo data reset and reseeded.');
 
