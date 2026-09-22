@@ -118,7 +118,8 @@ class UnitsRelationManager extends RelationManager
                 ImportAction::make()
                     ->importer(UnitImporter::class)
                     ->pluralModelLabel(__('Units')),
-                CreateAction::make(),
+                CreateAction::make()
+                    ->label(__('Add Unit')),
             ])
             ->recordActions([
                 EditAction::make(),

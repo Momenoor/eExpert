@@ -37,6 +37,8 @@ class ViewLease extends ViewRecord
             $this->printSharjahCommercialAction(),
             $this->printSharjahResidentialAction(),
             $this->printDubaiAction(),
+            $this->printTaxInvoicesAction(),
+            $this->printReceivableReceiptAction(),
         ];
     }
 
@@ -277,6 +279,33 @@ class ViewLease extends ViewRecord
             ->color('gray')
             ->visible(fn (): bool => $this->isDubaiLease())
             ->url(fn (): string => route('pms.leases.print', ['lease' => $this->lease(), 'format' => 'dubai_ejari']))
+            ->openUrlInNewTab();
+    }
+
+    /**
+     * Available as soon as the lease has an instalment to invoice — a
+     * renewal is just another lease with its own new instalments, so this
+     * needs no extra step for the "on renewal" case either.
+     */
+    private function printTaxInvoicesAction(): Action
+    {
+        return Action::make('print_tax_invoices')
+            ->label(__('Print Tax Invoices'))
+            ->icon('heroicon-o-document-currency-dollar')
+            ->color('gray')
+            ->visible(fn (): bool => $this->lease()->installments()->exists())
+            ->url(fn (): string => route('pms.leases.tax-invoices', ['lease' => $this->lease()]))
+            ->openUrlInNewTab();
+    }
+
+    private function printReceivableReceiptAction(): Action
+    {
+        return Action::make('print_receivable_receipt')
+            ->label(__('Print Receivable Receipt'))
+            ->icon('heroicon-o-receipt-percent')
+            ->color('gray')
+            ->visible(fn (): bool => $this->lease()->installments()->exists())
+            ->url(fn (): string => route('pms.leases.receivable-receipt', ['lease' => $this->lease()]))
             ->openUrlInNewTab();
     }
 

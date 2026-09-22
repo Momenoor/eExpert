@@ -64,4 +64,44 @@ class OwnerProfileResourceTest extends TestCase
         $this->assertSame('New Owner', $party->fresh()->name);
         $this->assertSame('Emirates NBD', $profile->fresh()->bank_name);
     }
+
+    /**
+     * Nationality and Unified No. were dropped silently on both create and
+     * update — present on the form, in `$fillable`, but never actually
+     * written by either page — which is why they never "stuck".
+     */
+    public function test_creating_an_owner_saves_nationality_and_unified_number(): void
+    {
+        Livewire::test(CreateOwnerProfile::class)
+            ->fillForm([
+                'name' => 'Salim Al Kaabi',
+                'nationality' => 'UAE',
+                'unified_number' => '1122334455',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $profile = OwnerProfile::whereHas('party', fn ($query) => $query->where('name', 'Salim Al Kaabi'))->sole();
+
+        $this->assertSame('UAE', $profile->nationality);
+        $this->assertSame('1122334455', $profile->unified_number);
+    }
+
+    public function test_editing_an_owner_saves_nationality_and_unified_number(): void
+    {
+        $party = Party::factory()->owner()->create();
+        $profile = OwnerProfile::create(['party_id' => $party->id]);
+
+        Livewire::test(EditOwnerProfile::class, ['record' => $profile->getKey()])
+            ->fillForm([
+                'nationality' => 'Egypt',
+                'unified_number' => '9988776655',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $profile->refresh();
+        $this->assertSame('Egypt', $profile->nationality);
+        $this->assertSame('9988776655', $profile->unified_number);
+    }
 }

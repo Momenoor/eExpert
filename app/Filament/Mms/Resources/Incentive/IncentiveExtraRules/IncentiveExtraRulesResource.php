@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\Incentive\IncentiveExtraRules;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\Incentive\IncentiveExtraRules\Pages\CreateIncentiveExtraRules;
 use App\Filament\Mms\Resources\Incentive\IncentiveExtraRules\Pages\EditIncentiveExtraRules;
 use App\Filament\Mms\Resources\Incentive\IncentiveExtraRules\Pages\ListIncentiveExtraRules;
@@ -15,7 +16,14 @@ use Filament\Tables\Table;
 
 class IncentiveExtraRulesResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = IncentiveExtraRule::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_payroll';
+    }
 
     public static function getModelLabel(): string
     {

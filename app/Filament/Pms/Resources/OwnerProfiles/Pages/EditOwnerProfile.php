@@ -29,6 +29,7 @@ class EditOwnerProfile extends EditRecord
         $data['phone'] = $party->phone ?? [];
         $data['email'] = $party->email ?? [];
         $data['owner_group_id'] = $profile->owner_group_id;
+        $data['is_primary'] = $profile->is_primary;
 
         return $data;
     }
@@ -44,7 +45,10 @@ class EditOwnerProfile extends EditRecord
 
         $record->update([
             'owner_group_id' => $data['owner_group_id'] ?? null,
+            'is_primary' => $data['is_primary'] ?? false,
             'identification_number' => $data['identification_number'] ?? null,
+            'unified_number' => $data['unified_number'] ?? null,
+            'nationality' => $data['nationality'] ?? null,
             'trn' => $data['trn'] ?? null,
             'bank_name' => $data['bank_name'] ?? null,
             'bank_account_no' => $data['bank_account_no'] ?? null,

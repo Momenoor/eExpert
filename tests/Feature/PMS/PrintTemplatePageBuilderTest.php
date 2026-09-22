@@ -335,4 +335,30 @@ class PrintTemplatePageBuilderTest extends TestCase
             ->set('fields.0.language', 'fr')
             ->assertSet('fields.0.language', null);
     }
+
+    /**
+     * Server-side regression lock for the same bug the missing `wire:key`
+     * caused in the browser: editing one placed copy of a field must never
+     * touch another copy of the same field placed elsewhere on the page.
+     */
+    public function test_editing_one_copy_of_a_duplicated_field_never_touches_the_others(): void
+    {
+        $page = $this->page();
+
+        Livewire::test(PrintTemplatePageBuilder::class, ['pageId' => $page->id])
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 10, 10)
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 30, 10)
+            ->set('selectedFieldKey', 'contract_type')->call('placeField', 50, 10)
+            ->set('fields.1.language', 'ar')
+            ->set('fields.1.font_size', 22)
+            ->call('toggleRtl', 1)
+            ->assertSet('fields.0.language', null)
+            ->assertSet('fields.0.font_size', 10)
+            ->assertSet('fields.0.rtl', false)
+            ->assertSet('fields.2.language', null)
+            ->assertSet('fields.2.font_size', 10)
+            ->assertSet('fields.2.rtl', false)
+            ->assertSet('fields.1.language', 'ar')
+            ->assertSet('fields.1.font_size', 22);
+    }
 }

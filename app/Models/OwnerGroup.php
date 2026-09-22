@@ -54,6 +54,17 @@ class OwnerGroup extends Model
     }
 
     /**
+     * The member whose personal name/details a contract shows for this
+     * group — falls back to the first member (by id) when nobody has been
+     * explicitly flagged primary yet.
+     */
+    public function primaryProfile(): ?OwnerProfile
+    {
+        return $this->ownerProfiles()->where('is_primary', true)->first()
+            ?? $this->ownerProfiles()->orderBy('id')->first();
+    }
+
+    /**
      * @return HasMany<OwnerGroupBankAccount, $this>
      */
     public function bankAccounts(): HasMany
@@ -67,5 +78,16 @@ class OwnerGroup extends Model
     public function properties(): HasMany
     {
         return $this->hasMany(Property::class);
+    }
+
+    /**
+     * This group's own Tax Invoice / Receivable Receipt letterhead
+     * templates — see `LeasePrintTemplate::forOwnerGroup()`.
+     *
+     * @return HasMany<LeasePrintTemplate, $this>
+     */
+    public function documentTemplates(): HasMany
+    {
+        return $this->hasMany(LeasePrintTemplate::class);
     }
 }

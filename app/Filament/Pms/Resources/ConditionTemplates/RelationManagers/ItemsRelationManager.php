@@ -66,6 +66,7 @@ class ItemsRelationManager extends RelationManager
             ->defaultSort('sort_order')
             ->headerActions([
                 CreateAction::make()
+                    ->label(__('Add Clause'))
                     ->mutateDataUsing(function (array $data): array {
                         $data['section'] = ConditionSection::SPECIAL->value;
 

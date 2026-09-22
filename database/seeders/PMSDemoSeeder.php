@@ -5,12 +5,17 @@ namespace Database\Seeders;
 use App\Enums\PMS\Emirate;
 use App\Enums\PMS\LeasePartyRole;
 use App\Enums\PMS\PropertyType;
+use App\Models\Lease;
+use App\Models\LeasePrintTemplate;
+use App\Models\LeasePrintTemplatePage;
 use App\Models\OwnerGroup;
+use App\Models\OwnerGroupBankAccount;
 use App\Models\OwnerProfile;
 use App\Models\Party;
 use App\Models\Property;
 use App\Models\Tenant;
 use App\Models\Unit;
+use App\Services\MMS\PaymentService;
 use App\Services\PMS\InstallmentGenerator;
 use App\Services\PMS\LeaseService;
 use App\Services\PMS\QuotationService;
@@ -50,9 +55,13 @@ class PMSDemoSeeder extends Seeder
             $sharjahResidential = $this->sharjahResidentialProperty();
             $dubaiProperty = $this->dubaiProperty();
 
-            $this->activeLeaseWithGeneratedSchedule($sharjahCommercial);
+            $activeLease = $this->activeLeaseWithGeneratedSchedule($sharjahCommercial);
+            $this->recordSamplePayments($activeLease);
             $this->activeLeaseWithManualSchedule($sharjahResidential);
+            $this->draftLease($dubaiProperty);
+            $this->terminatedLease($dubaiProperty);
             $this->draftQuotation($dubaiProperty);
+            $this->samplePrintTemplateFields();
         });
     }
 
@@ -114,6 +123,7 @@ class PMSDemoSeeder extends Seeder
         $heirOne = OwnerProfile::factory()->create([
             'party_id' => Party::factory()->owner()->create(['name' => 'Fatima Kalbat'])->id,
             'owner_group_id' => $group->id,
+            'is_primary' => true,
         ]);
         $heirTwo = OwnerProfile::factory()->create([
             'party_id' => Party::factory()->owner()->create(['name' => 'Khalid Kalbat'])->id,
@@ -121,6 +131,19 @@ class PMSDemoSeeder extends Seeder
         ]);
         $property->owners()->attach($heirOne->party_id, ['ownership_percentage' => 60]);
         $property->owners()->attach($heirTwo->party_id, ['ownership_percentage' => 40]);
+
+        // The estate's own accounts — one default, one alternate — and the
+        // property points at the default one for its rent.
+        $defaultAccount = OwnerGroupBankAccount::factory()->create([
+            'owner_group_id' => $group->id,
+            'bank_name' => 'Emirates NBD',
+            'is_default' => true,
+        ]);
+        OwnerGroupBankAccount::factory()->create([
+            'owner_group_id' => $group->id,
+            'bank_name' => 'Sharjah Islamic Bank',
+        ]);
+        $property->update(['owner_group_id' => $group->id, 'owner_group_bank_account_id' => $defaultAccount->id]);
 
         return $property;
     }
@@ -156,7 +179,7 @@ class PMSDemoSeeder extends Seeder
      * evenly-split, auto-generated instalment schedule — the ordinary path
      * most leases in this app actually take.
      */
-    private function activeLeaseWithGeneratedSchedule(Property $property): void
+    private function activeLeaseWithGeneratedSchedule(Property $property): Lease
     {
         $unit = $property->units()->first();
         $tenant = Tenant::factory()->company()->create([
@@ -181,6 +204,44 @@ class PMSDemoSeeder extends Seeder
         ]);
 
         app(InstallmentGenerator::class)->generateSchedule($lease->fresh(), 4);
+
+        return $lease->fresh();
+    }
+
+    /**
+     * One instalment paid in full, another partially — so the payment
+     * ledger (`installment_payments`) has more than one row per instalment
+     * to show the individual collections behind a running total.
+     */
+    private function recordSamplePayments(Lease $lease): void
+    {
+        $installments = $lease->installments()->orderBy('due_date')->get();
+        $paymentService = app(PaymentService::class);
+
+        if ($installments->isEmpty()) {
+            return;
+        }
+
+        $first = $installments->first();
+        $paymentService->recordPayment($first, [
+            'amount' => (float) $first->total_due_amount,
+            'payment_method' => 'bank_transfer',
+            'transaction_reference' => 'TRF-DEMO-001',
+        ]);
+
+        if ($installments->count() > 1) {
+            $second = $installments->get(1);
+            $half = round((float) $second->total_due_amount / 2, 2);
+
+            $paymentService->recordPayment($second, [
+                'amount' => $half,
+                'payment_method' => 'cash',
+            ]);
+            $paymentService->recordPayment($second->fresh(), [
+                'amount' => (float) $second->fresh()->balance_due,
+                'payment_method' => 'cash',
+            ]);
+        }
     }
 
     /**
@@ -236,6 +297,78 @@ class PMSDemoSeeder extends Seeder
             'units' => [['unit_id' => $unit->id, 'offered_rent' => (float) $unit->rental_rate]],
             'security_deposit' => 5000,
             'validity_date' => now()->addDays(14)->toDateString(),
+        ]);
+    }
+
+    /**
+     * A lease still `DRAFT` — never submitted for attestation — so the
+     * Edit Lease flow has something to correct in the demo data.
+     */
+    private function draftLease(Property $property): void
+    {
+        $unit = $property->units()->skip(1)->first();
+        $tenant = Tenant::factory()->create([
+            'party_id' => Party::factory()->tenant()->create(['name' => 'Youssef Al Ameri'])->id,
+        ]);
+
+        app(LeaseService::class)->createFromRawInputs([
+            'start_date' => now()->addMonth()->toDateString(),
+            'end_date' => now()->addMonth()->addYear()->subDay()->toDateString(),
+            'total_base_rent' => (float) $unit->rental_rate,
+        ], [
+            ['party_id' => $tenant->party_id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+    }
+
+    /**
+     * A lease that ran its course and was ended — status variety beyond
+     * "still active", and its unit released back to vacant.
+     */
+    private function terminatedLease(Property $property): void
+    {
+        $unit = $property->units()->skip(2)->first();
+        $tenant = Tenant::factory()->create([
+            'party_id' => Party::factory()->tenant()->create(['name' => 'Rania Al Suwaidi'])->id,
+        ]);
+
+        $leaseService = app(LeaseService::class);
+        $lease = $leaseService->createFromRawInputs([
+            'start_date' => now()->subYears(2)->toDateString(),
+            'end_date' => now()->subYear()->subDay()->toDateString(),
+            'total_base_rent' => (float) $unit->rental_rate,
+        ], [
+            ['party_id' => $tenant->party_id, 'role' => LeasePartyRole::PRIMARY_TENANT->value],
+        ], [$unit->id]);
+
+        $leaseService->submitForAttestation($lease);
+        $leaseService->attest($lease, [
+            'attestation_system' => 'ejari_dubai',
+            'attestation_serial_number' => 'DXB-'.fake()->numerify('######'),
+        ]);
+        $leaseService->terminate($lease->fresh());
+    }
+
+    /**
+     * Two field placements on the Sharjah Residential print template — so
+     * the click-to-place builder has something to load and edit, rather
+     * than every seeded template being an empty shell.
+     */
+    private function samplePrintTemplateFields(): void
+    {
+        $template = LeasePrintTemplate::where('contract_format', 'sharjah_residential')->first();
+
+        if ($template === null) {
+            return;
+        }
+
+        $page = LeasePrintTemplatePage::create([
+            'lease_print_template_id' => $template->id,
+            'page_number' => 1,
+        ]);
+
+        $page->fields()->createMany([
+            ['field_key' => 'tenant_name', 'x_percent' => 15, 'y_percent' => 20],
+            ['field_key' => 'government_contract_number', 'x_percent' => 60, 'y_percent' => 10],
         ]);
     }
 }

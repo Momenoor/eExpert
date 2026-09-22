@@ -376,14 +376,31 @@ class Lease extends Model
      * the printed contract but not worth storing separately from the
      * property's own `owners()` relation.
      */
+    /**
+     * How many distinct owners sit behind this lease's units — a shared
+     * estate's own member count (its heirs/partners) when a property has
+     * one, since that is the definitive owner list for it, otherwise the
+     * property's individually recorded owners.
+     */
     public function numberOfLessors(): int
     {
-        return $this->units()->with('property.owners')->get()
+        $properties = $this->units()->with([
+            'property.owners.ownerProfile.ownerGroup',
+            'property.ownerGroup.ownerProfiles',
+        ])->get()
             ->pluck('property')
             ->filter()
-            ->unique('id')
-            ->flatMap(fn (Property $property): Collection => $property->owners)
-            ->unique('id')
+            ->unique('id');
+
+        return $properties
+            ->flatMap(function (Property $property): Collection {
+                $group = $property->getAttribute('ownerGroup') ?? $property->commonOwnerGroup();
+
+                return $group !== null
+                    ? $group->ownerProfiles->pluck('party_id')
+                    : $property->owners->pluck('id');
+            })
+            ->unique()
             ->count();
     }
 }

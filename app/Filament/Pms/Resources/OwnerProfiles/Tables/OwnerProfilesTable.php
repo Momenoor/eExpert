@@ -5,6 +5,7 @@ namespace App\Filament\Pms\Resources\OwnerProfiles\Tables;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,6 +20,9 @@ class OwnerProfilesTable
                     ->label(__('Owner'))
                     ->searchable()
                     ->sortable(),
+                IconColumn::make('is_primary')
+                    ->label(__('Primary'))
+                    ->boolean(),
                 TextColumn::make('identification_number')
                     ->label(__('Identification Number'))
                     ->placeholder('—'),

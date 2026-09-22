@@ -21,6 +21,7 @@ class OwnerProfile extends Model
     protected $fillable = [
         'party_id',
         'owner_group_id',
+        'is_primary',
         'identification_number',
         'nationality',
         'unified_number',
@@ -30,10 +31,27 @@ class OwnerProfile extends Model
         'iban',
     ];
 
+    protected $casts = [
+        'is_primary' => 'boolean',
+    ];
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logAll();
+    }
+
+    protected static function booted(): void
+    {
+        // Only one primary owner per group — flagging a new one demotes
+        // whichever member held it before, rather than leaving two.
+        static::saving(function (OwnerProfile $profile): void {
+            if ($profile->getAttribute('is_primary') && $profile->getAttribute('owner_group_id') !== null) {
+                static::where('owner_group_id', $profile->getAttribute('owner_group_id'))
+                    ->when($profile->exists, fn ($query) => $query->whereKeyNot($profile->getKey()))
+                    ->update(['is_primary' => false]);
+            }
+        });
     }
 
     /**

@@ -115,20 +115,19 @@ class Property extends Model
     }
 
     /**
-     * What a contract's "Landlord" line should show.
-     *
-     * When every owner on this property belongs to the same `OwnerGroup` —
-     * heirs administering an inherited property as one estate, typically —
-     * the group's collective name ("Legal Heirs of Mahmoud Kalbat") stands in
-     * for listing each of them individually. Anything less uniform (a mix of
-     * groups, or owners with no group at all) falls back to their own names.
+     * The group every owner on this property shares — heirs administering
+     * an inherited property as one estate, typically. Derived from the
+     * owners themselves (their profiles all pointing at the same group),
+     * for a property that predates or was never set up with the direct
+     * `owner_group_id` link. Anything less uniform (a mix of groups, or
+     * owners with no group at all) has no single group to return.
      */
-    public function landlordName(): string
+    public function commonOwnerGroup(): ?OwnerGroup
     {
         $owners = $this->owners()->with('ownerProfile.ownerGroup')->get();
 
         if ($owners->isEmpty()) {
-            return '';
+            return null;
         }
 
         $groupIds = $owners
@@ -136,13 +135,26 @@ class Property extends Model
             ->unique();
 
         if ($groupIds->count() === 1 && $groupIds->first() !== null) {
-            $group = $owners->first()?->ownerProfile?->getAttribute('ownerGroup');
-
-            if ($group !== null) {
-                return $group->name;
-            }
+            return $owners->first()?->ownerProfile?->getAttribute('ownerGroup');
         }
 
-        return $owners->pluck('name')->implode(', ');
+        return null;
+    }
+
+    /**
+     * What a contract's "Landlord" line should show: the shared group's
+     * collective name ("Legal Heirs of Mahmoud Kalbat") standing in for
+     * listing every owner individually, falling back to each owner's own
+     * name when there is no single group all of them belong to.
+     */
+    public function landlordName(): string
+    {
+        $owners = $this->owners()->get();
+
+        if ($owners->isEmpty()) {
+            return '';
+        }
+
+        return $this->commonOwnerGroup()?->name ?? $owners->pluck('name')->implode(', ');
     }
 }

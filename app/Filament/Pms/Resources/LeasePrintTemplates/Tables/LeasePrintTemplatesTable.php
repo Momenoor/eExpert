@@ -13,15 +13,25 @@ class LeasePrintTemplatesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->withCount('pages'))
+            ->modifyQueryUsing(fn ($query) => $query->withCount('pages')->with('ownerGroup'))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('Name'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('document_type')
+                    ->label(__('Document Type'))
+                    ->badge(),
                 TextColumn::make('contract_format')
                     ->label(__('Contract Format'))
-                    ->badge(),
+                    ->badge()
+                    // A group-scoped template's contract_format is a
+                    // synthetic slug, not something meant to be shown.
+                    ->formatStateUsing(fn (?string $state): ?string => str_starts_with((string) $state, 'owner_group_') ? null : $state)
+                    ->placeholder('—'),
+                TextColumn::make('ownerGroup.name')
+                    ->label(__('Owner Group'))
+                    ->placeholder('—'),
                 TextColumn::make('pages_count')
                     ->label(__('Pages')),
             ])

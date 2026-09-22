@@ -6,7 +6,9 @@ use App\Models\OwnerGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 /**
@@ -52,8 +54,12 @@ class OwnerProfileForm
                             ->label(__('Owner Group'))
                             ->options(fn (): array => OwnerGroup::orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
-                            ->columnSpanFull()
+                            ->live()
                             ->helperText(__('For an owner administered as part of a shared estate — e.g. "Legal Heirs of Mahmoud Kalbat" — so a contract shows the group\'s name rather than every heir separately.')),
+                        Toggle::make('is_primary')
+                            ->label(__('Primary Owner'))
+                            ->visible(fn (Get $get): bool => filled($get('owner_group_id')))
+                            ->helperText(__('Whose name and details a contract shows for this group. Marking this one demotes whichever member held it before.')),
                     ])->columns(2),
 
                 Section::make(__('Banking'))

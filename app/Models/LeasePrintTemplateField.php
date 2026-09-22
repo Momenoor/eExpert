@@ -14,6 +14,8 @@ class LeasePrintTemplateField extends Model
         'y_percent',
         'width_percent',
         'height_percent',
+        'column_widths',
+        'hidden_columns',
         'font_size',
         'text_align',
         'rtl',
@@ -25,6 +27,8 @@ class LeasePrintTemplateField extends Model
         'y_percent' => 'decimal:3',
         'width_percent' => 'decimal:3',
         'height_percent' => 'decimal:3',
+        'column_widths' => 'array',
+        'hidden_columns' => 'array',
         'font_size' => 'integer',
         'rtl' => 'boolean',
     ];

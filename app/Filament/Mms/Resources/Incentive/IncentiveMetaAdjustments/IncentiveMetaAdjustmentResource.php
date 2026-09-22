@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\Incentive\IncentiveMetaAdjustments;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\Incentive\IncentiveMetaAdjustments\Pages\CreateIncentiveMetaAdjustment;
 use App\Filament\Mms\Resources\Incentive\IncentiveMetaAdjustments\Pages\EditIncentiveMetaAdjustment;
 use App\Filament\Mms\Resources\Incentive\IncentiveMetaAdjustments\Pages\ListIncentiveMetaAdjustments;
@@ -15,7 +16,14 @@ use Filament\Tables\Table;
 
 class IncentiveMetaAdjustmentResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = IncentiveMetaAdjustment::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_payroll';
+    }
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-adjustments-horizontal';
 

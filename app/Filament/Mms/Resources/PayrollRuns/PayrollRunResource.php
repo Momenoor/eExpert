@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\PayrollRuns;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\PayrollRuns\Pages\CreatePayrollRun;
 use App\Filament\Mms\Resources\PayrollRuns\Pages\ListPayrollRuns;
 use App\Filament\Mms\Resources\PayrollRuns\Pages\ViewPayrollRun;
@@ -17,7 +18,14 @@ use Filament\Tables\Table;
 
 class PayrollRunResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = PayrollRun::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_payroll';
+    }
 
     public static function getModelLabel(): string
     {

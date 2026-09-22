@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\EmployeeProfiles;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\EmployeeProfiles\Pages\CreateEmployeeProfile;
 use App\Filament\Mms\Resources\EmployeeProfiles\Pages\EditEmployeeProfile;
 use App\Filament\Mms\Resources\EmployeeProfiles\Pages\ListEmployeeProfiles;
@@ -16,7 +17,14 @@ use Filament\Tables\Table;
 
 class EmployeeProfileResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = EmployeeProfile::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_payroll';
+    }
 
     public static function getModelLabel(): string
     {

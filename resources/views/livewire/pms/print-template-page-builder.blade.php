@@ -8,7 +8,18 @@
             const yPct = ((e.clientY - rect.top) / rect.height) * 100;
             $wire.placeField(xPct, yPct);
         },
+        blurActiveInput() {
+            // Selecting a different field must commit whatever is still
+            // sitting, unsynced, in the previously selected field's inputs
+            // first — otherwise Livewire treats that input as still 'dirty'
+            // and applies its stale value to whichever field the panel
+            // rebinds to next, once it does eventually blur.
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+        },
         startDrag(index, e) {
+            this.blurActiveInput();
             this.dragging = index;
             $wire.selectMarker(index, e.shiftKey || e.ctrlKey || e.metaKey);
             e.currentTarget.focus();
@@ -63,7 +74,18 @@
                     {{ __('Sets the text alignment of every field.') }}
                 </p>
             </div>
+        @endif
 
+        {{--
+            Bulk actions only make sense with 2+ fields selected — with just
+            one selected, the single-field panel below already edits that
+            field directly. Showing this section for a lone selection was
+            a trap: typing into its Box Width/Height and clicking Apply
+            looks identical to editing the one selected field, but if a
+            leftover shift-click selection was still active it silently
+            resized every field in it instead of just the one intended.
+        --}}
+        @if (count($selectedIndexes) >= 2)
             <div style="margin-top: 12px;">
                 <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 4px;">
                     {{ __('Align Selected') }} ({{ count($selectedIndexes) }})
@@ -72,16 +94,14 @@
                     <button
                         type="button"
                         wire:click="alignSelected('left')"
-                        @disabled(count($selectedIndexes) < 2)
-                        style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 2 ? '0.5' : '1' }};"
+                        style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff;"
                     >
                         {{ __('Align Start') }}
                     </button>
                     <button
                         type="button"
                         wire:click="alignSelected('right')"
-                        @disabled(count($selectedIndexes) < 2)
-                        style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 2 ? '0.5' : '1' }};"
+                        style="flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff;"
                     >
                         {{ __('Align End') }}
                     </button>
@@ -99,10 +119,9 @@
                 <button
                     type="button"
                     wire:click="applyBoxSizeToSelected"
-                    @disabled(count($selectedIndexes) < 1)
-                    style="width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff; opacity: {{ count($selectedIndexes) < 1 ? '0.5' : '1' }};"
+                    style="width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px; cursor: pointer; background: #fff;"
                 >
-                    {{ __('Apply Box Size to Selected') }}
+                    {{ __('Apply Box Size to Selected') }} ({{ count($selectedIndexes) }})
                 </button>
                 <button
                     type="button"
@@ -113,14 +132,14 @@
                     {{ __('Distribute Vertically') }}
                 </button>
                 <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
-                    {{ __('Snaps the selected fields to a shared left/right edge. Shift-click (or ctrl/cmd-click) markers or list rows to select more than one.') }}
+                    {{ __('Snaps the selected fields to a shared left/right edge.') }}
                 </p>
             </div>
         @endif
 
         @if (count($selectedIndexes) === 1 && isset($fields[$selectedIndexes[0]]))
             @php($selectedIndex = $selectedIndexes[0])
-            <div style="margin-top: 12px; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;">
+            <div wire:key="field-details-{{ $selectedIndex }}" style="margin-top: 12px; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;">
                 <p style="font-weight: 600; font-size: 12px; margin: 0 0 8px;">
                     {{ \App\Services\PMS\LeasePrintFieldResolver::labelWithLanguage($fields[$selectedIndex]['field_key'], $fields[$selectedIndex]['language'] ?? null) }}
                 </p>
@@ -162,6 +181,38 @@
                     </select>
                 </label>
 
+                @if ($fields[$selectedIndex]['field_key'] === 'installments_table')
+                    @php($hiddenColumns = $fields[$selectedIndex]['hidden_columns'] ?? [])
+                    <label style="display: block; font-weight: 600; font-size: 11px; margin-top: 10px;">
+                        {{ __('Columns') }}
+                    </label>
+                    <p style="font-size: 10px; color: #9ca3af; margin: 2px 0 6px;">
+                        {{ __('Untick a column to leave it off the printed table entirely. Width is a percentage of the table\'s own box width — leave it blank to split the leftover space evenly with the other blank columns.') }}
+                    </p>
+                    @foreach (\App\Services\PMS\LeasePrintFieldResolver::installmentsTableColumns() as $columnKey => $columnLabel)
+                        @php($isHidden = in_array($columnKey, $hiddenColumns, true))
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 4px; opacity: {{ $isHidden ? '0.5' : '1' }};">
+                            <input
+                                type="checkbox"
+                                title="{{ __('Show column') }}"
+                                wire:click="toggleColumnVisibility({{ $selectedIndex }}, '{{ $columnKey }}')"
+                                @checked(! $isHidden)
+                            >
+                            <span style="flex: 1;">{{ $columnLabel }}</span>
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                placeholder="{{ __('Auto') }}"
+                                @disabled($isHidden)
+                                wire:model.blur="fields.{{ $selectedIndex }}.column_widths.{{ $columnKey }}"
+                                style="width: 70px; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px;"
+                            >
+                        </div>
+                    @endforeach
+                @endif
+
                 @if (\App\Services\PMS\LeasePrintFieldResolver::isLocalizable($fields[$selectedIndex]['field_key']))
                     <label style="display: block; font-size: 11px; margin-top: 8px;">
                         {{ __('Language') }}
@@ -183,7 +234,8 @@
         <div style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
             @forelse ($fields as $i => $field)
                 <div
-                    @click="$wire.selectMarker({{ $i }}, $event.shiftKey || $event.ctrlKey || $event.metaKey)"
+                    wire:key="field-row-{{ $i }}"
+                    @click="blurActiveInput(); $wire.selectMarker({{ $i }}, $event.shiftKey || $event.ctrlKey || $event.metaKey)"
                     style="display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; border: 1px solid {{ in_array($i, $selectedIndexes, true) ? '#2563eb' : '#e5e7eb' }}; border-radius: 6px; padding: 4px 8px; margin-bottom: 4px; cursor: pointer;"
                 >
                     <span>{{ \App\Services\PMS\LeasePrintFieldResolver::labelWithLanguage($field['field_key'], $field['language'] ?? null) }}</span>
@@ -219,6 +271,7 @@
             >
             @foreach ($fields as $i => $field)
                 <div
+                    wire:key="field-marker-{{ $i }}"
                     tabindex="0"
                     @mousedown.prevent="startDrag({{ $i }}, $event)"
                     @keydown.up.prevent="$wire.nudgeField({{ $i }}, 'up', $event.shiftKey)"
