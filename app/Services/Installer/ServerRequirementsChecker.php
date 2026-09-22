@@ -13,6 +13,10 @@ namespace App\Services\Installer;
  */
 class ServerRequirementsChecker
 {
+    public function __construct(
+        private readonly PackageInstaller $packages,
+    ) {}
+
     /**
      * @var list<string>
      */
@@ -70,6 +74,26 @@ class ServerRequirementsChecker
                     : __('Directory does not exist'),
             ];
         }
+
+        // Composer's own autoloader is what let this wizard boot at all, so
+        // it is trivially true here — shown anyway for a complete picture.
+        // The frontend build is not: the wizard's own page doesn't need it,
+        // but the Filament panels the operator lands in right after do.
+        $checks[] = [
+            'label' => __('Composer dependencies'),
+            'ok' => $this->packages->vendorInstalled(),
+            'critical' => false,
+            'detail' => $this->packages->vendorInstalled() ? __('Installed') : __('Missing — run composer install'),
+        ];
+
+        $checks[] = [
+            'label' => __('Frontend build'),
+            'ok' => $this->packages->frontendBuilt(),
+            'critical' => false,
+            'detail' => $this->packages->frontendBuilt()
+                ? __('Built')
+                : __('Missing — run npm install && npm run build'),
+        ];
 
         return $checks;
     }

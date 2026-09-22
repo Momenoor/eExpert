@@ -3,6 +3,7 @@
 namespace App\Filament\Mms\Resources\LeaveRequests;
 
 use App\Enums\RequestStatus;
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\LeaveRequests\Pages\CreateLeaveRequest;
 use App\Filament\Mms\Resources\LeaveRequests\Pages\EditLeaveRequest;
 use App\Filament\Mms\Resources\LeaveRequests\Pages\ListLeaveRequests;
@@ -17,7 +18,14 @@ use Illuminate\Database\Eloquent\Builder;
 
 class LeaveRequestResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = LeaveRequest::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_calendar';
+    }
 
     public static function getModelLabel(): string
     {

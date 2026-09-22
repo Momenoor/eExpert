@@ -34,11 +34,48 @@ class DatabaseConnectionTester
 
             return ['ok' => true, 'message' => __('Connection successful.')];
         } catch (PDOException $e) {
+            // MySQL error 1049: the server itself is reachable, only the
+            // named database doesn't exist yet — exactly the case an
+            // operator pointing this at a brand-new server hits, and the
+            // one case worth recovering from automatically rather than
+            // making them go create it by hand first.
+            if ($config['connection'] === 'mysql' && stripos($e->getMessage(), 'Unknown database') !== false) {
+                return $this->createDatabaseAndRetry($config);
+            }
+
             return ['ok' => false, 'message' => $e->getMessage()];
         } catch (Throwable $e) {
             return ['ok' => false, 'message' => $e->getMessage()];
         } finally {
             DB::purge(self::CONNECTION_NAME);
+        }
+    }
+
+    /**
+     * @param  array{connection: string, host?: string, port?: string, database: string, username?: string, password?: string}  $config
+     * @return array{ok: bool, message: string}
+     */
+    private function createDatabaseAndRetry(array $config): array
+    {
+        try {
+            $withoutDatabase = $this->connectionConfig($config);
+            unset($withoutDatabase['database']);
+
+            config(['database.connections.'.self::CONNECTION_NAME => $withoutDatabase]);
+            DB::purge(self::CONNECTION_NAME);
+
+            $identifier = str_replace('`', '``', $config['database']);
+            DB::connection(self::CONNECTION_NAME)->statement(
+                "CREATE DATABASE IF NOT EXISTS `{$identifier}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            );
+
+            config(['database.connections.'.self::CONNECTION_NAME => $this->connectionConfig($config)]);
+            DB::purge(self::CONNECTION_NAME);
+            DB::connection(self::CONNECTION_NAME)->getPdo();
+
+            return ['ok' => true, 'message' => __('Database created and connection successful.')];
+        } catch (Throwable $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
 

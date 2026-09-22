@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\BulkMailCampaigns;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\CreateBulkMailCampaign;
 use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\EditBulkMailCampaign;
 use App\Filament\Mms\Resources\BulkMailCampaigns\Pages\ListBulkMailCampaigns;
@@ -19,7 +20,14 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BulkMailCampaignResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = BulkMailCampaign::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_communications';
+    }
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelopeOpen;
 

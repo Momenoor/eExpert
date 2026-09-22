@@ -33,6 +33,18 @@ use Illuminate\Database\Seeder;
  * The administrator account itself is intentionally never created here. It is
  * created interactively by the installer's own Step 5, so this seeder never
  * needs — and never hands out — a hardcoded username or password.
+ *
+ * Module-aware: the installer's Modules step lets an operator turn off
+ * Payroll, Calendar, or PMS entirely for this deployment (`config/modules.php`),
+ * and there is no point seeding a module's permissions if none of its
+ * resources are even registered. Legal Core's own permissions
+ * (`MatterPermissionsSeeder`) always run — it is MMS's always-on baseline,
+ * not a toggle.
+ *
+ * `PMSDemoSeeder` deliberately never belonged here — see its own docblock —
+ * seeding fake leases/tenants/owners into a real deployment isn't scaffolding,
+ * it's fabricated business data nobody asked for. Run it explicitly on a
+ * dev/staging box only: `php artisan db:seed --class=PMSDemoSeeder`.
  */
 class ProductionDatabaseSeeder extends Seeder
 {
@@ -41,14 +53,25 @@ class ProductionDatabaseSeeder extends Seeder
         $this->call([
             AllPermissionsSeeder::class,
             MatterPermissionsSeeder::class,
-            PayrollModulePermissionsSeeder::class,
-            CalendarEventPermissionsSeeder::class,
-            IncentiveCalculationPermissionsSeeder::class,
-            PMSPermissionsSeeder::class,
-            PMSConditionTemplatesSeeder::class,
-            PMSPrintTemplatesSeeder::class,
-            PMSDemoSeeder::class,
-
         ]);
+
+        if (config('modules.mms_payroll', true)) {
+            $this->call([
+                PayrollModulePermissionsSeeder::class,
+                IncentiveCalculationPermissionsSeeder::class,
+            ]);
+        }
+
+        if (config('modules.mms_calendar', true)) {
+            $this->call(CalendarEventPermissionsSeeder::class);
+        }
+
+        if (config('modules.pms', true)) {
+            $this->call([
+                PMSPermissionsSeeder::class,
+                PMSConditionTemplatesSeeder::class,
+                PMSPrintTemplatesSeeder::class,
+            ]);
+        }
     }
 }

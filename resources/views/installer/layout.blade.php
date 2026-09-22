@@ -208,6 +208,20 @@
         .alert.success { background: #e4f5ea; color: var(--success); }
         .alert.danger { background: #fbe7e6; color: var(--danger); }
 
+        .progress-bar {
+            height: 10px;
+            border-radius: 999px;
+            background: var(--border);
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width .3s ease;
+        }
+
         pre.output {
             background: #14181f;
             color: #d8dee9;

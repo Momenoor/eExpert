@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\CalendarEvents;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\CalendarEvents\Pages\ListCalendarEvents;
 use App\Filament\Mms\Resources\CalendarEvents\Schemas\CalendarEventForm;
 use App\Filament\Mms\Resources\CalendarEvents\Tables\CalendarEventsTable;
@@ -16,7 +17,14 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CalendarEventResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = CalendarEvent::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_calendar';
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::CalendarDays;
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\LetterTemplates;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\LetterTemplates\Pages\CreateLetterTemplate;
 use App\Filament\Mms\Resources\LetterTemplates\Pages\EditLetterTemplate;
 use App\Filament\Mms\Resources\LetterTemplates\Pages\ListLetterTemplates;
@@ -18,7 +19,14 @@ use Filament\Tables\Table;
 
 class LetterTemplateResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = LetterTemplate::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_communications';
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentDuplicate;
 

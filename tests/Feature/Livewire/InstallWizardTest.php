@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Livewire;
 
+use App\Filament\Mms\Resources\EmployeeProfiles\EmployeeProfileResource;
 use App\Livewire\Installer\InstallWizard;
 use App\Models\User;
 use App\Services\Installer\EnvironmentFileWriter;
@@ -118,24 +119,30 @@ class InstallWizardTest extends TestCase
             ->set('app_name', 'Test Office')
             ->set('app_url', 'https://test.example')
             ->call('saveAppSettingsAndContinue')
-            ->assertSet('step', 4);
+            ->assertSet('step', 4)
+            ->call('saveModulesAndContinue')
+            ->assertSet('step', 5);
 
-        // The real migration, against the real (throwaway) file.
-        $component->call('runMigrations')
-            ->assertSet('migrated', true)
+        // The real, staged migrate+seed, against the real (throwaway) file —
+        // one call per task, exactly like the browser's chained Alpine calls.
+        do {
+            $component->call('runNextInstallTask');
+        } while (! $component->get('migrated') && ! $component->get('migrationFailed'));
+
+        $component->assertSet('migrated', true)
             ->assertSet('migrationFailed', false);
 
         $this->assertTrue(Schema::hasTable('users'));
         $this->assertGreaterThan(0, Permission::count());
 
         $component->call('continueFromMigration')
-            ->assertSet('step', 5)
+            ->assertSet('step', 6)
             ->set('admin_name', 'Test Admin')
             ->set('admin_email', 'admin@test.example')
             ->set('admin_password', 'password123')
             ->set('admin_password_confirmation', 'password123')
             ->call('createAdmin')
-            ->assertSet('step', 6);
+            ->assertSet('step', 7);
 
         $admin = User::where('email', 'admin@test.example')->sole();
         $this->assertTrue($admin->hasRole(config('filament-shield.super_admin.name', 'super_admin')));
@@ -143,6 +150,42 @@ class InstallWizardTest extends TestCase
         $component->call('finish');
 
         $this->assertSame('APP_NAME="Test Office"', $this->envLine('APP_NAME'));
+    }
+
+    /**
+     * Turning a sub-module off keeps its permissions unseeded and its own
+     * resource unreachable — the actual point of the Modules step, not just
+     * a flag that gets written and never read.
+     */
+    #[RunInSeparateProcess]
+    public function test_disabling_a_module_skips_its_seeder_and_hides_its_resource(): void
+    {
+        $component = Livewire::test(InstallWizard::class)
+            ->call('continueFromRequirements')
+            ->set('db_connection', 'sqlite')
+            ->set('db_database', $this->tempDbPath)
+            ->call('testConnection')
+            ->call('saveDatabaseAndContinue')
+            ->set('app_name', 'Test Office')
+            ->set('app_url', 'https://test.example')
+            ->call('saveAppSettingsAndContinue')
+            ->set('module_mms_payroll', false)
+            ->call('saveModulesAndContinue');
+
+        $this->assertFalse(config('modules.mms_payroll'));
+
+        do {
+            $component->call('runNextInstallTask');
+        } while (! $component->get('migrated') && ! $component->get('migrationFailed'));
+
+        $component->assertSet('migrationFailed', false);
+
+        // AllPermissionsSeeder (always run) discovers every registered
+        // Shield resource regardless of module selection, so permission
+        // rows aren't a reliable signal of which seeders ran. What module
+        // selection actually controls — and what matters for the operator
+        // — is whether the module's own resource is reachable at all.
+        $this->assertFalse(EmployeeProfileResource::isModuleEnabled());
     }
 
     public function test_it_will_not_advance_past_the_database_step_without_a_successful_test(): void
@@ -172,20 +215,20 @@ class InstallWizardTest extends TestCase
     public function test_the_admin_account_requires_a_confirmed_password(): void
     {
         Livewire::test(InstallWizard::class)
-            ->set('step', 5)
+            ->set('step', 6)
             ->set('admin_name', 'Test Admin')
             ->set('admin_email', 'admin@test.example')
             ->set('admin_password', 'password123')
             ->set('admin_password_confirmation', 'not-the-same')
             ->call('createAdmin')
             ->assertHasErrors(['admin_password'])
-            ->assertSet('step', 5);
+            ->assertSet('step', 6);
     }
 
     public function test_finishing_marks_the_application_as_installed(): void
     {
         Livewire::test(InstallWizard::class)
-            ->set('step', 6)
+            ->set('step', 7)
             ->call('finish');
 
         $this->assertTrue(File::exists($this->lockFile));

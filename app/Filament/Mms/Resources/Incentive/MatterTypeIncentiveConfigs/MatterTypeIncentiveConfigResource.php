@@ -2,6 +2,7 @@
 
 namespace App\Filament\Mms\Resources\Incentive\MatterTypeIncentiveConfigs;
 
+use App\Filament\Concerns\HasModuleGate;
 use App\Filament\Mms\Resources\Incentive\MatterTypeIncentiveConfigs\Pages\CreateMatterTypeIncentiveConfig;
 use App\Filament\Mms\Resources\Incentive\MatterTypeIncentiveConfigs\Pages\EditMatterTypeIncentiveConfig;
 use App\Filament\Mms\Resources\Incentive\MatterTypeIncentiveConfigs\Pages\ListMatterTypeIncentiveConfigs;
@@ -17,7 +18,14 @@ use Filament\Tables\Table;
 
 class MatterTypeIncentiveConfigResource extends Resource
 {
+    use HasModuleGate;
+
     protected static ?string $model = MatterTypeIncentiveConfig::class;
+
+    public static function moduleGateKey(): string
+    {
+        return 'mms_payroll';
+    }
 
     public static function getModelLabel(): string
     {

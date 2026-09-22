@@ -4,9 +4,10 @@
             1 => __('Requirements'),
             2 => __('Database'),
             3 => __('Application'),
-            4 => __('Install'),
-            5 => __('Admin'),
-            6 => __('Done'),
+            4 => __('Modules'),
+            5 => __('Install'),
+            6 => __('Admin'),
+            7 => __('Done'),
         ] as $number => $label)
             <div class="dot @if($step === $number) active @elseif($step > $number) done @endif">
                 {{ $number }}. {{ $label }}
@@ -26,6 +27,33 @@
                         <span>{{ $check['label'] }} — <span class="hint">{{ $check['detail'] }}</span></span>
                         <span class="badge {{ $check['ok'] ? 'ok' : ($check['critical'] ? 'fail' : 'warn') }}">
                             {{ $check['ok'] ? __('OK') : ($check['critical'] ? __('Failing') : __('Warning')) }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+
+            <h2>{{ __('Composer & Frontend Build') }}</h2>
+            <p class="hint">{{ __('If a tool is available on this server, you can run it here. Otherwise, run the shown command yourself and refresh this page.') }}</p>
+
+            <ul class="check-list">
+                @foreach ($this->packageChecks as $check)
+                    <li>
+                        <span>{{ $check['label'] }}</span>
+                        <span style="display:flex; gap:8px; align-items:center;">
+                            <span class="badge {{ $check['ok'] ? 'ok' : 'warn' }}">
+                                {{ $check['ok'] ? __('OK') : __('Missing') }}
+                            </span>
+                            @unless ($check['ok'])
+                                @if ($check['available'])
+                                    <button type="button" class="btn secondary" wire:click="runPackageCommand('{{ $check['key'] }}')" wire:loading.attr="disabled" wire:target="runPackageCommand('{{ $check['key'] }}')">
+                                        {{ $check['key'] === 'composer' ? __('Run composer install') : __('Run npm install && npm run build') }}
+                                    </button>
+                                @else
+                                    <span class="hint">
+                                        {{ $check['key'] === 'composer' ? __('Not detected — run: composer install --no-dev --optimize-autoloader') : __('Not detected — run: npm install && npm run build') }}
+                                    </span>
+                                @endif
+                            @endunless
                         </span>
                     </li>
                 @endforeach
@@ -135,11 +163,103 @@
         </div>
     @endif
 
-    {{-- Step 4: Migrate & seed --}}
+    {{-- Step 4: Modules --}}
     @if ($step === 4)
         <div class="card">
+            <h2>{{ __('Modules') }}</h2>
+            <p class="hint">{{ __('Turn off what this deployment doesn\'t need. Every table is still created either way — this only controls which panels and menus are enabled, and can be changed later.') }}</p>
+
+            <div class="field">
+                <label>
+                    <input type="checkbox" wire:model="module_pms">
+                    {{ __('Properties Management (PMS)') }}
+                </label>
+            </div>
+
+            <div class="field">
+                <label>
+                    <input type="checkbox" checked disabled>
+                    {{ __('Legal Core (Matters, Courts, Parties) — always on') }}
+                </label>
+            </div>
+
+            <div class="field">
+                <label>
+                    <input type="checkbox" wire:model.live="module_mms">
+                    {{ __('Legal Management (MMS)') }}
+                </label>
+            </div>
+
+            @if ($module_mms)
+                <div style="margin-inline-start: 24px;">
+                    <div class="field">
+                        <label>
+                            <input type="checkbox" wire:model="module_mms_payroll">
+                            {{ __('Payroll & Incentives') }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label>
+                            <input type="checkbox" wire:model="module_mms_communications">
+                            {{ __('Communications (Bulk Mail, Letter Templates)') }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label>
+                            <input type="checkbox" wire:model="module_mms_calendar">
+                            {{ __('Calendar & Leave Requests') }}
+                        </label>
+                    </div>
+                </div>
+            @endif
+
+            <div class="actions">
+                <button type="button" class="btn" wire:click="saveModulesAndContinue">
+                    {{ __('Continue') }}
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Step 5: Install (migrate & seed), with a live progress bar --}}
+    @if ($step === 5)
+        <div
+            class="card"
+            x-data="{
+                running: false,
+                start() {
+                    if (this.running) return;
+                    this.running = true;
+                    this.tick();
+                },
+                tick() {
+                    if ($wire.migrated || $wire.migrationFailed) {
+                        this.running = false;
+                        return;
+                    }
+                    $wire.runNextInstallTask().then(() => this.tick());
+                },
+            }"
+            x-init="start()"
+        >
             <h2>{{ __('Install the Database') }}</h2>
             <p class="hint">{{ __('This creates every table the application needs and seeds permissions and default roles. It can take a moment.') }}</p>
+
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: {{ $this->installProgress }}%;"></div>
+            </div>
+            <p class="hint">{{ $this->installProgress }}%</p>
+
+            <ul class="check-list">
+                @foreach ($this->installTasks() as $key => $label)
+                    <li>
+                        <span>{{ $label }}</span>
+                        <span class="badge {{ in_array($key, $completedInstallTasks, true) ? 'ok' : 'warn' }}">
+                            {{ in_array($key, $completedInstallTasks, true) ? __('Done') : __('Pending') }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
 
             @if ($migrationOutput !== '')
                 <pre class="output">{{ $migrationOutput }}</pre>
@@ -147,13 +267,14 @@
 
             @if ($migrationFailed)
                 <div class="alert danger">{{ __('Installation failed. Fix the issue above and try again.') }}</div>
+                <div class="actions">
+                    <button type="button" class="btn secondary" x-on:click="$wire.set('migrationFailed', false).then(() => start())">
+                        {{ __('Retry') }}
+                    </button>
+                </div>
             @endif
 
             <div class="actions">
-                <button type="button" class="btn secondary" wire:click="runMigrations" wire:loading.attr="disabled" wire:target="runMigrations">
-                    <span wire:loading.remove wire:target="runMigrations">{{ __('Run Installation') }}</span>
-                    <span wire:loading wire:target="runMigrations">{{ __('Running…') }}</span>
-                </button>
                 <button type="button" class="btn" wire:click="continueFromMigration" @disabled(! $migrated)>
                     {{ __('Continue') }}
                 </button>
@@ -161,8 +282,8 @@
         </div>
     @endif
 
-    {{-- Step 5: Admin account --}}
-    @if ($step === 5)
+    {{-- Step 6: Admin account --}}
+    @if ($step === 6)
         <div class="card">
             <h2>{{ __('Create the Administrator Account') }}</h2>
 
@@ -198,8 +319,8 @@
         </div>
     @endif
 
-    {{-- Step 6: Complete --}}
-    @if ($step === 6)
+    {{-- Step 7: Complete --}}
+    @if ($step === 7)
         <div class="card">
             <h2>{{ __('Installation Complete') }}</h2>
             <p>{{ __('The application is ready. This setup wizard will no longer be reachable once you continue.') }}</p>
