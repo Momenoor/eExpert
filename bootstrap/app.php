@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureLicenseIsValid;
 use App\Http\Middleware\RedirectIfInstalled;
 use App\Http\Middleware\RedirectToInstaller;
 use Illuminate\Console\Scheduling\Schedule;
@@ -20,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // chance to assume a working, migrated database exists.
         $middleware->web(prepend: [RedirectToInstaller::class]);
 
+        // Appended rather than prepended — only ever relevant once
+        // RedirectToInstaller has already let an installed app through.
+        $middleware->web(append: [EnsureLicenseIsValid::class]);
+
         $middleware->alias([
             'installer.guard' => RedirectIfInstalled::class,
         ]);
@@ -28,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('matter:confirm-receiving')->everyMinute()->withoutOverlapping();
         $schedule->command('mail:send-bulk-campaigns')->everyMinute()->withoutOverlapping();
         $schedule->command('pms:flag-overdue-installments')->everyMinute()->withoutOverlapping();
+        $schedule->command('license:verify')->daily()->withoutOverlapping();
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {

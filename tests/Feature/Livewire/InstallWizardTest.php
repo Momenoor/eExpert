@@ -4,11 +4,13 @@ namespace Tests\Feature\Livewire;
 
 use App\Filament\Mms\Resources\EmployeeProfiles\EmployeeProfileResource;
 use App\Livewire\Installer\InstallWizard;
+use App\Models\License;
 use App\Models\User;
 use App\Services\Installer\EnvironmentFileWriter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -60,6 +62,19 @@ class InstallWizardTest extends TestCase
         $this->app->bind(EnvironmentFileWriter::class, fn () => new EnvironmentFileWriter($this->tempEnvPath));
     }
 
+    /**
+     * `LicenseClient` calls out over HTTP — every test that exercises
+     * `activateLicense()` needs this faked first. Deliberately not in
+     * `setUp()`: `Http::fake()` appends rather than replaces its stub
+     * list, so a later call from inside a test (e.g. to fake a failed
+     * activation) would never actually take priority over one already
+     * registered in setUp — each test fakes exactly the response it needs.
+     */
+    private function fakeSuccessfulActivation(): void
+    {
+        Http::fake(['*' => Http::response(['valid' => true, 'plan' => 'Standard', 'expires_at' => null])]);
+    }
+
     protected function tearDown(): void
     {
         @unlink($this->tempDbPath);
@@ -106,22 +121,34 @@ class InstallWizardTest extends TestCase
     #[RunInSeparateProcess]
     public function test_the_full_wizard_installs_a_working_application(): void
     {
+        $this->fakeSuccessfulActivation();
+
         $component = Livewire::test(InstallWizard::class)
             ->assertSet('step', 1)
             ->call('continueFromRequirements')
             ->assertSet('step', 2)
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->assertSet('licenseActivated', true)
+            ->call('continueFromLicense')
+            ->assertSet('step', 3)
             ->set('db_connection', 'sqlite')
             ->set('db_database', $this->tempDbPath)
             ->call('testConnection')
             ->assertSet('connectionTested', true)
             ->call('saveDatabaseAndContinue')
-            ->assertSet('step', 3)
+            ->assertSet('step', 4)
             ->set('app_name', 'Test Office')
             ->set('app_url', 'https://test.example')
             ->call('saveAppSettingsAndContinue')
-            ->assertSet('step', 4)
+            ->assertSet('step', 5)
             ->call('saveModulesAndContinue')
-            ->assertSet('step', 5);
+            ->assertSet('step', 6)
+            ->set('whatsapp_token', 'test-whatsapp-token')
+            ->call('saveIntegrationsAndContinue')
+            ->assertSet('step', 7);
+
+        $this->assertSame('WHATSAPP_TOKEN=test-whatsapp-token', $this->envLine('WHATSAPP_TOKEN'));
 
         // The real, staged migrate+seed, against the real (throwaway) file —
         // one call per task, exactly like the browser's chained Alpine calls.
@@ -135,14 +162,19 @@ class InstallWizardTest extends TestCase
         $this->assertTrue(Schema::hasTable('users'));
         $this->assertGreaterThan(0, Permission::count());
 
+        $license = License::current();
+        $this->assertNotNull($license);
+        $this->assertSame('active', $license->status);
+        $this->assertSame('MIE-AAAAA-BBBBB-CCCCC-DDDDD', $license->key);
+
         $component->call('continueFromMigration')
-            ->assertSet('step', 6)
+            ->assertSet('step', 8)
             ->set('admin_name', 'Test Admin')
             ->set('admin_email', 'admin@test.example')
             ->set('admin_password', 'password123')
             ->set('admin_password_confirmation', 'password123')
             ->call('createAdmin')
-            ->assertSet('step', 7);
+            ->assertSet('step', 9);
 
         $admin = User::where('email', 'admin@test.example')->sole();
         $this->assertTrue($admin->hasRole(config('filament-shield.super_admin.name', 'super_admin')));
@@ -150,6 +182,20 @@ class InstallWizardTest extends TestCase
         $component->call('finish');
 
         $this->assertSame('APP_NAME="Test Office"', $this->envLine('APP_NAME'));
+    }
+
+    public function test_activation_failure_blocks_continuing_past_the_license_step(): void
+    {
+        Http::fake(['*' => Http::response(['valid' => false, 'reason' => 'not_found'])]);
+
+        Livewire::test(InstallWizard::class)
+            ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-WRONG-WRONG-WRONG-WRONG')
+            ->call('activateLicense')
+            ->assertSet('licenseActivated', false)
+            ->call('continueFromLicense')
+            ->assertSet('step', 2)
+            ->assertHasErrors(['license_key']);
     }
 
     /**
@@ -160,8 +206,13 @@ class InstallWizardTest extends TestCase
     #[RunInSeparateProcess]
     public function test_disabling_a_module_skips_its_seeder_and_hides_its_resource(): void
     {
+        $this->fakeSuccessfulActivation();
+
         $component = Livewire::test(InstallWizard::class)
             ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->call('continueFromLicense')
             ->set('db_connection', 'sqlite')
             ->set('db_database', $this->tempDbPath)
             ->call('testConnection')
@@ -188,22 +239,82 @@ class InstallWizardTest extends TestCase
         $this->assertFalse(EmployeeProfileResource::isModuleEnabled());
     }
 
+    /**
+     * Reproduces exactly what an operator hits retrying the Install step
+     * after an earlier attempt failed partway through migrating: some
+     * table got created (DDL in MySQL/SQLite commits regardless of any
+     * later failure in the same batch) but never recorded as migrated,
+     * so a plain `migrate` retry collides with it via "table already
+     * exists". `runMigrations()` uses `migrate:fresh` for exactly this
+     * reason — starting clean every time this step runs.
+     */
+    #[RunInSeparateProcess]
+    public function test_retrying_the_install_step_after_a_half_migrated_database_does_not_fail(): void
+    {
+        $this->fakeSuccessfulActivation();
+
+        $component = Livewire::test(InstallWizard::class)
+            ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->call('continueFromLicense')
+            ->set('db_connection', 'sqlite')
+            ->set('db_database', $this->tempDbPath)
+            ->call('testConnection')
+            ->call('saveDatabaseAndContinue')
+            ->set('app_name', 'Test Office')
+            ->set('app_url', 'https://test.example')
+            ->call('saveAppSettingsAndContinue')
+            ->call('saveModulesAndContinue');
+
+        // Simulates the state a failed migration batch leaves behind: the
+        // `migrations` repository itself exists (Laravel creates it
+        // before running any individual migration), and a stray table
+        // that batch got as far as creating before something later in
+        // the same run failed. `migrate:fresh` only wipes existing
+        // tables when this repository already exists — reproducing that
+        // precondition, not just the stray table alone, is what actually
+        // exercises the fix.
+        DB::connection('sqlite')->statement('CREATE TABLE migrations (id INTEGER PRIMARY KEY, migration VARCHAR NOT NULL, batch INTEGER NOT NULL)');
+        DB::connection('sqlite')->statement('CREATE TABLE inbox_messages (id INTEGER PRIMARY KEY)');
+
+        do {
+            $component->call('runNextInstallTask');
+        } while (! $component->get('migrated') && ! $component->get('migrationFailed'));
+
+        $component->assertSet('migrated', true)
+            ->assertSet('migrationFailed', false);
+
+        $this->assertTrue(Schema::hasTable('users'));
+        $this->assertTrue(Schema::hasColumn('inbox_messages', 'sender_id'));
+    }
+
     public function test_it_will_not_advance_past_the_database_step_without_a_successful_test(): void
     {
+        $this->fakeSuccessfulActivation();
+
         Livewire::test(InstallWizard::class)
             ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->call('continueFromLicense')
             ->set('db_connection', 'sqlite')
             ->set('db_database', $this->tempDbPath)
             // No testConnection() call — connectionTested is still null.
             ->call('saveDatabaseAndContinue')
-            ->assertSet('step', 2)
+            ->assertSet('step', 3)
             ->assertHasErrors(['db_database']);
     }
 
     public function test_editing_a_database_field_resets_the_tested_flag(): void
     {
+        $this->fakeSuccessfulActivation();
+
         Livewire::test(InstallWizard::class)
             ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->call('continueFromLicense')
             ->set('db_connection', 'sqlite')
             ->set('db_database', $this->tempDbPath)
             ->call('testConnection')
@@ -212,23 +323,36 @@ class InstallWizardTest extends TestCase
             ->assertSet('connectionTested', null);
     }
 
+    public function test_editing_the_license_key_resets_the_activated_flag(): void
+    {
+        $this->fakeSuccessfulActivation();
+
+        Livewire::test(InstallWizard::class)
+            ->call('continueFromRequirements')
+            ->set('license_key', 'MIE-AAAAA-BBBBB-CCCCC-DDDDD')
+            ->call('activateLicense')
+            ->assertSet('licenseActivated', true)
+            ->set('license_key', 'MIE-DIFFERENT-KEY-HERE-XXXXX')
+            ->assertSet('licenseActivated', null);
+    }
+
     public function test_the_admin_account_requires_a_confirmed_password(): void
     {
         Livewire::test(InstallWizard::class)
-            ->set('step', 6)
+            ->set('step', 8)
             ->set('admin_name', 'Test Admin')
             ->set('admin_email', 'admin@test.example')
             ->set('admin_password', 'password123')
             ->set('admin_password_confirmation', 'not-the-same')
             ->call('createAdmin')
             ->assertHasErrors(['admin_password'])
-            ->assertSet('step', 6);
+            ->assertSet('step', 8);
     }
 
     public function test_finishing_marks_the_application_as_installed(): void
     {
         Livewire::test(InstallWizard::class)
-            ->set('step', 7)
+            ->set('step', 9)
             ->call('finish');
 
         $this->assertTrue(File::exists($this->lockFile));

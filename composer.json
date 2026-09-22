@@ -1,10 +1,10 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "momenoor/mie",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "MIE — a combined Property Management System (PMS) and Legal/Matters Management System (MMS) built on Laravel and Filament.",
+    "keywords": ["laravel", "filament", "property-management", "legal-management"],
+    "license": "proprietary",
     "require": {
         "php": "^8.5",
         "ext-pdo": "*",

@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Installer;
 
+use App\Models\License;
 use App\Models\User;
 use App\Services\Installer\DatabaseConnectionTester;
 use App\Services\Installer\EnvironmentFileWriter;
 use App\Services\Installer\InstallationStatus;
 use App\Services\Installer\PackageInstaller;
 use App\Services\Installer\ServerRequirementsChecker;
+use App\Services\License\LicenseClient;
 use Database\Seeders\AllPermissionsSeeder;
 use Database\Seeders\CalendarEventPermissionsSeeder;
 use Database\Seeders\IncentiveCalculationPermissionsSeeder;
@@ -19,6 +21,7 @@ use Database\Seeders\PMSPrintTemplatesSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use RuntimeException;
@@ -26,9 +29,10 @@ use Spatie\Permission\Models\Role;
 use Throwable;
 
 /**
- * The seven-step first-run wizard: requirements, database, application
- * details, modules, install (migrate/seed with live progress), admin
- * account, done.
+ * The nine-step first-run wizard: requirements, license, database,
+ * application details, modules, optional integrations (WhatsApp,
+ * Microsoft Graph mail), install (migrate/seed with live progress),
+ * admin account, done.
  *
  * Deliberately NOT a Filament page. Filament's panel boots against an
  * authenticated user and a working database; neither exists yet at the point
@@ -46,7 +50,18 @@ class InstallWizard extends Component
 {
     public int $step = 1;
 
-    // Step 2 — database
+    // Step 2 — license
+    public string $license_key = '';
+
+    public ?bool $licenseActivated = null;
+
+    public string $licenseMessage = '';
+
+    public ?string $licensePlan = null;
+
+    public ?string $licenseExpiresAt = null;
+
+    // Step 3 — database
     public string $db_connection = 'mysql';
 
     public string $db_host = '127.0.0.1';
@@ -63,12 +78,12 @@ class InstallWizard extends Component
 
     public string $connectionMessage = '';
 
-    // Step 3 — application
+    // Step 4 — application
     public string $app_name = '';
 
     public string $app_url = '';
 
-    // Step 4 — modules
+    // Step 5 — modules
     public bool $module_pms = true;
 
     public bool $module_mms = true;
@@ -79,7 +94,20 @@ class InstallWizard extends Component
 
     public bool $module_mms_calendar = true;
 
-    // Step 5 — install (migrate & seed), staged for a live progress bar
+    // Step 6 — optional integrations (WhatsApp, Microsoft Graph mail)
+    public string $whatsapp_phone_id = '';
+
+    public string $whatsapp_token = '';
+
+    public string $whatsapp_from = '';
+
+    public string $graph_tenant_id = '';
+
+    public string $graph_client_id = '';
+
+    public string $graph_client_secret = '';
+
+    // Step 7 — install (migrate & seed), staged for a live progress bar
     /**
      * @var list<string>
      */
@@ -91,7 +119,7 @@ class InstallWizard extends Component
 
     public bool $migrationFailed = false;
 
-    // Step 6 — admin account
+    // Step 8 — admin account
     public string $admin_name = '';
 
     public string $admin_email = '';
@@ -113,6 +141,61 @@ class InstallWizard extends Component
 
         $this->app_name = config('app.name', 'Laravel');
         $this->app_url = config('app.url', 'http://localhost');
+
+        $this->whatsapp_phone_id = (string) config('services.whatsapp.phone_id');
+        $this->whatsapp_token = (string) config('services.whatsapp.token');
+        $this->whatsapp_from = (string) config('services.whatsapp.from');
+        $this->graph_tenant_id = (string) config('mail.mailers.microsoft-graph.tenant_id');
+        $this->graph_client_id = (string) config('mail.mailers.microsoft-graph.client_id');
+        $this->graph_client_secret = (string) config('mail.mailers.microsoft-graph.client_secret');
+
+        // `public/preinstall.php` tags its handoff redirect with this
+        // query string specifically when IT already collected and wrote
+        // the database connection — the one case Step 2 would otherwise
+        // ask the exact same question a second time. Scoped to that
+        // marker rather than "does the currently configured connection
+        // happen to work" so this never fires for an ordinary dev
+        // environment that already has a working `.env`, or in tests
+        // (where the default connection is always a trivially-connectable
+        // SQLite `:memory:` database).
+        if (request()->query('db') === 'configured') {
+            $this->prefillDatabaseFromExistingConfig();
+        }
+    }
+
+    /**
+     * Pre-fills the database fields from whatever `.env` already has and
+     * tests it once up front, so `continueFromRequirements()` can skip
+     * straight past Step 2 when it's already configured and reachable.
+     */
+    private function prefillDatabaseFromExistingConfig(): void
+    {
+        $connection = config('database.default');
+
+        if (! in_array($connection, ['mysql', 'sqlite'], true)) {
+            return;
+        }
+
+        $this->db_connection = $connection;
+
+        if ($connection === 'sqlite') {
+            $this->db_database = (string) config('database.connections.sqlite.database');
+        } else {
+            $this->db_host = (string) config('database.connections.mysql.host');
+            $this->db_port = (string) config('database.connections.mysql.port');
+            $this->db_database = (string) config('database.connections.mysql.database');
+            $this->db_username = (string) config('database.connections.mysql.username');
+            $this->db_password = (string) config('database.connections.mysql.password');
+        }
+
+        if (blank($this->db_database)) {
+            return;
+        }
+
+        $result = app(DatabaseConnectionTester::class)->test($this->databaseConfig());
+
+        $this->connectionTested = $result['ok'];
+        $this->connectionMessage = $result['message'];
     }
 
     /**
@@ -135,6 +218,88 @@ class InstallWizard extends Component
     }
 
     /**
+     * Generated once and written to `.env` the moment it's needed — this
+     * installation's own stable identity, sent as `fingerprint` on every
+     * activate/verify call so the license server can tell it apart from
+     * any other install sharing the same key.
+     */
+    private function installationId(): string
+    {
+        $existing = config('license.installation_id');
+
+        if (filled($existing)) {
+            return $existing;
+        }
+
+        $id = (string) Str::uuid();
+
+        app(EnvironmentFileWriter::class)->set(['INSTALLATION_ID' => $id]);
+        config(['license.installation_id' => $id]);
+
+        return $id;
+    }
+
+    /**
+     * Only ever talks to the license server and `.env` here — the
+     * `licenses` table doesn't exist yet at this point in the wizard
+     * (this step deliberately runs before Database/Install, since
+     * activating needs internet, not a database). The actual `License`
+     * row gets created later, once migrations have run, by the Install
+     * step's own `license` task (see `installTasks()`/`recordLicense()`)
+     * — using the plan/expiry captured here, still held on this same
+     * Livewire component instance for the rest of the wizard's lifetime.
+     */
+    public function activateLicense(): void
+    {
+        $this->validate(['license_key' => ['required', 'string']]);
+
+        $result = app(LicenseClient::class)->activate(
+            $this->license_key,
+            $this->installationId(),
+            $this->app_url ?: config('app.url', 'http://localhost'),
+        );
+
+        $this->licenseActivated = $result['valid'];
+        $this->licenseMessage = $result['valid']
+            ? __('License activated.')
+            : __('That key could not be activated: :reason', ['reason' => (string) $result['reason']]);
+
+        if (! $result['valid']) {
+            return;
+        }
+
+        $this->licensePlan = $result['plan'];
+        $this->licenseExpiresAt = $result['expires_at'];
+
+        app(EnvironmentFileWriter::class)->set(['LICENSE_SERVER_URL' => config('license.server_url')]);
+    }
+
+    public function continueFromLicense(): void
+    {
+        if ($this->licenseActivated !== true) {
+            $this->addError('license_key', __('Activate the license before continuing.'));
+
+            return;
+        }
+
+        if ($this->connectionTested === true) {
+            // Database already configured (typically by preinstall.php)
+            // and confirmed reachable at mount() — skip straight past the
+            // Database step instead of asking for the same connection a
+            // second time. Runtime config already reflects `.env` as-is
+            // since Laravel booted with it; only a stale cached
+            // config.php is worth guarding against here, same as
+            // `saveDatabaseAndContinue()` does.
+            Artisan::call('config:clear');
+            $this->step = 4;
+
+            return;
+        }
+
+        $this->step = 3;
+    }
+
+    /**
      * Reset the "tested" flag whenever a connection field changes — a result
      * from before the last edit is not a result for what is on screen now.
      */
@@ -143,6 +308,11 @@ class InstallWizard extends Component
         if (str_starts_with($property, 'db_')) {
             $this->connectionTested = null;
             $this->connectionMessage = '';
+        }
+
+        if ($property === 'license_key') {
+            $this->licenseActivated = null;
+            $this->licenseMessage = '';
         }
     }
 
@@ -181,7 +351,7 @@ class InstallWizard extends Component
         // cheap insurance.
         Artisan::call('config:clear');
 
-        $this->step = 3;
+        $this->step = 4;
     }
 
     public function saveAppSettingsAndContinue(): void
@@ -198,7 +368,7 @@ class InstallWizard extends Component
 
         config(['app.name' => $this->app_name, 'app.url' => $this->app_url]);
 
-        $this->step = 4;
+        $this->step = 5;
     }
 
     /**
@@ -264,7 +434,41 @@ class InstallWizard extends Component
             'modules.mms_calendar' => $this->module_mms_calendar,
         ]);
 
-        $this->step = 5;
+        $this->step = 6;
+    }
+
+    /**
+     * Both are optional — a fresh deployment that doesn't use WhatsApp
+     * notifications or send mail through Microsoft Graph can leave every
+     * field blank and continue; only the keys the operator actually
+     * filled in are written, so a blank field never clobbers a value
+     * already sitting in `.env` from some other source.
+     */
+    public function saveIntegrationsAndContinue(): void
+    {
+        $values = array_filter([
+            'WHATSAPP_PHONE_ID' => $this->whatsapp_phone_id,
+            'WHATSAPP_TOKEN' => $this->whatsapp_token,
+            'WHATSAPP_FROM' => $this->whatsapp_from,
+            'MICROSOFT_GRAPH_TENANT_ID' => $this->graph_tenant_id,
+            'MICROSOFT_GRAPH_CLIENT_ID' => $this->graph_client_id,
+            'MICROSOFT_GRAPH_CLIENT_SECRET' => $this->graph_client_secret,
+        ], fn (string $value): bool => $value !== '');
+
+        if ($values !== []) {
+            app(EnvironmentFileWriter::class)->set($values);
+
+            config([
+                'services.whatsapp.phone_id' => $this->whatsapp_phone_id ?: config('services.whatsapp.phone_id'),
+                'services.whatsapp.token' => $this->whatsapp_token ?: config('services.whatsapp.token'),
+                'services.whatsapp.from' => $this->whatsapp_from ?: config('services.whatsapp.from'),
+                'mail.mailers.microsoft-graph.tenant_id' => $this->graph_tenant_id ?: config('mail.mailers.microsoft-graph.tenant_id'),
+                'mail.mailers.microsoft-graph.client_id' => $this->graph_client_id ?: config('mail.mailers.microsoft-graph.client_id'),
+                'mail.mailers.microsoft-graph.client_secret' => $this->graph_client_secret ?: config('mail.mailers.microsoft-graph.client_secret'),
+            ]);
+        }
+
+        $this->step = 7;
     }
 
     /**
@@ -277,6 +481,7 @@ class InstallWizard extends Component
         $tasks = [
             'database' => __('Preparing the database'),
             'migrate' => __('Running migrations'),
+            'license' => __('Recording license'),
             'seed_core' => __('Seeding core permissions'),
         ];
 
@@ -344,7 +549,8 @@ class InstallWizard extends Component
     {
         return match ($task) {
             'database' => $this->prepareDatabase(),
-            'migrate' => $this->runArtisan('migrate', ['--force' => true]),
+            'migrate' => $this->runMigrations(),
+            'license' => $this->recordLicense(),
             'seed_core' => $this->seed([AllPermissionsSeeder::class, MatterPermissionsSeeder::class]),
             'seed_payroll' => $this->seed([PayrollModulePermissionsSeeder::class, IncentiveCalculationPermissionsSeeder::class]),
             'seed_calendar' => $this->seed([CalendarEventPermissionsSeeder::class]),
@@ -373,6 +579,70 @@ class InstallWizard extends Component
         }
 
         return $result['message']."\n";
+    }
+
+    /**
+     * Persists the `License` row now that `migrate` has just created the
+     * `licenses` table — the plan/expiry activateLicense() captured is
+     * still sitting on this same component instance from Step 2, so this
+     * never has to call the license server a second time.
+     */
+    private function recordLicense(): string
+    {
+        License::updateOrCreate(
+            ['fingerprint' => $this->installationId()],
+            [
+                'key' => $this->license_key,
+                'status' => 'active',
+                'plan' => $this->licensePlan,
+                'expires_at' => $this->licenseExpiresAt,
+                'last_checked_at' => now(),
+                'last_valid_at' => now(),
+            ],
+        );
+
+        return __('License recorded.')."\n";
+    }
+
+    /**
+     * A from-scratch migration run merges every registered migration
+     * path — this app's own `database/migrations` plus every installed
+     * package's own migrations directory — into one list sorted purely
+     * by filename. At least one vendor package ships migrations named
+     * `01_create_messages_table.php` etc. rather than proper timestamps,
+     * which sorts BEFORE `2026_01_01_000000_create_users_table.php` and
+     * tries to add a foreign key to `users` before that table exists.
+     *
+     * This can't be fixed by renaming this app's own `create_users_table`
+     * migration — its filename is the primary key an already-migrated
+     * production database uses to know it already ran; renaming it would
+     * make Laravel think it's a brand-new, unrun migration everywhere
+     * that database already exists, and try to create `users` a second
+     * time. Running migrate twice instead — first restricted to this
+     * app's own migrations directory (correctly ordered internally),
+     * then unrestricted — achieves the same safe ordering with no
+     * renaming at all: the first call creates `users` (and everything
+     * else this app owns) before the second call ever reaches a
+     * package's own migrations, and each migration only ever runs once
+     * regardless, since `migrate` always skips whatever the `migrations`
+     * table already has recorded.
+     *
+     * Uses `migrate:fresh` rather than plain `migrate` for the first call
+     * — this is THE Install step of a first-run wizard, so a database
+     * left half-migrated by an earlier failed attempt (a table created
+     * before some later statement in the same batch failed, e.g. from
+     * the exact ordering issue above) is a real, recurring case here, not
+     * a hypothetical one: retrying with plain `migrate` would hit "table
+     * already exists" for whatever got created last time, since nothing
+     * recorded it as done. Dropping everything and starting clean every
+     * time this step runs is the correct behavior for a step whose whole
+     * job is "set up a brand-new database" — it would not be appropriate
+     * for an ordinary `php artisan migrate` anywhere else in the app.
+     */
+    private function runMigrations(): string
+    {
+        return $this->runArtisan('migrate:fresh', ['--force' => true, '--path' => 'database/migrations'])
+            .$this->runArtisan('migrate', ['--force' => true]);
     }
 
     /**
@@ -410,7 +680,7 @@ class InstallWizard extends Component
             return;
         }
 
-        $this->step = 6;
+        $this->step = 8;
     }
 
     public function createAdmin(): void
@@ -436,7 +706,7 @@ class InstallWizard extends Component
         $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
         $user->assignRole($role);
 
-        $this->step = 7;
+        $this->step = 9;
     }
 
     public function finish(): void

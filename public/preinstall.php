@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'DB_PASSWORD' => $password,
                     ]);
 
-                header('Location: /install');
+                header('Location: /install?db=configured');
                 exit;
             }
 

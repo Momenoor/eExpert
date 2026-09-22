@@ -8,6 +8,7 @@ use App\Http\Controllers\IncentiveCalculationPrintController;
 use App\Http\Controllers\LeaseFinancialDocumentsController;
 use App\Http\Controllers\LeasePrintController;
 use App\Http\Controllers\LeaveRequestEmailActionController;
+use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\MatterReceivedNotificationController;
 use App\Http\Controllers\PayrollJournalVoucherPrintController;
 use App\Http\Controllers\QuotationPrintController;
@@ -30,6 +31,12 @@ Route::get('admin', function () {
 Route::get('/install', InstallWizard::class)
     ->middleware('installer.guard')
     ->name('installer.show');
+
+// Named `license.*` deliberately — EnsureLicenseIsValid bypasses any
+// route whose name matches that prefix, for the same self-redirect-loop
+// reason InstallWizard's own route is named `installer.*`.
+Route::get('/license', [LicenseController::class, 'show'])->name('license.show');
+Route::post('/license', [LicenseController::class, 'activate'])->name('license.activate');
 
 Route::get('/mail/unsubscribe/{token}', function ($token) {
     $recipient = BulkMailRecipient::where('unsubscribe_token', $token)->firstOrFail();

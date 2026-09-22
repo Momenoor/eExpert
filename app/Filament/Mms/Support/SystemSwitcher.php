@@ -21,10 +21,21 @@ class SystemSwitcher
             return view('blank');
         }
 
+        $mmsPanel = Filament::getPanel('mms', isStrict: false);
+        $pmsPanel = Filament::getPanel('pms', isStrict: false);
+
+        // The installer's Modules step can leave either panel unregistered
+        // (see `bootstrap/providers.php`) — nothing to switch to when one
+        // of them doesn't exist, so the switcher just doesn't render
+        // rather than fatal on `getPath()` against a null panel.
+        if (! $mmsPanel || ! $pmsPanel) {
+            return view('blank');
+        }
+
         return view('filament.system-switcher', [
             'currentSystem' => Filament::getCurrentPanel()?->getId() === 'pms' ? 'pms' : 'mms',
-            'mmsUrl' => url(Filament::getPanel('mms')->getPath()),
-            'pmsUrl' => url(Filament::getPanel('pms')->getPath()),
+            'mmsUrl' => url($mmsPanel->getPath()),
+            'pmsUrl' => url($pmsPanel->getPath()),
         ]);
     }
 }

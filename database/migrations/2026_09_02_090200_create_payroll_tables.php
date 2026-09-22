@@ -41,27 +41,6 @@ return new class extends Migration
             });
         }
 
-        if (! Schema::hasTable('loan_installments')) {
-            Schema::create('loan_installments', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('employee_loan_id')->constrained()->cascadeOnDelete();
-
-                $table->unsignedTinyInteger('seq')->comment('1 carries the rounding remainder');
-                $table->char('due_period', 7)->comment('YYYY-MM, matched against the payroll run');
-
-                // Frozen when the schedule is generated. Recomputing monthly would
-                // let a later edit silently shift every remaining instalment.
-                $table->decimal('amount', 12, 2);
-
-                $table->foreignId('payslip_id')->nullable()->comment('Set when actually deducted; null = still outstanding')->constrained()->nullOnDelete();
-
-                $table->timestamps();
-
-                $table->unique(['employee_loan_id', 'seq'], 'li_loan_seq_unique');
-                $table->index('due_period');
-            });
-        }
-
         if (! Schema::hasTable('payroll_runs')) {
             Schema::create('payroll_runs', function (Blueprint $table) {
                 $table->id();
@@ -124,6 +103,32 @@ return new class extends Migration
             });
         }
 
+        // Depends on `payslips` (`payslip_id`), so this has to be created
+        // after it, not alongside `employee_loans` up above where it
+        // reads more naturally — a from-scratch `migrate` failed here
+        // with "Failed to open the referenced table 'payslips'" until
+        // this was moved.
+        if (! Schema::hasTable('loan_installments')) {
+            Schema::create('loan_installments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('employee_loan_id')->constrained()->cascadeOnDelete();
+
+                $table->unsignedTinyInteger('seq')->comment('1 carries the rounding remainder');
+                $table->char('due_period', 7)->comment('YYYY-MM, matched against the payroll run');
+
+                // Frozen when the schedule is generated. Recomputing monthly would
+                // let a later edit silently shift every remaining instalment.
+                $table->decimal('amount', 12, 2);
+
+                $table->foreignId('payslip_id')->nullable()->comment('Set when actually deducted; null = still outstanding')->constrained()->nullOnDelete();
+
+                $table->timestamps();
+
+                $table->unique(['employee_loan_id', 'seq'], 'li_loan_seq_unique');
+                $table->index('due_period');
+            });
+        }
+
         if (! Schema::hasTable('payslip_lines')) {
             Schema::create('payslip_lines', function (Blueprint $table) {
                 $table->id();
@@ -166,11 +171,13 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Reverse of creation order — `loan_installments` has to go
+        // before `payslips`, since it holds the foreign key to it.
         Schema::dropIfExists('eosg_accruals');
         Schema::dropIfExists('payslip_lines');
+        Schema::dropIfExists('loan_installments');
         Schema::dropIfExists('payslips');
         Schema::dropIfExists('payroll_runs');
-        Schema::dropIfExists('loan_installments');
         Schema::dropIfExists('employee_loans');
     }
 };

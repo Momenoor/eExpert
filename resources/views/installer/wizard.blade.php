@@ -2,12 +2,14 @@
     <div class="steps">
         @foreach ([
             1 => __('Requirements'),
-            2 => __('Database'),
-            3 => __('Application'),
-            4 => __('Modules'),
-            5 => __('Install'),
-            6 => __('Admin'),
-            7 => __('Done'),
+            2 => __('License'),
+            3 => __('Database'),
+            4 => __('Application'),
+            5 => __('Modules'),
+            6 => __('Integrations'),
+            7 => __('Install'),
+            8 => __('Admin'),
+            9 => __('Done'),
         ] as $number => $label)
             <div class="dot @if($step === $number) active @elseif($step > $number) done @endif">
                 {{ $number }}. {{ $label }}
@@ -71,8 +73,37 @@
         </div>
     @endif
 
-    {{-- Step 2: Database configuration --}}
+    {{-- Step 2: License --}}
     @if ($step === 2)
+        <div class="card">
+            <h2>{{ __('License') }}</h2>
+            <p class="hint">{{ __('Enter the license key issued for this deployment.') }}</p>
+
+            <div class="field">
+                <label>{{ __('License Key') }}</label>
+                <input type="text" wire:model="license_key" placeholder="MIE-XXXXX-XXXXX-XXXXX-XXXXX">
+                @error('license_key') <div class="error">{{ $message }}</div> @enderror
+            </div>
+
+            @if ($licenseActivated === true)
+                <div class="alert success">{{ $licenseMessage }}</div>
+            @elseif ($licenseActivated === false)
+                <div class="alert danger">{{ $licenseMessage }}</div>
+            @endif
+
+            <div class="actions">
+                <button type="button" class="btn secondary" wire:click="activateLicense" wire:loading.attr="disabled">
+                    {{ __('Activate') }}
+                </button>
+                <button type="button" class="btn" wire:click="continueFromLicense">
+                    {{ __('Continue') }}
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Step 3: Database configuration --}}
+    @if ($step === 3)
         <div class="card">
             <h2>{{ __('Database Configuration') }}</h2>
 
@@ -137,8 +168,8 @@
         </div>
     @endif
 
-    {{-- Step 3: Application details --}}
-    @if ($step === 3)
+    {{-- Step 4: Application details --}}
+    @if ($step === 4)
         <div class="card">
             <h2>{{ __('Application Details') }}</h2>
 
@@ -163,8 +194,8 @@
         </div>
     @endif
 
-    {{-- Step 4: Modules --}}
-    @if ($step === 4)
+    {{-- Step 5: Modules --}}
+    @if ($step === 5)
         <div class="card">
             <h2>{{ __('Modules') }}</h2>
             <p class="hint">{{ __('Turn off what this deployment doesn\'t need. Every table is still created either way — this only controls which panels and menus are enabled, and can be changed later.') }}</p>
@@ -221,8 +252,51 @@
         </div>
     @endif
 
-    {{-- Step 5: Install (migrate & seed), with a live progress bar --}}
-    @if ($step === 5)
+    {{-- Step 6: Optional integrations (WhatsApp, Microsoft Graph mail) --}}
+    @if ($step === 6)
+        <div class="card">
+            <h2>{{ __('Integrations') }}</h2>
+            <p class="hint">{{ __('Optional — leave any of these blank to configure later from Settings. Only filled-in fields are saved.') }}</p>
+
+            <h2>{{ __('WhatsApp') }}</h2>
+            <div class="field">
+                <label>{{ __('Phone Number ID') }}</label>
+                <input type="text" wire:model="whatsapp_phone_id">
+            </div>
+            <div class="field">
+                <label>{{ __('Access Token') }}</label>
+                <input type="password" wire:model="whatsapp_token">
+            </div>
+            <div class="field">
+                <label>{{ __('From Number') }}</label>
+                <input type="text" wire:model="whatsapp_from">
+            </div>
+
+            <h2>{{ __('Microsoft Graph (Mail)') }}</h2>
+            <p class="hint">{{ __('Used to send outbound mail through a Microsoft 365 mailbox instead of SMTP.') }}</p>
+            <div class="field">
+                <label>{{ __('Tenant ID') }}</label>
+                <input type="text" wire:model="graph_tenant_id">
+            </div>
+            <div class="field">
+                <label>{{ __('Client ID') }}</label>
+                <input type="text" wire:model="graph_client_id">
+            </div>
+            <div class="field">
+                <label>{{ __('Client Secret') }}</label>
+                <input type="password" wire:model="graph_client_secret">
+            </div>
+
+            <div class="actions">
+                <button type="button" class="btn" wire:click="saveIntegrationsAndContinue">
+                    {{ __('Continue') }}
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Step 7: Install (migrate & seed), with a live progress bar --}}
+    @if ($step === 7)
         <div
             class="card"
             x-data="{
@@ -282,8 +356,8 @@
         </div>
     @endif
 
-    {{-- Step 6: Admin account --}}
-    @if ($step === 6)
+    {{-- Step 8: Admin account --}}
+    @if ($step === 8)
         <div class="card">
             <h2>{{ __('Create the Administrator Account') }}</h2>
 
@@ -319,8 +393,8 @@
         </div>
     @endif
 
-    {{-- Step 7: Complete --}}
-    @if ($step === 7)
+    {{-- Step 9: Complete --}}
+    @if ($step === 9)
         <div class="card">
             <h2>{{ __('Installation Complete') }}</h2>
             <p>{{ __('The application is ready. This setup wizard will no longer be reachable once you continue.') }}</p>
