@@ -26,6 +26,7 @@ class Installment extends Model
     protected $fillable = [
         'lease_id',
         'is_security_deposit',
+        'is_vat_only',
         'due_date',
         'grace_period_expiry_date',
         'net_amount',
@@ -37,6 +38,7 @@ class Installment extends Model
         'payment_method',
         'payment_status',
         'transaction_reference',
+        'bank_name',
         'paid_date',
         'landlord_trn',
         'tenant_trn',
@@ -47,6 +49,7 @@ class Installment extends Model
 
     protected $casts = [
         'is_security_deposit' => 'boolean',
+        'is_vat_only' => 'boolean',
         'due_date' => 'date',
         'grace_period_expiry_date' => 'date',
         'net_amount' => 'decimal:2',

@@ -14,6 +14,7 @@ use Database\Seeders\AllPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PMSOverviewWidgetTest extends TestCase
@@ -26,8 +27,17 @@ class PMSOverviewWidgetTest extends TestCase
 
         $this->seed(AllPermissionsSeeder::class);
 
+        // AllPermissionsSeeder no longer creates any roles — the configured
+        // super-admin role (config('filament-shield.super_admin.name'),
+        // currently `super-admin`, NOT the legacy `super_admin` spelling)
+        // bypasses every check via Shield's own Gate::before regardless of
+        // assigned permissions, so an empty role is all this test needs,
+        // matching InstallWizard::createAdmin()'s own role creation.
+        $superAdminRole = config('filament-shield.super_admin.name', 'super_admin');
+        Role::firstOrCreate(['name' => $superAdminRole, 'guard_name' => 'web']);
+
         $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
+        $admin->assignRole($superAdminRole);
         $this->actingAs($admin);
 
         Filament::setCurrentPanel(Filament::getPanel('pms'));

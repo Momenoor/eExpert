@@ -422,7 +422,7 @@ class LeasePrintFieldResolver
             'receipt_date' => $this->formatDate(now()),
             'total_receivable_amount' => $this->formatMoney($lease->installments->sum('total_due_amount')),
             'number_of_installments' => (string) $lease->installments->count(),
-            'payment_description' => $this->paymentDescription($lease, $unit, $property),
+            'payment_description' => $this->paymentDescription($lease, $unit, $property, $installment),
 
             default => null,
         };
@@ -533,13 +533,17 @@ class LeasePrintFieldResolver
      * Receipt identifying what the payment is for — the unit, its
      * building, and the lease's own rental period.
      */
-    private function paymentDescription(Lease $lease, ?Unit $unit, ?Property $property): ?string
+    private function paymentDescription(Lease $lease, ?Unit $unit, ?Property $property, ?Installment $installment): ?string
     {
         if ($unit === null || $property === null) {
             return null;
         }
 
-        return __('Rental Payment for unit :unit - Building :building for period from :start until :end', [
+        $message = $installment?->getAttribute('is_vat_only')
+            ? 'VAT Payment for unit :unit - Building :building for period from :start until :end'
+            : 'Rental Payment for unit :unit - Building :building for period from :start until :end';
+
+        return __($message, [
             'unit' => $unit->getAttribute('unit_number'),
             'building' => $property->getAttribute('name'),
             'start' => $this->formatDate($lease->getAttribute('start_date')),

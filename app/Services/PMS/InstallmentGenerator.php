@@ -80,6 +80,7 @@ class InstallmentGenerator
      *     amount: float|string,
      *     reference_number?: string|null,
      *     is_security_deposit?: bool,
+     *     vat_handling?: string,
      * }>  $rows
      * @return Collection<int, Installment>
      */
@@ -101,17 +102,27 @@ class InstallmentGenerator
             foreach (array_values($rows) as $index => $row) {
                 $amount = (float) $row['amount'];
                 $isSecurityDeposit = (bool) ($row['is_security_deposit'] ?? false);
+                $vatHandling = $isSecurityDeposit ? 'excluded' : ($row['vat_handling'] ?? 'combined');
 
                 // A refundable security deposit sits outside the scope of
                 // supply under UAE VAT law — it must never be VAT-loaded the
-                // way a rent instalment is.
-                $net = $isSecurityDeposit ? $amount : round($amount / (1 + $vatRate), 2);
-                $vat = $isSecurityDeposit ? 0.0 : round($amount - $net, 2);
+                // way a rent instalment is. Otherwise the office can declare
+                // a row as VAT bundled into its own cheque ("combined", the
+                // historical behaviour), as a rent-only cheque with the VAT
+                // collected on a sibling row ("excluded"), or as that VAT
+                // cheque itself ("vat_only").
+                [$net, $vat] = match ($vatHandling) {
+                    'excluded' => [$amount, 0.0],
+                    'vat_only' => [0.0, $amount],
+                    default => [round($amount / (1 + $vatRate), 2), round($amount - round($amount / (1 + $vatRate), 2), 2)],
+                };
+                $isVatOnly = $vatHandling === 'vat_only';
                 $dueDate = Carbon::parse($row['payment_date']);
 
                 $installments->push(Installment::create([
                     'lease_id' => $lease->getKey(),
                     'is_security_deposit' => $isSecurityDeposit,
+                    'is_vat_only' => $isVatOnly,
                     'due_date' => $dueDate,
                     'grace_period_expiry_date' => $dueDate->copy()->addDays((int) $lease->getAttribute('grace_period_days')),
                     'net_amount' => $net,

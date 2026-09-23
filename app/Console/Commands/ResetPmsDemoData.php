@@ -72,7 +72,7 @@ class ResetPmsDemoData extends Command
 
         DB::statement($isSqlite ? 'PRAGMA foreign_keys = ON' : 'SET FOREIGN_KEY_CHECKS=1');
 
-        // $this->call('db:seed', ['--class' => PMSDemoSeeder::class]);
+        $this->call('db:seed', ['--class' => PMSDemoSeeder::class]);
 
         $this->info('PMS demo data reset and reseeded.');
 

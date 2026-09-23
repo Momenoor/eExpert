@@ -57,16 +57,18 @@ class PayrollModuleResourcesTest extends TestCase
     {
         parent::setUp();
 
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-
-        // Shield's super_admin is configured with define_via_gate = false, so it
-        // holds no implicit powers: the seeder that grants this module's
-        // permissions on the live database is what makes the screens reachable
-        // here too, which incidentally keeps it covered.
+        // The configured super-admin role (config('filament-shield.super_admin.name'),
+        // currently `super-admin`, not the legacy `super_admin` spelling)
+        // bypasses every check via Shield's own Gate::before — an empty role
+        // is enough. The seeder still runs so permission ROWS exist (Shield's
+        // policies/UI need them to be listed), even though this role doesn't
+        // need them granted.
+        $superAdminRole = config('filament-shield.super_admin.name', 'super_admin');
+        Role::firstOrCreate(['name' => $superAdminRole, 'guard_name' => 'web']);
         $this->seed(PayrollModulePermissionsSeeder::class);
 
         $this->admin = User::factory()->create();
-        $this->admin->assignRole('super_admin');
+        $this->admin->assignRole($superAdminRole);
         $this->actingAs($this->admin);
 
         Filament::setCurrentPanel(Filament::getPanel('mms'));
@@ -162,6 +164,22 @@ class PayrollModuleResourcesTest extends TestCase
         $loan = $loan->fresh();
         $this->assertFalse($loan->isEditable());
 
+        // A regular role holding real Update:EmployeeLoan permission, not
+        // $this->admin — the configured super-admin role bypasses every
+        // policy method outright via Shield's Gate::before, which would
+        // make this assert nothing about the actual business rule this
+        // test exists to protect: that a part-recovered loan can't be
+        // edited by anyone, not even an administrator.
+        $role = Role::firstOrCreate(['name' => 'loan_manager', 'guard_name' => 'web']);
+        $role->givePermissionTo([
+            Permission::findOrCreate('ViewAny:EmployeeLoan', 'web'),
+            Permission::findOrCreate('View:EmployeeLoan', 'web'),
+            Permission::findOrCreate('Update:EmployeeLoan', 'web'),
+        ]);
+        $manager = User::factory()->create();
+        $manager->assignRole($role);
+        $this->actingAs($manager);
+
         // The view page is the whole point: the schedule outlives the right to
         // change it, and before this page existed there was nowhere to read it.
         $this->get(EmployeeLoanResource::getUrl('view', ['record' => $loan]))->assertSuccessful();
@@ -170,7 +188,7 @@ class PayrollModuleResourcesTest extends TestCase
         // policy answers before any form is built or any save is attempted.
         $this->get(EmployeeLoanResource::getUrl('edit', ['record' => $loan]))->assertForbidden();
 
-        $this->assertFalse($this->admin->can('update', $loan));
+        $this->assertFalse($manager->can('update', $loan));
     }
 
     public function test_the_printable_journal_voucher_renders(): void

@@ -48,9 +48,21 @@ class PmsPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        $panel = $panel
             ->id('pms')
-            ->path('pms')
+            ->path('pms');
+
+        // Whichever panel is actually enabled has to be the one Filament
+        // treats as its default — MmsPanelProvider claims it unconditionally,
+        // but that provider isn't even registered at all once the installer's
+        // Modules step disables MMS (see bootstrap/providers.php), which
+        // otherwise leaves no panel marked default and Filament throws
+        // "no default panel" the moment anything needs to resolve one.
+        if (! config('modules.mms', true)) {
+            $panel = $panel->default();
+        }
+
+        return $panel
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login(CustomLogin::class)
             ->sidebarWidth('17rem')

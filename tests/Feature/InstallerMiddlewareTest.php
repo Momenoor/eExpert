@@ -165,11 +165,14 @@ class InstallerMiddlewareTest extends TestCase
         $this->assertSame('file', config('session.driver'));
     }
 
-    public function test_an_installed_application_does_not_redirect_the_homepage(): void
+    public function test_an_installed_application_sends_the_homepage_into_the_default_panel(): void
     {
         User::factory()->create();
 
-        $this->get('/')->assertSuccessful();
+        // '/' sends a bare visit straight into whichever panel Filament
+        // currently resolves as default (see routes/web.php) — it never
+        // shows a generic Laravel landing page.
+        $this->get('/')->assertRedirect();
     }
 
     public function test_an_installed_application_redirects_the_installer_away(): void

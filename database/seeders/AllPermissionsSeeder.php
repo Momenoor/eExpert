@@ -7,12 +7,16 @@ namespace Database\Seeders;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * Ensures all application, Shield, and policy permissions exist in the database
- * and are assigned to appropriate roles.
+ * Ensures all application, Shield, and policy permissions exist in the
+ * database — no roles are created or granted here. `super_admin` bypasses
+ * every permission check via Shield's own Gate::before (see
+ * config/filament-shield.php `super_admin.define_via_gate`), so it needs no
+ * explicit grants; any other role is created and assigned permissions by
+ * the office through Shield's own Role resource, using these rows as the
+ * assignable list.
  *
  * Idempotent — running multiple times safely creates only missing permissions.
  */
@@ -32,16 +36,6 @@ class AllPermissionsSeeder extends Seeder
         'Access:MultipleSystems',
     ];
 
-    /**
-     * Roles that should receive all permissions.
-     *
-     * @var list<string>
-     */
-    private const SUPER_ADMIN_ROLES = [
-        'super_admin',
-        'super-admin',
-    ];
-
     public function run(): void
     {
         // 1. Clear permission cache before querying/modifying
@@ -57,7 +51,6 @@ class AllPermissionsSeeder extends Seeder
             ->values();
 
         $createdCount = 0;
-        $permissionModels = [];
 
         foreach ($allPermissions as $permissionName) {
             $permission = Permission::firstOrCreate([
@@ -68,33 +61,11 @@ class AllPermissionsSeeder extends Seeder
             if ($permission->wasRecentlyCreated) {
                 $createdCount++;
             }
-
-            $permissionModels[] = $permission;
         }
 
         $this->command?->info("Processed {$allPermissions->count()} total permissions ({$createdCount} newly created).");
 
-        // 4. Assign all permissions to super admin roles
-        foreach (self::SUPER_ADMIN_ROLES as $roleName) {
-            $role = Role::firstOrCreate([
-                'name' => $roleName,
-                'guard_name' => 'web',
-            ]);
-
-            $role->givePermissionTo($permissionModels);
-            $this->command?->info("✓ Assigned all permissions to [{$roleName}] role.");
-        }
-
-        // 5. Assign appropriate permissions to admin role
-        $adminRole = Role::firstOrCreate([
-            'name' => 'admin',
-            'guard_name' => 'web',
-        ]);
-
-        $adminRole->givePermissionTo($permissionModels);
-        $this->command?->info('✓ Assigned permissions to [admin] role.');
-
-        // 6. Clear permission cache so changes take effect immediately
+        // 4. Clear permission cache so changes take effect immediately
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->command?->info('✓ All permissions seeded and cache cleared successfully.');

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -69,15 +68,6 @@ class PayrollModulePermissionsSeeder extends Seeder
         'EosgClosingVoucher' => ['View', 'Generate'],
     ];
 
-    /**
-     * Roles that should receive everything this module defines.
-     *
-     * Both spellings are listed because this database carries both — a role
-     * named `super_admin` and another named `super-admin`. Granting to only one
-     * would leave half the administrators locked out of payroll.
-     */
-    private const SUPER_ADMIN_ROLES = ['super_admin', 'super-admin'];
-
     public function run(): void
     {
         $names = [];
@@ -96,12 +86,6 @@ class PayrollModulePermissionsSeeder extends Seeder
 
         foreach ($names as $name) {
             Permission::findOrCreate($name, 'web');
-        }
-
-        foreach (self::SUPER_ADMIN_ROLES as $roleName) {
-            $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
-
-            $role?->givePermissionTo($names);
         }
 
         // Spatie caches the permission map; without this the new grants are

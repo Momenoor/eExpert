@@ -145,4 +145,58 @@ class InstallmentGeneratorTest extends TestCase
 
         $this->assertSame(0.0, (float) $installments->first()->vat_amount);
     }
+
+    public function test_a_manual_schedule_can_split_rent_and_vat_across_separate_rows(): void
+    {
+        $unit = Unit::factory()->commercial()->create();
+        $lease = $this->contractOn($unit, 60000);
+
+        $installments = $this->generator->recordManualSchedule($lease, [
+            [
+                'payment_method' => 'cash',
+                'payment_date' => '2026-01-01',
+                'amount' => 60000,
+                'vat_handling' => 'excluded',
+            ],
+            [
+                'payment_method' => 'cash',
+                'payment_date' => '2026-01-01',
+                'amount' => 3000,
+                'vat_handling' => 'vat_only',
+            ],
+        ]);
+
+        $rentRow = $installments->first();
+        $vatRow = $installments->last();
+
+        $this->assertFalse($rentRow->is_vat_only);
+        $this->assertSame(60000.0, (float) $rentRow->net_amount);
+        $this->assertSame(0.0, (float) $rentRow->vat_amount);
+
+        $this->assertTrue($vatRow->is_vat_only);
+        $this->assertSame(0.0, (float) $vatRow->net_amount);
+        $this->assertSame(3000.0, (float) $vatRow->vat_amount);
+        $this->assertSame(3000.0, (float) $vatRow->total_due_amount);
+        $this->assertNotNull($vatRow->tax_invoice_serial);
+    }
+
+    public function test_a_manual_schedule_row_defaults_to_vat_included_in_the_amount(): void
+    {
+        $unit = Unit::factory()->commercial()->create();
+        $lease = $this->contractOn($unit, 60000);
+
+        $installments = $this->generator->recordManualSchedule($lease, [
+            [
+                'payment_method' => 'cash',
+                'payment_date' => '2026-01-01',
+                'amount' => 63000,
+            ],
+        ]);
+
+        $row = $installments->first();
+
+        $this->assertFalse($row->is_vat_only);
+        $this->assertSame(60000.0, (float) $row->net_amount);
+        $this->assertSame(3000.0, (float) $row->vat_amount);
+    }
 }

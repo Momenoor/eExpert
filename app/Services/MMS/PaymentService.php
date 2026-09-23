@@ -20,6 +20,7 @@ class PaymentService
      *     amount: float|string,
      *     payment_method?: string|null,
      *     transaction_reference?: string|null,
+     *     bank_name?: string|null,
      *     paid_date?: string|null,
      * }  $data
      */
@@ -37,6 +38,7 @@ class PaymentService
 
         $paymentMethod = $data['payment_method'] ?? $installment->getAttribute('payment_method');
         $transactionReference = $data['transaction_reference'] ?? $installment->getAttribute('transaction_reference');
+        $bankName = $data['bank_name'] ?? $installment->getAttribute('bank_name');
         $paidDate = $data['paid_date'] ?? now()->toDateString();
 
         InstallmentPayment::create([
@@ -44,6 +46,7 @@ class PaymentService
             'amount' => $amount,
             'payment_method' => $paymentMethod,
             'transaction_reference' => $transactionReference,
+            'bank_name' => $bankName,
             'paid_date' => $paidDate,
         ]);
 
@@ -62,6 +65,7 @@ class PaymentService
             'payment_status' => $balance <= 0.0 ? InstallmentPaymentStatus::PAID : InstallmentPaymentStatus::PARTIAL,
             'payment_method' => $paymentMethod,
             'transaction_reference' => $transactionReference,
+            'bank_name' => $bankName,
             'paid_date' => $paidDate,
         ])->save();
 

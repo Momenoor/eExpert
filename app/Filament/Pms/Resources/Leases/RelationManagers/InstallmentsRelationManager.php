@@ -80,6 +80,10 @@ class InstallmentsRelationManager extends RelationManager
                     ->label(__('Method'))
                     ->badge()
                     ->placeholder('—'),
+                TextColumn::make('bank_name')
+                    ->label(__('Bank'))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('payment_status')
                     ->label(__('Status'))
                     ->badge(),
@@ -179,6 +183,8 @@ class InstallmentsRelationManager extends RelationManager
                     ->options(InstallmentPaymentMethod::class),
                 TextInput::make('transaction_reference')
                     ->label(__('Transaction / Cheque Reference')),
+                TextInput::make('bank_name')
+                    ->label(__('Bank Name')),
                 DatePicker::make('paid_date')
                     ->label(__('Paid Date'))
                     ->default(now()),

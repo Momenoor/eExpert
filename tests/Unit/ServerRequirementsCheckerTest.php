@@ -23,7 +23,7 @@ class ServerRequirementsCheckerTest extends TestCase
     {
         parent::setUp();
 
-        $this->checker = new ServerRequirementsChecker;
+        $this->checker = app(ServerRequirementsChecker::class);
     }
 
     public function test_it_returns_a_labelled_check_for_every_requirement(): void
@@ -54,13 +54,14 @@ class ServerRequirementsCheckerTest extends TestCase
 
     public function test_some_checks_are_warnings_rather_than_critical(): void
     {
-        // Every non-critical check in this class is a writable-directory check
-        // — asserted by count rather than by matching a translated label, since
-        // this app's default locale is Arabic and the label text is translated
-        // before it reaches this array.
+        // Non-critical: the 4 writable-directory checks plus Composer
+        // dependencies and the frontend build — asserted by count rather
+        // than by matching a translated label, since this app's default
+        // locale is Arabic and the label text is translated before it
+        // reaches this array.
         $nonCritical = collect($this->checker->check())->where('critical', false);
 
-        $this->assertCount(4, $nonCritical);
+        $this->assertCount(6, $nonCritical);
     }
 
     public function test_this_environment_passes_its_own_critical_checks(): void

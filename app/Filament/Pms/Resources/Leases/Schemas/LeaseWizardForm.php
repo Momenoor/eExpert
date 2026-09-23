@@ -324,7 +324,18 @@ class LeaseWizardForm
                             ->maxLength(255),
                         Checkbox::make('is_security_deposit')
                             ->label(__('Security Deposit'))
-                            ->helperText(__('Excluded from VAT.')),
+                            ->helperText(__('Excluded from VAT.'))
+                            ->live(),
+                        Select::make('vat_handling')
+                            ->label(__('VAT'))
+                            ->options([
+                                'combined' => __('Included in this amount'),
+                                'excluded' => __('Rent only — VAT paid on another row'),
+                                'vat_only' => __('This row is the VAT payment'),
+                            ])
+                            ->default('combined')
+                            ->selectablePlaceholder(false)
+                            ->visible(fn (Get $get): bool => ! $get('is_security_deposit')),
                     ])
                     ->table([
                         TableColumn::make(__('Payment Method')),
@@ -332,8 +343,9 @@ class LeaseWizardForm
                         TableColumn::make(__('Amount')),
                         TableColumn::make(__('Reference')),
                         TableColumn::make(__('Security Deposit')),
+                        TableColumn::make(__('VAT')),
                     ])
-                    ->columns(5)
+                    ->columns(6)
                     ->minItems(1)
                     ->addActionLabel(__('Add Installment'))
                     ->columnSpanFull()

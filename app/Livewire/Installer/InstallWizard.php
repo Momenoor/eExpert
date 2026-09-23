@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Installer\DatabaseConnectionTester;
 use App\Services\Installer\EnvironmentFileWriter;
 use App\Services\Installer\InstallationStatus;
+use App\Services\Installer\ModulePruner;
 use App\Services\Installer\PackageInstaller;
 use App\Services\Installer\ServerRequirementsChecker;
 use App\Services\License\LicenseClient;
@@ -140,7 +141,16 @@ class InstallWizard extends Component
         }
 
         $this->app_name = config('app.name', 'Laravel');
-        $this->app_url = config('app.url', 'http://localhost');
+
+        // `public/preinstall.php` already writes APP_URL to the real
+        // domain when it creates `.env` from scratch — this only kicks
+        // in for the other path onto this wizard, where `vendor/`/`.env`
+        // already existed and skipped that script entirely, leaving
+        // APP_URL sitting at the Laravel skeleton's generic default.
+        $configuredUrl = config('app.url', 'http://localhost');
+        $this->app_url = $configuredUrl === 'http://localhost'
+            ? request()->getSchemeAndHttpHost()
+            : $configuredUrl;
 
         $this->whatsapp_phone_id = (string) config('services.whatsapp.phone_id');
         $this->whatsapp_token = (string) config('services.whatsapp.token');
@@ -482,6 +492,7 @@ class InstallWizard extends Component
             'database' => __('Preparing the database'),
             'migrate' => __('Running migrations'),
             'license' => __('Recording license'),
+            'shield_generate' => __('Generating panel permissions'),
             'seed_core' => __('Seeding core permissions'),
         ];
 
@@ -498,6 +509,7 @@ class InstallWizard extends Component
         }
 
         $tasks['cache_clear'] = __('Clearing caches');
+        $tasks['prune_modules'] = __('Removing unlicensed module files');
 
         return $tasks;
     }
@@ -551,11 +563,13 @@ class InstallWizard extends Component
             'database' => $this->prepareDatabase(),
             'migrate' => $this->runMigrations(),
             'license' => $this->recordLicense(),
+            'shield_generate' => $this->generateShieldPermissions(),
             'seed_core' => $this->seed([AllPermissionsSeeder::class, MatterPermissionsSeeder::class]),
             'seed_payroll' => $this->seed([PayrollModulePermissionsSeeder::class, IncentiveCalculationPermissionsSeeder::class]),
             'seed_calendar' => $this->seed([CalendarEventPermissionsSeeder::class]),
             'seed_pms' => $this->seed([PMSPermissionsSeeder::class, PMSConditionTemplatesSeeder::class, PMSPrintTemplatesSeeder::class]),
             'cache_clear' => $this->clearCaches(),
+            'prune_modules' => $this->pruneUnlicensedModules(),
             default => '',
         };
     }
@@ -672,6 +686,53 @@ class InstallWizard extends Component
     private function clearCaches(): string
     {
         return $this->runArtisan('config:clear').$this->runArtisan('route:clear').$this->runArtisan('view:clear');
+    }
+
+    /**
+     * Discovers every registered Shield resource/page/widget permission for
+     * each panel the operator actually enabled in step 5 — silent, since
+     * `--panel` and `--option` both being supplied skips Shield's own
+     * interactive prompts. Only permission rows come out of this; no roles
+     * are created or granted here (see AllPermissionsSeeder's own docblock
+     * for why `super_admin` needs none).
+     */
+    private function generateShieldPermissions(): string
+    {
+        $output = '';
+
+        foreach (array_keys(array_filter(['mms' => $this->module_mms, 'pms' => $this->module_pms])) as $panel) {
+            $output .= $this->runArtisan('shield:generate', [
+                '--panel' => $panel,
+                '--option' => 'permissions',
+                '--all' => true,
+            ]);
+        }
+
+        return $output;
+    }
+
+    /**
+     * One-way per deployment: physically relocates whichever module wasn't
+     * selected in step 5 to cold storage (see {@see ModulePruner}), so its
+     * source code isn't left sitting on a client's server for a module they
+     * never licensed. The other, selected module is never touched.
+     */
+    private function pruneUnlicensedModules(): string
+    {
+        $pruner = app(ModulePruner::class);
+        $output = '';
+
+        if (! $this->module_mms) {
+            $pruner->prune('mms');
+            $output .= "Pruned MMS module files.\n";
+        }
+
+        if (! $this->module_pms) {
+            $pruner->prune('pms');
+            $output .= "Pruned PMS module files.\n";
+        }
+
+        return $output;
     }
 
     public function continueFromMigration(): void

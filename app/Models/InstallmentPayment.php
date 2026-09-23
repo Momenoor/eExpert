@@ -19,6 +19,7 @@ class InstallmentPayment extends Model
         'amount',
         'payment_method',
         'transaction_reference',
+        'bank_name',
         'paid_date',
     ];
 

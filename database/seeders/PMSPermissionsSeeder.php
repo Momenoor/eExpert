@@ -4,17 +4,18 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * PMS-only role/permission grants — separate from `AllPermissionsSeeder`
- * (which grants every Shield permission to `super_admin`/`super-admin`/
- * `admin` regardless of module). This seeder exists for a role scoped to
- * *just* PMS: full CRUD on every PMS resource, its dashboard widgets, plus
- * `Access:MultipleSystems` — without that permission, `User::canAccessPanel()`
- * refuses the `pms` panel outright, so a PMS-only role would otherwise hold
- * every PMS permission and still never be able to log in and use any of them.
+ * PMS-only permissions — separate from `AllPermissionsSeeder`/
+ * `MatterPermissionsSeeder` since Shield's own discovery is scoped to
+ * whichever panel is "current" when it runs (the default `mms` panel), so
+ * it never reaches PMS's own resources/widgets or `Access:MultipleSystems`
+ * (the permission `User::canAccessPanel()` requires to even open the `pms`
+ * panel). No roles are created here — `super_admin` bypasses every check
+ * via Shield's Gate::before, and any other role is built by the office
+ * through Shield's own Role resource, using these rows as the assignable
+ * list.
  */
 class PMSPermissionsSeeder extends Seeder
 {
@@ -70,18 +71,6 @@ class PMSPermissionsSeeder extends Seeder
         );
 
         $this->command?->info('✓ '.$permissions->count().' PMS permissions ready.');
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        // A role scoped to PMS alone — every PMS resource, plus the one
-        // permission that actually lets it reach the panel those resources
-        // live in.
-        foreach (['pms-admin', 'super_admin', 'super-admin', 'admin'] as $roleName) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            $role->givePermissionTo($permissions);
-
-            $this->command?->info("✓ Role [{$roleName}] → {$permissions->count()} PMS permissions assigned.");
-        }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 

@@ -27,12 +27,20 @@ class AllPermissionsSeederTest extends TestCase
             ]);
         }
 
-        $superAdmin = Role::where('name', 'super_admin')->first();
-        $this->assertNotNull($superAdmin);
-        $this->assertGreaterThanOrEqual(count($shieldPermissions), $superAdmin->permissions()->count());
+        $this->assertDatabaseHas('permissions', [
+            'name' => 'Access:MultipleSystems',
+            'guard_name' => 'web',
+        ]);
+    }
 
-        $admin = Role::where('name', 'admin')->first();
-        $this->assertNotNull($admin);
-        $this->assertGreaterThan(0, $admin->permissions()->count());
+    public function test_all_permissions_seeder_creates_no_roles(): void
+    {
+        $this->seed(AllPermissionsSeeder::class);
+
+        // super_admin bypasses every permission check via Shield's own
+        // Gate::before (config/filament-shield.php `super_admin.define_via_gate`),
+        // so it needs no seeded role — creating one, if wanted, is
+        // InstallWizard::createAdmin()'s job when the admin account is made.
+        $this->assertSame(0, Role::count());
     }
 }

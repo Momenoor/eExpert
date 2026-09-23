@@ -11,6 +11,17 @@
 /.phpunit.cache
 /.vscode
 /.zed
+
+# AI assistant tooling — local editor/agent config, not part of the app
+/.ai
+/.claude
+/.junie
+/.cursor
+/.windsurf
+/.aider*
+/.mcp.json
+/boost.json
+/CLAUDE.local.md
 /auth.json
 /node_modules
 /public/hot

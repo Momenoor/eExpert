@@ -124,6 +124,23 @@ function write_env(array $values): void
     file_put_contents($path, $contents);
 }
 
+/**
+ * The scheme+host this very request arrived on — the domain the operator
+ * is actually reaching this installer through, which is exactly what
+ * APP_URL should be. Detected once, when `.env` doesn't exist yet, so
+ * the operator is never asked to type in their own domain by hand.
+ */
+function current_app_url(): string
+{
+    $scheme = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+        ? 'https' : 'http';
+
+    $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+
+    return "{$scheme}://{$host}";
+}
+
 function ensure_env_exists(): void
 {
     if (env_exists()) {
@@ -132,6 +149,8 @@ function ensure_env_exists(): void
 
     $example = BASE_PATH.'/.env.example';
     file_put_contents(BASE_PATH.'/.env', file_exists($example) ? file_get_contents($example) : '');
+
+    write_env(['APP_URL' => current_app_url()]);
 }
 
 /**

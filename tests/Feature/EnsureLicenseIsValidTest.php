@@ -44,7 +44,11 @@ class EnsureLicenseIsValidTest extends TestCase
             'last_valid_at' => now(),
         ]);
 
-        $this->get('/')->assertSuccessful();
+        // '/' always redirects into the default panel regardless of license
+        // state (see routes/web.php) — passing through this middleware
+        // means that redirect ISN'T to the license page.
+        $response = $this->get('/')->assertRedirect();
+        $this->assertNotSame(route('license.show'), $response->headers->get('Location'));
     }
 
     public function test_a_request_passes_through_within_the_grace_period_despite_a_stale_check(): void
@@ -56,7 +60,8 @@ class EnsureLicenseIsValidTest extends TestCase
             'last_valid_at' => now()->subDays(3),
         ]);
 
-        $this->get('/')->assertSuccessful();
+        $response = $this->get('/')->assertRedirect();
+        $this->assertNotSame(route('license.show'), $response->headers->get('Location'));
     }
 
     public function test_a_request_is_redirected_once_the_grace_period_has_elapsed(): void

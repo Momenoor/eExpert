@@ -82,6 +82,17 @@ class PaymentServiceTest extends TestCase
         $this->assertSame('0.00', $installment->balance_due);
     }
 
+    public function test_recording_a_payment_stores_the_bank_name_on_both_the_ledger_and_the_installment(): void
+    {
+        $installment = $this->installment(10000);
+
+        $this->payments->recordPayment($installment, ['amount' => 4000, 'bank_name' => 'Emirates NBD']);
+
+        $installment = $installment->fresh();
+        $this->assertSame('Emirates NBD', $installment->bank_name);
+        $this->assertSame('Emirates NBD', $installment->payments->sole()->bank_name);
+    }
+
     public function test_two_partial_payments_each_create_their_own_ledger_row(): void
     {
         $installment = $this->installment(10000);

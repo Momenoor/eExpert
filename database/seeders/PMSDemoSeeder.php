@@ -361,14 +361,21 @@ class PMSDemoSeeder extends Seeder
             return;
         }
 
-        $page = LeasePrintTemplatePage::create([
+        // firstOrCreate rather than create — the template itself is
+        // infrastructure that survives a PMS demo-data reset (unlike the
+        // properties/leases/etc. this seeder otherwise repopulates from
+        // scratch each run), so re-running this must not try to insert a
+        // second page 1 onto it.
+        $page = LeasePrintTemplatePage::firstOrCreate([
             'lease_print_template_id' => $template->id,
             'page_number' => 1,
         ]);
 
-        $page->fields()->createMany([
-            ['field_key' => 'tenant_name', 'x_percent' => 15, 'y_percent' => 20],
-            ['field_key' => 'government_contract_number', 'x_percent' => 60, 'y_percent' => 10],
-        ]);
+        if ($page->fields()->doesntExist()) {
+            $page->fields()->createMany([
+                ['field_key' => 'tenant_name', 'x_percent' => 15, 'y_percent' => 20],
+                ['field_key' => 'government_contract_number', 'x_percent' => 60, 'y_percent' => 10],
+            ]);
+        }
     }
 }

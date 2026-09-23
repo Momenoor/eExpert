@@ -21,9 +21,15 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 // request for that file, until `.env` has progressed past a fresh copy
 // of `.env.example` (an app key and a database name both set — exactly
 // what preinstall.php's own Database step writes once it succeeds).
-if (! env_looks_configured(__DIR__.'/../.env')
-    && ($_SERVER['SCRIPT_NAME'] ?? '') !== '/preinstall.php') {
-    header('Location: /preinstall.php');
+
+$scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+$baseUrl = ($scriptDir === '/' || $scriptDir === '\\' || $scriptDir === '.') ? '' : rtrim($scriptDir, '/\\');
+
+$preinstallUri = $baseUrl.'/preinstall.php';
+$currentUri = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+
+if (! env_looks_configured(__DIR__.'/../.env') && $currentUri !== $preinstallUri) {
+    header("Location: {$preinstallUri}");
     exit;
 }
 

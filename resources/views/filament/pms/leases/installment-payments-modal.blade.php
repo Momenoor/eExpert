@@ -5,6 +5,7 @@
             <span style="font-weight: 600;">{{ number_format((float) $payment->amount, 2) }} {{ __('AED') }}</span>
             <span>{{ $payment->payment_method?->getLabel() ?? '—' }}</span>
             <span style="color: #6b7280;">{{ $payment->transaction_reference ?? '—' }}</span>
+            <span style="color: #6b7280;">{{ $payment->bank_name ?? '—' }}</span>
         </div>
     @empty
         <p style="font-size: 13px; color: #9ca3af;">{{ __('No payments recorded yet.') }}</p>

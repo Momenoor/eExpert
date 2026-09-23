@@ -58,11 +58,15 @@ class PayrollPermissionsTest extends TestCase
     #[DataProvider('policyProvider')]
     public function test_the_seeder_creates_and_grants_every_ability_the_policy_checks(string $policy, string $subject): void
     {
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        // The configured super-admin role (currently `super-admin`, not the
+        // legacy `super_admin` spelling) is the one Shield's Gate::before
+        // actually bypasses every check for — see config/filament-shield.php.
+        $superAdminRole = config('filament-shield.super_admin.name', 'super_admin');
+        Role::firstOrCreate(['name' => $superAdminRole, 'guard_name' => 'web']);
         $this->seed(PayrollModulePermissionsSeeder::class);
 
         $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
+        $admin->assignRole($superAdminRole);
 
         foreach (self::abilitiesOf($policy) as $ability) {
             // manageOthers deliberately resolves to Approve:LeaveRequest rather
@@ -122,11 +126,12 @@ class PayrollPermissionsTest extends TestCase
 
     public function test_a_super_admin_can_actually_run_the_payroll_ladder(): void
     {
-        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $superAdminRole = config('filament-shield.super_admin.name', 'super_admin');
+        Role::firstOrCreate(['name' => $superAdminRole, 'guard_name' => 'web']);
         $this->seed(PayrollModulePermissionsSeeder::class);
 
         $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
+        $admin->assignRole($superAdminRole);
 
         $run = PayrollRun::create(['period' => '2026-06', 'status' => 'draft']);
 
